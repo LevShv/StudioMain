@@ -1,6 +1,8 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
+#include <MainWindowView.h>
+
 int main(int argc, char *argv[])
 {
 #if defined(Q_OS_WIN) && QT_VERSION_CHECK(5, 6, 0) <= QT_VERSION && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -10,7 +12,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
-    engine.load(QUrl(QStringLiteral("qrc:/qt/qml/studiomain/main.qml")));
+    engine.load(QUrl(QStringLiteral("qrc:/View/MainWindowView/MainWindow.qml")));
     if (engine.rootObjects().isEmpty())
         return -1;
 

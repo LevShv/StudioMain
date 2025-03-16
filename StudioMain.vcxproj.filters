@@ -21,6 +21,9 @@
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
+    <Filter Include="MainWindowWiew">
+      <UniqueIdentifier>{3af7ff94-dc89-4513-b262-27eeac9fde07}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -32,6 +35,18 @@
     <None Include="main.qml">
       <Filter>Source Files</Filter>
     </None>
-
+    <ClCompile Include="View\MainWindowView\MainWindowView.cpp">
+      <Filter>MainWindowWiew</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="View\MainWindowView\MainWindow.qml">
+      <Filter>MainWindowWiew</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="View\MainWindowView\MainWindowView.h">
+      <Filter>MainWindowWiew</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

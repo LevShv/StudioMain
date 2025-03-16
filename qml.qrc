@@ -2,4 +2,7 @@
     <qresource prefix="/qt/qml/studiomain">
         <file>main.qml</file>
     </qresource>
+    <qresource prefix="/">
+        <file>View/MainWindowView/MainWindow.qml</file>
+    </qresource>
 </RCC>
