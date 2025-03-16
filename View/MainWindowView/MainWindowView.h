@@ -7,6 +7,7 @@ private:
 	int a;
 	int b;
 	int c;
+	double pro;
 	void hello();
 
 public:
