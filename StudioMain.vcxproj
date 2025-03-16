@@ -98,13 +98,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\engine.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ViewModel\ViewModel.cpp" />
     <ClCompile Include="View\MainWindowView\MainWindowView.cpp" />
     <None Include="View\MainWindowView\MainWindow.qml" />
     <QtRcc Include="qml.qrc" />
     <None Include="main.qml" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\engine.h" />
+    <ClInclude Include="ViewModel\ViewModel.h" />
     <ClInclude Include="View\MainWindowView\MainWindowView.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
