@@ -24,6 +24,12 @@
     <Filter Include="MainWindowWiew">
       <UniqueIdentifier>{3af7ff94-dc89-4513-b262-27eeac9fde07}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{13f8d1b3-9352-4e9b-8025-bd566cc849f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ViewModel">
+      <UniqueIdentifier>{29308329-de07-405c-94ab-636ed39b67ea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -38,6 +44,12 @@
     <ClCompile Include="View\MainWindowView\MainWindowView.cpp">
       <Filter>MainWindowWiew</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\engine.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewModel\ViewModel.cpp">
+      <Filter>ViewModel</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="View\MainWindowView\MainWindow.qml">
@@ -47,6 +59,12 @@
   <ItemGroup>
     <ClInclude Include="View\MainWindowView\MainWindowView.h">
       <Filter>MainWindowWiew</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\engine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewModel\ViewModel.h">
+      <Filter>ViewModel</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
