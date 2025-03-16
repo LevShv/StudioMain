@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
-    engine.load(QUrl(QStringLiteral("qrc:/qt/qml/studiomain/main.qml")));
+    engine.load(QUrl(QStringLiteral("qrc:/View/MainWindowView/MainWindow.qml")));
     if (engine.rootObjects().isEmpty())
         return -1;
 
