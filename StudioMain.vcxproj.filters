@@ -38,9 +38,6 @@
     <QtRcc Include="qml.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
-    <None Include="main.qml">
-      <Filter>Source Files</Filter>
-    </None>
     <ClCompile Include="View\MainWindowView\MainWindowView.cpp">
       <Filter>MainWindowWiew</Filter>
     </ClCompile>
@@ -57,14 +54,16 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="View\MainWindowView\MainWindowView.h">
-      <Filter>MainWindowWiew</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\engine.h">
       <Filter>Engine</Filter>
     </ClInclude>
-    <ClInclude Include="ViewModel\ViewModel.h">
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="ViewModel\ViewModel.h">
       <Filter>ViewModel</Filter>
-    </ClInclude>
+    </QtMoc>
+    <QtMoc Include="View\MainWindowView\MainWindowView.h">
+      <Filter>MainWindowWiew</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>
