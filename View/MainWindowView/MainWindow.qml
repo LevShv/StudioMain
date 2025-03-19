@@ -97,7 +97,8 @@ Window {
                        }
 
                        Button {
-                           text: "⏯"
+                           text: viewModel.isPlaying ? "Pause" : "Play" // Текст кнопки зависит от состояния
+                           onClicked: viewModel.togglePlayback() // Переключение состояния при нажатии
                            flat: true
                            contentItem: Text {
                                text: parent.text
