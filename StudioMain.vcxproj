@@ -104,7 +104,6 @@
     <ClCompile Include="View\MainWindowView\MainWindowView.cpp" />
     <None Include="View\MainWindowView\MainWindow.qml" />
     <QtRcc Include="qml.qrc" />
-    <None Include="main.qml" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\engine.h" />
