@@ -1,5 +1,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 
 #include <MainWindowView.h>
 //
@@ -13,6 +14,11 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
+
+    MainViewModel viewModel;
+    engine.rootContext()->setContextProperty("viewModel", &viewModel);
+
+
     engine.load(QUrl(QStringLiteral("qrc:/View/MainWindowView/MainWindow.qml")));
     if (engine.rootObjects().isEmpty())
         return -1;
