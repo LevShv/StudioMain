@@ -79,7 +79,11 @@ Window {
                        Layout.fillWidth: true
                        Layout.leftMargin: 20
                        Layout.rightMargin: 20
-                       value: 0.5
+
+                       from: 0
+                       to: 100
+                       value: viewModel.volume // Привязка к свойству громкости
+                       onValueChanged: viewModel.setVolume(value) // Изменение громкости
                    }
 
                    RowLayout {

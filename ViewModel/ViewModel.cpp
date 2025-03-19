@@ -1,10 +1,10 @@
 #include "ViewModel.h"
 #include <QtCore/QDebug>
 
-ViewModel::ViewModel(QObject* parent) : QObject(parent), m_isPlaying(false)
-{
-
-}
+ViewModel::ViewModel(QObject* parent) : QObject(parent), 
+m_isPlaying(false),
+m_volume(50) 
+{}
 
 Q_INVOKABLE void ViewModel::togglePlayback()
 {
@@ -20,3 +20,17 @@ bool ViewModel::isPlaying() const
 {
 	return m_isPlaying;
 }
+
+void ViewModel::setVolume(int volume) {
+	if (m_volume != volume) {
+		m_volume = volume;
+		qDebug() << "Volume changed on:" << m_volume;
+		emit volumeChanged(); // Уведомление об изменении громкости
+	}
+}
+
+int ViewModel::volume() const {
+	return m_volume;
+}
+
+
