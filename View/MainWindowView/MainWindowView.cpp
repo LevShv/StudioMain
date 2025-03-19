@@ -1,6 +1,6 @@
 #include "MainWindowView.h"
 
-void StudioMain::hello()
+
+MainViewModel::MainViewModel(QObject* parent)
 {
-	//std::cout << "ÏÐèâåò";
 }
