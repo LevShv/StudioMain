@@ -79,7 +79,11 @@ Window {
                        Layout.fillWidth: true
                        Layout.leftMargin: 20
                        Layout.rightMargin: 20
-                       value: 0.5
+
+                       from: 0
+                       to: 100
+                       value: viewModel.volume // Привязка к свойству громкости
+                       onValueChanged: viewModel.setVolume(value) // Изменение громкости
                    }
 
                    RowLayout {
@@ -97,7 +101,8 @@ Window {
                        }
 
                        Button {
-                           text: "⏯"
+                           text: viewModel.isPlaying ? "Pause" : "Play" // Текст кнопки зависит от состояния
+                           onClicked: viewModel.togglePlayback() // Переключение состояния при нажатии
                            flat: true
                            contentItem: Text {
                                text: parent.text
