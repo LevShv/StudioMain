@@ -2,8 +2,12 @@
 import QtQuick.Window 2.2
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 
+import QtQuick.Controls.Material
 
 Window {
+    Component.onCompleted: {
+        Application.style = "Material" // Или "Material", "Universal", "Basic"
+    }
     visible: true
     width: 640
     height: 480
