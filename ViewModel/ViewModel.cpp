@@ -1,10 +1,18 @@
 #include "ViewModel.h"
 #include <QtCore/QDebug>
+#include <engine.h>
+
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent), 
 m_isPlaying(false),
 m_volume(50) 
-{}
+{
+	Engine engine;
+	engine.TestPlay();
+
+	
+
+}
 
 Q_INVOKABLE void ViewModel::togglePlayback()
 {
