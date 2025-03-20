@@ -5,12 +5,29 @@
 #include <MainWindowView.h>
 #include <ViewModel.h>
 
+#include <iostream>
+#include <windows.h>
+
 
 int main(int argc, char *argv[])
 {
 #if defined(Q_OS_WIN) && QT_VERSION_CHECK(5, 6, 0) <= QT_VERSION && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
+
+	AllocConsole();
+
+	FILE* fDummy;
+
+	if (freopen_s(&fDummy, "CONIN$", "r", stdin) != 0) {
+		std::cerr << "Ошибка перенаправления stdin!" << std::endl;
+	}
+	if (freopen_s(&fDummy, "CONOUT$", "w", stdout) != 0) {
+		std::cerr << "Ошибка перенаправления stdout!" << std::endl;
+	}
+	if (freopen_s(&fDummy, "CONOUT$", "w", stderr) != 0) {
+		std::cerr << "Ошибка перенаправления stderr!" << std::endl;
+	}
 
     QGuiApplication app(argc, argv);
 
