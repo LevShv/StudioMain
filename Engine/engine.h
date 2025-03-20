@@ -53,7 +53,7 @@ public:
 
 	class FileManager {
 	public:
-		bool LoadTrack(const std::string& path, Track track);
+		bool LoadTrack(const std::string& path, Track &track);
 	   // void SaveTrack(const std::string& path, const Track& track);
 		bool SaveToWav(const std::string& path, const std::vector<float>& samples, const int SAMPLE_RATE);
 	};
