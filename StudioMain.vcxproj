@@ -66,8 +66,12 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\llvvv\source\repos\Studio\StudioMain\Engine;C:\Users\llvvv\source\repos\Studio\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\Engine;C:\Users\user\source\repos\LevShv\StudioMain\View\MainWindowView;C:\Users\llvvv\source\repos\Studio\StudioMain\View\MainWindowView;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\llvvv\source\repos\Studio\StudioMain\Engine\engineLibs\libsndfile-1.2.2-win64\libsndfile-1.2.2-win64\include;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine\engineLibs\portaudio.0.19.1\build\native\include;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine;C:\Users\llvvv\source\repos\Studio\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\Engine;C:\Users\user\source\repos\LevShv\StudioMain\View\MainWindowView;C:\Users\llvvv\source\repos\Studio\StudioMain\View\MainWindowView;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>C:\Users\llvvv\source\repos\Studio\StudioMain\Engine\engineLibs\portaudio.0.19.1\build\native\lib\x64\v120\Debug;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine\engineLibs\libsndfile-1.2.2-win64\libsndfile-1.2.2-win64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>portaudio_x64.lib;sndfile.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
     <ClCompile>
