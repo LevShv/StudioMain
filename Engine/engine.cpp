@@ -20,6 +20,7 @@ void Engine::TestPlay() {
 	std::this_thread::sleep_for(std::chrono::seconds(5));
 	
 	filemanager.SaveToWav("Misc/mix.wav", core.mixBuffer, core.SAMPLE_RATE);
+
 }
 
 Engine::Core::Core()
@@ -87,7 +88,11 @@ void Engine::Core::StartPlayAllTracks()
 
 void Engine::Core::StopPlayAllTracks()
 {
-
+	if (audioStream) {
+		Pa_StopStream(audioStream);
+		Pa_CloseStream(audioStream);
+		audioStream = nullptr;
+	}
 }
 
 size_t Engine::Core::GetMaxSamples(const std::vector<Track>& tracks)
@@ -102,7 +107,7 @@ size_t Engine::Core::GetMaxSamples(const std::vector<Track>& tracks)
 	return maxSamples;
 }
 
-bool Engine::FileManager::LoadTrack(const std::string& path, Track track)
+bool Engine::FileManager::LoadTrack(const std::string& path, Track &track)
 {
 	SndfileHandle file(path);
 	if (file.error()) {

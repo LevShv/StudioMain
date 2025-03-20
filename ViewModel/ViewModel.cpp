@@ -8,7 +8,7 @@ m_isPlaying(false),
 m_volume(50) 
 {
 	Engine engine;
-	engine.TestPlay();
+	//engine.TestPlay();
 
 	
 
