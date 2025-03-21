@@ -4,62 +4,94 @@
 #include <sndfile.hh>
 #include <iostream>
 #include <vector>
+#include <atomic>
+#include <memory>
+#include <thread>
+#include <mutex>
+#include <unordered_map>
 
 class Engine {
 public:
+    void TestPlay();
+    struct AudioClip {
+        std::string path;          // Путь к аудиофайлу
+        double startTime = 0.0;    // Время начала клипа на дорожке (в секундах)
+        double offset = 0.0;       // Смещение внутри аудиофайла (в секундах)
+        double duration = 0.0;     // Длительность клипа (в секундах)
+        float volume = 1.0f;       // Громкость клипа
+        bool isMuted = false;      // Флаг отключения клипа
 
-	void TestPlay();
+        // Метод для проверки, активен ли клип в данный момент
+        bool IsActive(double globalTime) const {
+            return globalTime >= startTime && globalTime < startTime + duration;
+        }
+    };
 
-	class Track {
-	public:
-		std::vector<float> samples; // Аудиоданные сэмпла
-		bool isMuted = false;       // Флаг для отключения дорожки
-		float volume = 1.0f;        // Громкость дорожки
-	};
+    class Track {
+    public:
+        std::vector<AudioClip> clips; // Аудиоклипы на дорожке
+        bool isMuted = false;         // Флаг отключения всей дорожки
+        float volume = 1.0f;         // Громкость дорожки
 
-	std::vector<Track> tracks;
-	size_t maxSamples;
+        // Метод для получения активных клипов в данный момент
+        std::vector<const AudioClip*> GetActiveClips(double globalTime) const {
+            std::vector<const AudioClip*> activeClips;
+            for (const auto& clip : clips) {
+                if (clip.IsActive(globalTime)) {
+                    activeClips.push_back(&clip);
+                }
+            }
+            return activeClips;
+        }
+    };
 
-	class Core {
-	public:
+    std::vector<Track> tracks;
 
-		static const int SAMPLE_RATE = 44100;
-		const int FRAMES_PER_BUFFER = 4096;
-		std::vector<float> mixBuffer;
-		
-		size_t currentPosition = 0;   // Текущая позиция в миксе
+    class Core {
+    public:
+        static const int SAMPLE_RATE = 44100;
+        const int FRAMES_PER_BUFFER = 512;  // Уменьшили для уменьшения задержки
 
-		Core();
-		~Core();
+        std::atomic<bool> isPlaying{ false };
+        std::atomic<double> playheadPosition{ 0.0 }; // Текущая позиция воспроизведения в секундах
 
-		static int AudioCallback(const void* inputBuffer, void* outputBuffer,
-			unsigned long framesPerBuffer,
-			const PaStreamCallbackTimeInfo* timeInfo,
-			PaStreamCallbackFlags statusFlags,
-			void* userData);
+        Core();
+        ~Core();
 
-		void MixTracks(const std::vector<Track>& tracks, int numFrames);
-		void StartPlayAllTracks();
-		void StopPlayAllTracks();
-		size_t GetMaxSamples(const std::vector<Track>& tracks);
+        static int AudioCallback(const void* inputBuffer, void* outputBuffer,
+            unsigned long framesPerBuffer,
+            const PaStreamCallbackTimeInfo* timeInfo,
+            PaStreamCallbackFlags statusFlags,
+            void* userData);
 
+        void UpdateStreamers(const std::vector<Track>& tracks);
 
-	private:
-		
-		 // Весь микс
-		PaStream* audioStream = nullptr;   // Поток для воспроизведения
-		SndfileHandle file;
-	};
+        void StartPlayback();
+        void StopPlayback();
+        void TogglePause();
 
-	class FileManager {
-	public:
-		bool LoadTrack(const std::string& path, Track &track);
-	   // void SaveTrack(const std::string& path, const Track& track);
-		bool SaveToWav(const std::string& path, const std::vector<float>& samples, const int SAMPLE_RATE);
-	};
-private:
+        void TogglePlayback();
 
-	
+        
 
-	
+    private:
+        struct ClipStreamer {
+            SndfileHandle file;          // Аудиофайл
+            sf_count_t position = 0;     // Текущая позиция в файле (в сэмплах)
+            bool isActive = false;        // Флаг активности
+            float volume = 1.0f;          // Громкость
+            double globalStartTime = 0.0; // Время начала в проекте (в секундах)
+        };
+
+        std::mutex streamersMutex;
+        std::unordered_map<size_t, ClipStreamer> activeStreamers; // Активные стримеры
+        PaStream* audioStream = nullptr;
+
+       
+    };
+
+    class FileManager {
+    public:
+        static bool ValidateAudioFile(const std::string& path);
+    };
 };

@@ -1,132 +1,188 @@
 #include "engine.h"
-#include <thread>
+#include <cmath>
 
-void Engine::TestPlay() {
-
-	Core core;
-	FileManager filemanager;
-	Track drumTrack, bassTrack;
-
-	if (!filemanager.LoadTrack("Misc/Step5.wav", drumTrack) || !filemanager.LoadTrack("Misc/Village_party.wav", bassTrack)) {
-		std::cerr << "Error loading samples!" << std::endl;
-	}
-
-	tracks.push_back(drumTrack);
-	tracks.push_back(bassTrack);
-
-	core.MixTracks(tracks, core.GetMaxSamples(tracks));
-	core.StartPlayAllTracks();
-
-	std::this_thread::sleep_for(std::chrono::seconds(5));
-	
-	filemanager.SaveToWav("Misc/mix.wav", core.mixBuffer, core.SAMPLE_RATE);
-
+// Core Implementation
+Engine::Core::Core() {
+    Pa_Initialize();
 }
 
-Engine::Core::Core()
-{
-    PaError err = Pa_Initialize();
-    if (err != paNoError) {
-       // throw std::runtime_error("PortAudio error: " + std::string(Pa_GetErrorText(err)));
+Engine::Core::~Core() {
+    StopPlayback();
+    Pa_Terminate();
+}
+
+int Engine::Core::AudioCallback(const void* inputBuffer, void* outputBuffer,
+    unsigned long framesPerBuffer,
+    const PaStreamCallbackTimeInfo* timeInfo,
+    PaStreamCallbackFlags statusFlags,
+    void* userData) {
+
+    Core* core = static_cast<Core*>(userData);
+    float* out = static_cast<float*>(outputBuffer);
+    std::memset(out, 0, framesPerBuffer * sizeof(float)); // Очистка буфера
+
+    if (!core->isPlaying) return paContinue;
+
+    // Блокировка для безопасного доступа к стримерам
+    std::lock_guard<std::mutex> lock(core->streamersMutex);
+
+    // Микширование активных стримеров
+    for (auto& [id, streamer] : core->activeStreamers) {
+        if (!streamer.isActive) continue;
+
+        std::vector<float> buffer(framesPerBuffer);
+        sf_count_t readCount = streamer.file.read(buffer.data(), framesPerBuffer);
+
+        for (unsigned long i = 0; i < framesPerBuffer; ++i) {
+            if (i < static_cast<unsigned long>(readCount)) {
+                out[i] += buffer[i] * streamer.volume;
+            }
+        }
+
+        streamer.position += readCount;
+        if (readCount < framesPerBuffer) {
+            streamer.isActive = false; // Клип закончился
+        }
+    }
+
+    // Обновление позиции воспроизведения
+    core->playheadPosition.store(
+        core->playheadPosition.load() +
+        static_cast<double>(framesPerBuffer) / Core::SAMPLE_RATE
+    );
+
+    return paContinue;
+}
+void Engine::Core::StartPlayback() {
+    if (!audioStream) {
+        Pa_OpenDefaultStream(&audioStream, 0, 1, paFloat32,
+            SAMPLE_RATE, FRAMES_PER_BUFFER,
+            AudioCallback, this);
+    }
+
+    if (!Pa_IsStreamActive(audioStream)) {
+        Pa_StartStream(audioStream);
+        isPlaying = true;
     }
 }
 
-Engine::Core::~Core()
-{
-	PaError err = Pa_Terminate();
-	if (err != paNoError) {
-		//throw std::runtime_error("PortAudio error: " + std::string(Pa_GetErrorText(err)));
-	}
+void Engine::Core::StopPlayback() {
+    if (audioStream) {
+        Pa_StopStream(audioStream);
+        Pa_CloseStream(audioStream);
+        audioStream = nullptr;
+    }
+    isPlaying = false;
+    playheadPosition.store(0.0);
 }
 
-int Engine::Core::AudioCallback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void* userData)
-{
-	float* out = (float*)outputBuffer;
-	std::vector<float>* buffer = static_cast<std::vector<float>*>(userData);
-
-	for (unsigned long i = 0; i < framesPerBuffer; ++i) {
-		if (i < buffer->size()) {
-			out[i] = (*buffer)[i];
-		}
-		else {
-			out[i] = 0.0f; // Заполнение нулями, если данные закончились
-		}
-	}
-
-	return paContinue;
+void Engine::Core::TogglePause() {
+    isPlaying = !isPlaying;
 }
 
-void Engine::Core::MixTracks(const std::vector<Track>& tracks, int numFrames)
-{
-	mixBuffer.assign(numFrames, 0.0f); // Очистка выходного буфера
-
-	for (const auto& track : tracks) {
-		if (track.isMuted) continue; // Пропуск отключенных дорожек
-
-		for (size_t i = 0; i < numFrames; ++i) {
-			if (i < track.samples.size()) { 
-				mixBuffer[i] += track.samples[i] * track.volume; // Микширование
-			}
-		}
-	}
+void Engine::Core::TogglePlayback() {
+    if (isPlaying) {
+        StopPlayback();
+    }
+    else {
+        StartPlayback();
+    }
 }
 
-void Engine::Core::StartPlayAllTracks()
-{
-	PaError err = Pa_OpenDefaultStream(&audioStream, 0, 1, paFloat32, SAMPLE_RATE,
-		FRAMES_PER_BUFFER, AudioCallback, (void*)&mixBuffer);
+void Engine::Core::UpdateStreamers(const std::vector<Track>& tracks) {
 
-	if (err != paNoError) {
-		throw std::runtime_error("PortAudio error: " + std::string(Pa_GetErrorText(err)));
-	}
+    std::lock_guard<std::mutex> lock(streamersMutex);
 
-	err = Pa_StartStream(audioStream);
-	if (err != paNoError) {
-		throw std::runtime_error("PortAudio error: " + std::string(Pa_GetErrorText(err)));
-	}
+    const double currentTime = playheadPosition.load();
+
+    bool allClipsFinished = true;
+
+    // Очистка неактивных стримеров
+    for (auto it = activeStreamers.begin(); it != activeStreamers.end();) {
+        if (!it->second.isActive) {
+            it = activeStreamers.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+
+    // Добавление новых стримеров для активных клипов
+    for (size_t trackIdx = 0; trackIdx < tracks.size(); ++trackIdx) {
+
+        const auto& track = tracks[trackIdx];
+        if (track.isMuted) continue;
+
+        for (const auto* clip : track.GetActiveClips(currentTime)) {
+            size_t clipId = reinterpret_cast<size_t>(clip); // Уникальный ID клипа
+
+            if (!activeStreamers.count(clipId)) {
+                // Инициализация нового стримера
+                ClipStreamer newStreamer;
+                newStreamer.file = SndfileHandle(clip->path);
+                newStreamer.position = static_cast<sf_count_t>(
+                    (currentTime - clip->startTime + clip->offset) * SAMPLE_RATE
+                    );
+                newStreamer.file.seek(newStreamer.position, SEEK_SET);
+                newStreamer.isActive = true;
+                newStreamer.volume = clip->volume * track.volume;
+                newStreamer.globalStartTime = clip->startTime;
+
+                activeStreamers.emplace(clipId, std::move(newStreamer));
+            }
+            allClipsFinished = false; // Есть активные клипы
+        }
+    }
+
+    // Если все клипы завершены, останавливаем воспроизведение
+    if (allClipsFinished && activeStreamers.empty()) {
+        StopPlayback();
+    }
 }
 
-void Engine::Core::StopPlayAllTracks()
-{
-	if (audioStream) {
-		Pa_StopStream(audioStream);
-		Pa_CloseStream(audioStream);
-		audioStream = nullptr;
-	}
+// FileManager Implementation
+bool Engine::FileManager::ValidateAudioFile(const std::string& path) {
+    SndfileHandle file(path);
+    return file.error() == SF_ERR_NO_ERROR;
 }
 
-size_t Engine::Core::GetMaxSamples(const std::vector<Track>& tracks)
-{
-	size_t maxSamples = 0;
+// Test Implementation
+void Engine::TestPlay() {
 
-	for (const auto& track : tracks) {
-		if (track.samples.size() > maxSamples) {
-			maxSamples = track.samples.size();
-		}
-	}
-	return maxSamples;
-}
+    Core core;
 
-bool Engine::FileManager::LoadTrack(const std::string& path, Track &track)
-{
-	SndfileHandle file(path);
-	if (file.error()) {
-		return false; // Ошибка загрузки файла
-	}
+    // Создаем дорожку с двумя аудиоклипами
+    Track drumTrack;
+    drumTrack.clips.push_back({
+        "Misc/Step5.wav", // Путь
+        0.0,              // Начало на дорожке
+        0.0,              // Смещение в файле
+        5.0,              // Длительность
+        0.8f              // Громкость
+        });
+    drumTrack.clips.push_back({
+        "Misc/choose.wav",
+        2.0,              // Начинается через 5 секунд
+        0.0,              // Смещение в файле
+        5.0,              // Длительность
+        0.8f              // Громкость
+        });
 
-	track.samples.resize(file.frames() * file.channels());
-	file.read(track.samples.data(), track.samples.size());
+    tracks.push_back(drumTrack);
 
-	return true;
-}
+    // Запуск воспроизведения
+    core.TogglePlayback();
 
-bool Engine::FileManager::SaveToWav(const std::string& path, const std::vector<float>& samples, const int SAMPLE_RATE)
-{
-	SndfileHandle file(path, SFM_WRITE, SF_FORMAT_WAV | SF_FORMAT_FLOAT, 1, SAMPLE_RATE);
-	if (file.error()) {
-		return false; // Ошибка создания файла
-	}
+    // Основной цикл обновления
+    while (true) {
+        core.UpdateStreamers(tracks);
 
-	file.write(samples.data(), samples.size());
-	return true;
+        if (!core.isPlaying) {
+            break; // Воспроизведение завершено
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    std::cout << "Playback finished!" << std::endl;
 }
