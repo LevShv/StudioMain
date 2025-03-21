@@ -13,13 +13,17 @@
 class Engine {
 public:
     void TestPlay();
+
     struct AudioClip {
+
         std::string path;          // Путь к аудиофайлу
         double startTime = 0.0;    // Время начала клипа на дорожке (в секундах)
         double offset = 0.0;       // Смещение внутри аудиофайла (в секундах)
         double duration = 0.0;     // Длительность клипа (в секундах)
         float volume = 1.0f;       // Громкость клипа
         bool isMuted = false;      // Флаг отключения клипа
+        std::vector<float> samples; // Аудиоданные (если загружены в RAM)
+        bool loadToRAM = false;
 
         // Метод для проверки, активен ли клип в данный момент
         bool IsActive(double globalTime) const {
@@ -75,23 +79,27 @@ public:
         
 
     private:
+
         struct ClipStreamer {
-            SndfileHandle file;          // Аудиофайл
+            SndfileHandle file;          // Аудиофайл (для потокового чтения)
             sf_count_t position = 0;     // Текущая позиция в файле (в сэмплах)
             bool isActive = false;        // Флаг активности
             float volume = 1.0f;          // Громкость
             double globalStartTime = 0.0; // Время начала в проекте (в секундах)
+            const std::vector<float>* ramSamples = nullptr; // Указатель на данные в RAM
         };
 
         std::mutex streamersMutex;
         std::unordered_map<size_t, ClipStreamer> activeStreamers; // Активные стримеры
         PaStream* audioStream = nullptr;
 
-       
     };
 
     class FileManager {
     public:
         static bool ValidateAudioFile(const std::string& path);
+        static bool LoadAudioData(AudioClip& clip);
     };
 };
+
+
