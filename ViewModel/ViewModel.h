@@ -8,7 +8,7 @@ class ViewModel : public QObject {
     Q_OBJECT
         Q_PROPERTY(bool isPlaying READ isPlaying NOTIFY isPlayingChanged) // Свойство для состояния трека
         Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged) // Свойство для громкости
-
+      
 public:
 
 	Engine engine;
@@ -21,6 +21,8 @@ public:
     Q_INVOKABLE void setVolume(int volume); // Метод для установки свойства volume
     int volume() const;// Метод для чтения свойства volume
 
+	Q_INVOKABLE void setPlayheadPosition(double position); // Метод для установки позиции воспроизведения 
+
 signals:
     void isPlayingChanged(); // Сигнал для уведомления об изменении свойства
     void volumeChanged(); // Сигнал для уведомления об изменении volume
@@ -29,6 +31,7 @@ signals:
 private:
     //bool m_isPlaying; // Флаг, указывающий, играет ли трек
     int m_volume; // Текущая громкость
+
     std::atomic<bool> m_isPlaying{ false };
 
 };

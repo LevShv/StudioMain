@@ -86,8 +86,10 @@ Window {
 
                        from: 0
                        to: 100
-                       value: viewModel.volume // Привязка к свойству громкости
-                       onValueChanged: viewModel.setVolume(value) // Изменение громкости
+                       value: 0
+                       onMoved: {
+                            viewModel.setPlayheadPosition(value/100)
+                       }
                    }
 
                    RowLayout {

@@ -15,17 +15,12 @@ public:
 
     std::atomic<bool> isPlaybackThreadRunning{ false }; // Флаг для управления потоком
 
-    void TestPlay();
-    
-
     void LoadToTrack(std::string path, double StartTime, int mode, int TrackNumber);
-
     void StartStopAlltracks();
-
     bool isPlaying() const;
-
     void StartPlayback();
     void StopPlayback();
+	void SetPlayheadPosition(double position);
 
     struct AudioClip {
 
@@ -36,7 +31,8 @@ public:
         float volume = 1.0f;       // Громкость клипа
         bool isMuted = false;      // Флаг отключения клипа
         std::vector<float> samples; // Аудиоданные (если загружены в RAM)
-        bool loadToRAM = false;
+		bool loadToRAM = false;	// Флаг загрузки в RAM
+        bool isFinished = false;   // Флаг завершения клипа
 
         bool CalculateDuration() {
             SndfileHandle file(path);
@@ -103,6 +99,7 @@ public:
 
         void StartPlayback();
         void StopPlayback();
+        void SetPlayheadPosition(double newPosition);
 
         
 
