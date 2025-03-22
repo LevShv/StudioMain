@@ -399,14 +399,12 @@ int Engine::Core::AudioCallback(
     const PaStreamCallbackTimeInfo* timeInfo,
     PaStreamCallbackFlags statusFlags,
     void* userData) {
+
     Core* core = static_cast<Core*>(userData);
     float* out = static_cast<float*>(outputBuffer);
     std::memset(out, 0, framesPerBuffer * sizeof(float)); // Очистка буфера
 
     if (!core->isPlaying) return paContinue;
-
-    // Обновляем стримеры
-    core->UpdateStreamers(core->tracks); // Добавьте эту строку
 
     // Блокировка для безопасного доступа к стримерам
     std::lock_guard<std::mutex> lock(core->streamersMutex);
@@ -444,12 +442,6 @@ int Engine::Core::AudioCallback(
         }
     }
 
-    // Обновление позиции воспроизведения
-    core->playheadPosition.store(
-        core->playheadPosition.load() +
-        static_cast<double>(framesPerBuffer) / Core::SAMPLE_RATE
-    );
-
     return paContinue;
 }
 
@@ -465,39 +457,58 @@ void Engine::Core::StartPlayback() {
             std::cerr << "PortAudio stream opening failed: " << Pa_GetErrorText(err) << std::endl;
             return;
         }
-        else {
-            std::cout << "PortAudio stream opened successfully!" << std::endl;
-        }
     }
 
-    if (!Pa_IsStreamActive(audioStream)) {
-        PaError err = Pa_StartStream(audioStream);
-        if (err != paNoError) {
-            std::cerr << "PortAudio stream start failed: " << Pa_GetErrorText(err) << std::endl;
-            return;
-        }
-        else {
-            std::cout << "PortAudio stream started successfully!" << std::endl;
-        }
-        isPlaying = true;
+    PaError err = Pa_StartStream(audioStream);
+    if (err != paNoError) {
+        std::cerr << "PortAudio stream start failed: " << Pa_GetErrorText(err) << std::endl;
+        return;
     }
+
+    isPlaying = true;
+
+    // Запуск потока для обновления стримеров
+    std::thread([this]() {
+        while (isPlaying) {
+            UpdateStreamers(tracks);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        }).detach();
 }
-
 // Остановка воспроизведения
 void Engine::Core::StopPlayback() {
     std::lock_guard<std::mutex> lock(streamersMutex);
 
-    if (audioStream) {
-        Pa_StopStream(audioStream);
-        Pa_CloseStream(audioStream);
-        audioStream = nullptr;
+    // Останавливаем поток воспроизведения, если он активен
+    if (audioStream && Pa_IsStreamActive(audioStream)) {
+        PaError err = Pa_StopStream(audioStream);
+        if (err != paNoError) {
+            std::cerr << "PortAudio stream stop failed: " << Pa_GetErrorText(err) << std::endl;
+        }
+        else {
+            std::cout << "PortAudio stream stopped successfully!" << std::endl;
+        }
     }
+
+    // Закрываем поток, если он был открыт
+    if (audioStream) {
+        PaError err = Pa_CloseStream(audioStream);
+        if (err != paNoError) {
+            std::cerr << "PortAudio stream closing failed: " << Pa_GetErrorText(err) << std::endl;
+        }
+        else {
+            std::cout << "PortAudio stream closed successfully!" << std::endl;
+        }
+        audioStream = nullptr; // Сбрасываем указатель на поток
+    }
+
+    // Останавливаем флаг воспроизведения
     isPlaying = false;
-    playheadPosition.store(0.0);
 }
 
 // Обновление стримеров
 void Engine::Core::UpdateStreamers(const std::vector<Track>& tracks) {
+
     std::lock_guard<std::mutex> lock(streamersMutex);
     const double currentTime = playheadPosition.load();
 
