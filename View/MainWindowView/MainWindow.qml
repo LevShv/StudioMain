@@ -88,7 +88,7 @@ Window {
                        to: 100
                        value: 0
                        onMoved: {
-                            viewModel.setPlayheadPosition(value/100)
+                            viewModel.setPlayheadPosition(value/10)
                        }
                    }
 

@@ -232,6 +232,61 @@ void Engine::Core::SetPlayheadPosition(double newPosition) {
     std::cout << "Playhead moved to: " << newPosition << std::endl;
 }
 
+void Engine::Core::MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime) {
+    std::lock_guard<std::mutex> lock(streamersMutex); // Защищаем доступ к данным
+
+    // Проверяем, существует ли трек и клип
+    if (trackIdx >= tracks.size() || clipIdx >= tracks[trackIdx].clips.size()) {
+        std::cerr << "Invalid track or clip index." << std::endl;
+        return;
+    }
+
+    auto& clip = tracks[trackIdx].clips[clipIdx];
+
+    // Сбрасываем флаг isFinished, если плейхед находится до нового времени начала или в пределах длительности
+    if ((playheadPosition.load() >= newStartTime && playheadPosition.load() < newStartTime + clip.duration) || playheadPosition.load() <= newStartTime) {
+        clip.isFinished = false; // Сбрасываем флаг завершения
+        std::cout << "Clip " << clip.path << " isFinished reset to false." << std::endl;
+    }
+
+    // Обновляем время начала клипа
+    clip.startTime = newStartTime;
+
+    // Удаляем старый стример, если он существует
+    size_t clipId = reinterpret_cast<size_t>(&clip);
+    if (activeStreamers.count(clipId)) {
+        activeStreamers.erase(clipId);
+        std::cout << "Old streamer removed for clip: " << clip.path << std::endl;
+    }
+
+    // Если клип теперь активен, создаем новый стример
+    if (playheadPosition.load() >= newStartTime && playheadPosition.load() < newStartTime + clip.duration) {
+        ClipStreamer newStreamer;
+        newStreamer.volume = clip.volume * tracks[trackIdx].volume;
+        newStreamer.globalStartTime = newStartTime;
+
+        if (clip.loadToRAM && !clip.samples.empty()) {
+            newStreamer.ramSamples = &clip.samples;
+            newStreamer.position = static_cast<sf_count_t>(
+                (playheadPosition.load() - newStartTime) * SAMPLE_RATE
+                );
+        }
+        else {
+            newStreamer.file = SndfileHandle(clip.path);
+            newStreamer.position = static_cast<sf_count_t>(
+                (playheadPosition.load() - newStartTime) * SAMPLE_RATE
+                );
+            newStreamer.file.seek(newStreamer.position, SEEK_SET);
+        }
+
+        newStreamer.isActive = true;
+        activeStreamers.emplace(clipId, std::move(newStreamer));
+        std::cout << "New streamer added for moved clip: " << clip.path << std::endl;
+    }
+
+    std::cout << "Clip moved to new start time: " << newStartTime << std::endl;
+}
+
 void Engine::Core::UpdateStreamers(const std::vector<Track>& tracks) {
     std::lock_guard<std::mutex> lock(streamersMutex);
     const double currentTime = playheadPosition.load();
@@ -392,4 +447,9 @@ void Engine::StopPlayback() {
 void Engine::SetPlayheadPosition(double position)
 {
 	core.SetPlayheadPosition(position);
+}
+
+void Engine::MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime)
+{
+	core.MoveClip(trackIdx, clipIdx, newStartTime);
 }

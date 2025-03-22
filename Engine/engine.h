@@ -21,6 +21,7 @@ public:
     void StartPlayback();
     void StopPlayback();
 	void SetPlayheadPosition(double position);
+	void MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
 
     struct AudioClip {
 
@@ -100,6 +101,8 @@ public:
         void StartPlayback();
         void StopPlayback();
         void SetPlayheadPosition(double newPosition);
+
+        void MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
 
         
 
