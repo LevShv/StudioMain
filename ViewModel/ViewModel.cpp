@@ -1,27 +1,41 @@
 #include "ViewModel.h"
 #include <QtCore/QDebug>
-#include <engine.h>
 
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent), 
 m_isPlaying(false),
 m_volume(50) 
 {
-	Engine engine;
-	engine.TestPlay();
-
 	
+	engine.LoadToTrack("Misc/Step5.wav", 0.0, 1);
+	engine.LoadToTrack("Misc/choose.wav", 2.0, 1);
+	engine.LoadToTrack("Misc/Happy.wav", 0.0, 2);
+	engine.LoadToTrack("Misc/Village_party.wav", 15.0, 2);
+
+	/*engine.TestPlay();*/
 
 }
 
 Q_INVOKABLE void ViewModel::togglePlayback()
 {
-	m_isPlaying = !m_isPlaying; // Переключение состояния
+	if (engine.isPlaying()) {
+		engine.StopPlayback(); // Останавливаем воспроизведение
+		m_isPlaying = false;
+	}
+	else {
+		engine.StartPlayback(); // Запускаем воспроизведение
+		m_isPlaying = true;
+	}
 
-	if(m_isPlaying) qDebug() << "Track is playing: la la la o o o  ";
-	else qDebug() << "Track is stopped";
+	emit isPlayingChanged(); // Уведомляем об изменении состояния
 
-	emit isPlayingChanged(); // Уведомление об изменении состояния
+	// Отладочный вывод
+	if (m_isPlaying) {
+		qDebug() << "Track is playing: la la la o o o";
+	}
+	else {
+		qDebug() << "Track is stopped";
+	}
 }
 
 bool ViewModel::isPlaying() const

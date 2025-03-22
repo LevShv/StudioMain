@@ -12,7 +12,19 @@
 
 class Engine {
 public:
+
+    std::atomic<bool> isPlaybackThreadRunning{ false }; // Флаг для управления потоком
+
     void TestPlay();
+    void LoadToTrack(std::string path, double StartTime, int mode);
+    
+
+    void StartStopAlltracks();
+
+    bool isPlaying() const;
+
+    void StartPlayback();
+    void StopPlayback();
 
     struct AudioClip {
 
@@ -25,6 +37,14 @@ public:
         std::vector<float> samples; // Аудиоданные (если загружены в RAM)
         bool loadToRAM = false;
 
+        bool CalculateDuration() {
+            SndfileHandle file(path);
+            if (file.error()) return false; // Ошибка загрузки файла
+
+            // Длительность = (количество сэмплов) / (частота дискретизации)
+            duration = static_cast<double>(file.frames()) / file.samplerate();
+            return true;
+        }
         // Метод для проверки, активен ли клип в данный момент
         bool IsActive(double globalTime) const {
             return globalTime >= startTime && globalTime < startTime + duration;
@@ -49,10 +69,12 @@ public:
         }
     };
 
-    std::vector<Track> tracks;
+    
 
     class Core {
     public:
+
+        std::vector<Track> tracks;
         static const int SAMPLE_RATE = 44100;
         const int FRAMES_PER_BUFFER = 512;  // Уменьшили для уменьшения задержки
 
@@ -61,6 +83,8 @@ public:
 
         Core();
         ~Core();
+
+        void AddTrack(Track track);
 
         static int AudioCallback(const void* inputBuffer, void* outputBuffer,
             unsigned long framesPerBuffer,
@@ -72,9 +96,6 @@ public:
 
         void StartPlayback();
         void StopPlayback();
-        void TogglePause();
-
-        void TogglePlayback();
 
         
 
@@ -100,6 +121,12 @@ public:
         static bool ValidateAudioFile(const std::string& path);
         static bool LoadAudioData(AudioClip& clip);
     };
+
+private:
+     Core core;
+     FileManager fileManager;
+     std::atomic<bool> m_isPlaying{ false };
+     mutable std::mutex m_mutex;
 };
 
 
