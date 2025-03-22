@@ -16,8 +16,9 @@ public:
     std::atomic<bool> isPlaybackThreadRunning{ false }; // Флаг для управления потоком
 
     void TestPlay();
-    void LoadToTrack(std::string path, double StartTime, int mode);
     
+
+    void LoadToTrack(std::string path, double StartTime, int mode, int TrackNumber);
 
     void StartStopAlltracks();
 
@@ -53,12 +54,15 @@ public:
 
     class Track {
     public:
+
+		bool isEmpty = true;          // Флаг пустоты дорожки
         std::vector<AudioClip> clips; // Аудиоклипы на дорожке
         bool isMuted = false;         // Флаг отключения всей дорожки
         float volume = 1.0f;         // Громкость дорожки
 
         // Метод для получения активных клипов в данный момент
         std::vector<const AudioClip*> GetActiveClips(double globalTime) const {
+
             std::vector<const AudioClip*> activeClips;
             for (const auto& clip : clips) {
                 if (clip.IsActive(globalTime)) {
@@ -74,7 +78,9 @@ public:
     class Core {
     public:
 
-        std::vector<Track> tracks;
+        std::vector<Track> tracks = { Track(), Track(), Track(), Track(), Track(),
+                              Track(), Track(), Track(), Track(), Track() };
+
         static const int SAMPLE_RATE = 44100;
         const int FRAMES_PER_BUFFER = 512;  // Уменьшили для уменьшения задержки
 
@@ -85,6 +91,7 @@ public:
         ~Core();
 
         void AddTrack(Track track);
+		void AddClip(size_t trackIdx, AudioClip clip);
 
         static int AudioCallback(const void* inputBuffer, void* outputBuffer,
             unsigned long framesPerBuffer,

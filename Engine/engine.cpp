@@ -390,7 +390,11 @@ void Engine::Core::AddTrack(Track track)
 	tracks.push_back(track);
 }
 
-
+void Engine::Core::AddClip(size_t trackIdx, AudioClip clip)
+{
+	tracks[trackIdx].clips.push_back(clip);
+	tracks[trackIdx].isEmpty = false;
+}
 
 // Аудиоколлбэк для PortAudio
 int Engine::Core::AudioCallback(
@@ -475,6 +479,7 @@ void Engine::Core::StartPlayback() {
         }
         }).detach();
 }
+
 // Остановка воспроизведения
 void Engine::Core::StopPlayback() {
     std::lock_guard<std::mutex> lock(streamersMutex);
@@ -526,8 +531,9 @@ void Engine::Core::UpdateStreamers(const std::vector<Track>& tracks) {
 
     // Добавление новых стримеров для активных клипов
     for (size_t trackIdx = 0; trackIdx < tracks.size(); ++trackIdx) {
+
         const auto& track = tracks[trackIdx];
-        if (track.isMuted) continue;
+        if (track.isMuted || track.isEmpty) continue;
 
         for (const auto* clip : track.GetActiveClips(currentTime)) {
             size_t clipId = reinterpret_cast<size_t>(clip);
@@ -586,18 +592,20 @@ bool Engine::FileManager::ValidateAudioFile(const std::string& path) {
 }
 
 // Загрузка трека
-void Engine::LoadToTrack(std::string path, double StartTime, int mode) {
-
+void Engine::LoadToTrack(std::string path, double StartTime, int mode, int TrackNumber) {
 
     if (!FileManager::ValidateAudioFile(path)) {
         std::cerr << "Failed to load audio file: " << path << std::endl;
         return;
     }
 
-    Track Track1;
+	if (core.tracks.size() < TrackNumber)
+	{
+		std::cerr << "Track not found: " << TrackNumber << std::endl;
+		return;
+	}
+
     AudioClip Clip;
-
-
 
     switch (mode) {
     case 1:
@@ -605,15 +613,17 @@ void Engine::LoadToTrack(std::string path, double StartTime, int mode) {
         Clip.startTime = StartTime;
         Clip.duration = 5.0;
         Clip.loadToRAM = false;
+
         if (!FileManager::LoadAudioData(Clip)) {
             std::cerr << "Failed to load audio data: " << path << std::endl;
             return;
         }
+
         std::cout << "Audio file loaded: " << path << std::endl;
         break;
 
     case 2:
-        Track1.clips.push_back({
+        Clip = AudioClip({
             path,
             StartTime,
             0.0,
@@ -623,8 +633,8 @@ void Engine::LoadToTrack(std::string path, double StartTime, int mode) {
         std::cout << "Audio clip added to track: " << path << std::endl;
         break;
     }
-    core.AddTrack(Track1);
 
+	core.AddClip(TrackNumber, Clip);
 }
 
 // Запуск/остановка воспроизведения

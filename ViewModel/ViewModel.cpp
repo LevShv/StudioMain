@@ -7,10 +7,10 @@ m_isPlaying(false),
 m_volume(50) 
 {
 	
-	engine.LoadToTrack("Misc/Step5.wav", 0.0, 1);
-	engine.LoadToTrack("Misc/choose.wav", 2.0, 1);
-	engine.LoadToTrack("Misc/Happy.wav", 0.0, 2);
-    engine.LoadToTrack("Misc/Village_party.wav", 15.0, 2);
+	//engine.LoadToTrack("Misc/Step5.wav", 0.0, 1, 0);
+	engine.LoadToTrack("Misc/choose.wav", 2.0, 1, 1);
+	//engine.LoadToTrack("Misc/Happy.wav", 0.0, 2, 2);
+    //engine.LoadToTrack("Misc/Village_party.wav", 15.0, 2, 3);
 
 	/*engine.TestPlay();*/
 
