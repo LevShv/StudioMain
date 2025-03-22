@@ -21,11 +21,7 @@ Engine::Core::~Core() {
     Pa_Terminate();
 }
 
-void Engine::Core::AddTrack(Track track)
-{
-	tracks.push_back(track);
-}
-
+// Добавление клипа на дорожку
 void Engine::Core::AddClip(size_t trackIdx, AudioClip clip)
 {
 	tracks[trackIdx].clips.push_back(clip);
@@ -156,6 +152,7 @@ void Engine::Core::StopPlayback() {
     isPlaying = false;
 }
 
+// Установка позиции воспроизведения
 void Engine::Core::SetPlayheadPosition(double newPosition) {
     // Захватываем мьютекс для защиты общих ресурсов
     std::lock_guard<std::mutex> lock(streamersMutex);
@@ -232,14 +229,12 @@ void Engine::Core::SetPlayheadPosition(double newPosition) {
     std::cout << "Playhead moved to: " << newPosition << std::endl;
 }
 
+// Перемещение клипа по дорожке
 void Engine::Core::MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime) {
     std::lock_guard<std::mutex> lock(streamersMutex); // Защищаем доступ к данным
 
     // Проверяем, существует ли трек и клип
-    if (trackIdx >= tracks.size() || clipIdx >= tracks[trackIdx].clips.size()) {
-        std::cerr << "Invalid track or clip index." << std::endl;
-        return;
-    }
+    if (!IsValidClipIndex(trackIdx, clipIdx)) return;
 
     auto& clip = tracks[trackIdx].clips[clipIdx];
 
@@ -287,6 +282,7 @@ void Engine::Core::MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime
     std::cout << "Clip moved to new start time: " << newStartTime << std::endl;
 }
 
+// Обновление стримеров
 void Engine::Core::UpdateStreamers(const std::vector<Track>& tracks) {
     std::lock_guard<std::mutex> lock(streamersMutex);
     const double currentTime = playheadPosition.load();
@@ -352,6 +348,18 @@ void Engine::Core::UpdateStreamers(const std::vector<Track>& tracks) {
         StopPlayback();
     }
 }
+
+// Проверка валидности индекса клипа
+bool Engine::Core::IsValidClipIndex(size_t trackIdx, size_t clipIdx) const {
+    if(trackIdx < tracks.size() && clipIdx < tracks[trackIdx].clips.size()) return true;
+    else {
+        std::cerr << "Invalid track or clip index." << std::endl;
+        return false;
+    }
+}
+
+// *************************** FileManager ***************************
+
 // Загрузка аудиоданных
 bool Engine::FileManager::LoadAudioData(AudioClip& clip) {
     if (!clip.loadToRAM) return true;
@@ -370,6 +378,9 @@ bool Engine::FileManager::ValidateAudioFile(const std::string& path) {
     SndfileHandle file(path);
     return file.error() == SF_ERR_NO_ERROR;
 }
+
+
+// **************************** обертка *****************************
 
 // Загрузка трека
 void Engine::LoadToTrack(std::string path, double StartTime, int mode, int TrackNumber) {
@@ -427,28 +438,33 @@ void Engine::StartStopAlltracks() {
     }
 }
 
+// Проверка состояния воспроизведения
 bool Engine::isPlaying() const {
     std::lock_guard<std::mutex> lock(m_mutex); // Защищаем доступ к состоянию
     return m_isPlaying.load();
 }
 
+// Запуск воспроизведения
 void Engine::StartPlayback() {
     std::lock_guard<std::mutex> lock(m_mutex); // Защищаем доступ к состоянию
     core.StartPlayback();
     m_isPlaying = true;
 }
 
+// Остановка воспроизведения
 void Engine::StopPlayback() {
     std::lock_guard<std::mutex> lock(m_mutex); // Защищаем доступ к состоянию
     core.StopPlayback();
     m_isPlaying = false;
 }
 
+// Установка позиции воспроизведения
 void Engine::SetPlayheadPosition(double position)
 {
 	core.SetPlayheadPosition(position);
 }
 
+// Перемещение клипа по дорожке
 void Engine::MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime)
 {
 	core.MoveClip(trackIdx, clipIdx, newStartTime);

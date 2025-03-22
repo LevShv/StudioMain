@@ -73,6 +73,20 @@ public:
     
 
     class Core {
+     private:
+
+        struct ClipStreamer {
+            SndfileHandle file;          // Аудиофайл (для потокового чтения)
+            sf_count_t position = 0;     // Текущая позиция в файле (в сэмплах)
+            bool isActive = false;        // Флаг активности
+            float volume = 1.0f;          // Громкость
+            double globalStartTime = 0.0; // Время начала в проекте (в секундах)
+            const std::vector<float>* ramSamples = nullptr; // Указатель на данные в RAM
+        };
+
+        std::mutex streamersMutex;
+        std::unordered_map<size_t, ClipStreamer> activeStreamers; // Активные стримеры
+        PaStream* audioStream = nullptr;
     public:
 
         std::vector<Track> tracks = { Track(), Track(), Track(), Track(), Track(),
@@ -87,7 +101,6 @@ public:
         Core();
         ~Core();
 
-        void AddTrack(Track track);
 		void AddClip(size_t trackIdx, AudioClip clip);
 
         static int AudioCallback(const void* inputBuffer, void* outputBuffer,
@@ -98,28 +111,23 @@ public:
 
         void UpdateStreamers(const std::vector<Track>& tracks);
 
+        bool IsValidClipIndex(size_t trackIdx, size_t clipIdx) const;
+
         void StartPlayback();
         void StopPlayback();
+        Engine::Core::ClipStreamer CreateClipStreamer(const AudioClip* clip, const Track& track, double currentTime);
+        bool IsClipActive(const AudioClip& clip, double currentTime);
+        void CleanupInactiveStreamers();
+        void ResetFinishedFlagForClips(double newPosition);
+        void AddNewStreamer(const AudioClip* clip, const Track& track, double currentTime);
         void SetPlayheadPosition(double newPosition);
 
+        
         void MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
 
         
 
-    private:
-
-        struct ClipStreamer {
-            SndfileHandle file;          // Аудиофайл (для потокового чтения)
-            sf_count_t position = 0;     // Текущая позиция в файле (в сэмплах)
-            bool isActive = false;        // Флаг активности
-            float volume = 1.0f;          // Громкость
-            double globalStartTime = 0.0; // Время начала в проекте (в секундах)
-            const std::vector<float>* ramSamples = nullptr; // Указатель на данные в RAM
-        };
-
-        std::mutex streamersMutex;
-        std::unordered_map<size_t, ClipStreamer> activeStreamers; // Активные стримеры
-        PaStream* audioStream = nullptr;
+   
 
     };
 
