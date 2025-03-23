@@ -122,11 +122,7 @@ public:
        // void AddNewStreamer(const AudioClip* clip, const Track& track, double currentTime);
         void SetPlayheadPosition(double newPosition);
 
-        
         void MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
-
-        
-
    
 
     };

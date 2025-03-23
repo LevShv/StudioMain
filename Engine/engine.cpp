@@ -233,8 +233,6 @@ void Engine::Core::MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime
         std::cerr << "Invalid track or clip index." << std::endl;
         return;
     }
-        
-       
 
     auto& clip = tracks[trackIdx].clips[clipIdx];
 
