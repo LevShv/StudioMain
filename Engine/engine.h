@@ -112,14 +112,14 @@ public:
         void UpdateStreamers(const std::vector<Track>& tracks);
 
         bool IsValidClipIndex(size_t trackIdx, size_t clipIdx) const;
-
+        void ChangeTrack();
         void StartPlayback();
         void StopPlayback();
-        Engine::Core::ClipStreamer CreateClipStreamer(const AudioClip* clip, const Track& track, double currentTime);
-        bool IsClipActive(const AudioClip& clip, double currentTime);
-        void CleanupInactiveStreamers();
-        void ResetFinishedFlagForClips(double newPosition);
-        void AddNewStreamer(const AudioClip* clip, const Track& track, double currentTime);
+       // Engine::Core::ClipStreamer CreateClipStreamer(const AudioClip* clip, const Track& track, double currentTime);
+       // bool IsClipActive(const AudioClip& clip, double currentTime);
+       // void CleanupInactiveStreamers();
+       // void ResetFinishedFlagForClips(double newPosition);
+       // void AddNewStreamer(const AudioClip* clip, const Track& track, double currentTime);
         void SetPlayheadPosition(double newPosition);
 
         

@@ -80,8 +80,12 @@ int ViewModel::volume() const {
 
 Q_INVOKABLE void ViewModel::setPlayheadPosition(double position)
 {
-	//engine.SetPlayheadPosition(position);
-	engine.MoveClip(0, 0, position);
+	engine.SetPlayheadPosition(position);
+}
+
+Q_INVOKABLE void ViewModel::moveClip(size_t trackIdx, size_t clipIdx, double newStartTime)
+{
+	engine.MoveClip(0, 0, newStartTime);
 }
 
 

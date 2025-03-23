@@ -91,6 +91,19 @@ Window {
                             viewModel.setPlayheadPosition(value/10)
                        }
                    }
+                   Slider {
+                       id: progress2Slider
+                       Layout.fillWidth: true
+                       Layout.leftMargin: 20
+                       Layout.rightMargin: 20
+
+                       from: 0
+                       to: 100
+                       value: 0
+                       onMoved: {
+                           viewModel.moveClip(0,0,value/10)
+                       }
+                   }
 
                    RowLayout {
                        Layout.alignment: Qt.AlignHCenter

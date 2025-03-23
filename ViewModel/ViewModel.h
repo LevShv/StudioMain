@@ -22,7 +22,7 @@ public:
     int volume() const;// Метод для чтения свойства volume
 
 	Q_INVOKABLE void setPlayheadPosition(double position); // Метод для установки позиции воспроизведения 
-
+	Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime); // Метод для перемещения клипа по дорожке
 signals:
     void isPlayingChanged(); // Сигнал для уведомления об изменении свойства
     void volumeChanged(); // Сигнал для уведомления об изменении volume
