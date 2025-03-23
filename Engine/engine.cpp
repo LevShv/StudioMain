@@ -29,13 +29,11 @@ void Engine::Core::AddClip(size_t trackIdx, AudioClip clip)
 }
 
 // Аудиоколлбэк для PortAudio
-int Engine::Core::AudioCallback(
-    const void* inputBuffer, void* outputBuffer,
+int Engine::Core::AudioCallback(const void* inputBuffer, void* outputBuffer,
     unsigned long framesPerBuffer,
     const PaStreamCallbackTimeInfo* timeInfo,
     PaStreamCallbackFlags statusFlags,
     void* userData) {
-
     Core* core = static_cast<Core*>(userData);
     float* out = static_cast<float*>(outputBuffer);
     std::memset(out, 0, framesPerBuffer * sizeof(float)); // Очистка буфера
@@ -44,7 +42,6 @@ int Engine::Core::AudioCallback(
 
     std::lock_guard<std::mutex> lock(core->streamersMutex);
 
-    // Микширование активных стримеров
     for (auto& [id, streamer] : core->activeStreamers) {
         if (!streamer.isActive) continue;
 
@@ -52,7 +49,6 @@ int Engine::Core::AudioCallback(
         sf_count_t readCount = 0;
 
         if (streamer.ramSamples) {
-            // Используем данные из RAM
             readCount = std::min<sf_count_t>(
                 framesPerBuffer,
                 streamer.ramSamples->size() - streamer.position
@@ -61,31 +57,25 @@ int Engine::Core::AudioCallback(
                 readCount * sizeof(float));
         }
         else {
-            // Используем потоковое чтение с диска
             readCount = streamer.file.read(buffer.data(), framesPerBuffer);
         }
 
-        for (unsigned long i = 0; i < readCount; ++i) {
-            out[i] += buffer[i] * streamer.volume;
+        for (unsigned long i = 0; i < framesPerBuffer; ++i) {
+            if (i < static_cast<unsigned long>(readCount)) {
+                out[i] += buffer[i] * streamer.volume;
+            }
         }
 
         streamer.position += readCount;
-
-        // Если клип завершен, помечаем его как неактивный
         if (readCount < framesPerBuffer) {
             streamer.isActive = false; // Клип закончился
             std::cout << "Clip finished: " << id << std::endl;
-
-            // Помечаем клип как завершенный
-            auto* clip = reinterpret_cast<AudioClip*>(id);
-            clip->isFinished = true;
         }
     }
 
-    // Обновление позиции воспроизведения
     core->playheadPosition.store(
         core->playheadPosition.load() +
-        static_cast<double>(framesPerBuffer) / SAMPLE_RATE
+        static_cast<double>(framesPerBuffer) / Core::SAMPLE_RATE
     );
 
     return paContinue;
@@ -234,7 +224,12 @@ void Engine::Core::MoveClip(size_t trackIdx, size_t clipIdx, double newStartTime
     std::lock_guard<std::mutex> lock(streamersMutex); // Защищаем доступ к данным
 
     // Проверяем, существует ли трек и клип
-    if (!IsValidClipIndex(trackIdx, clipIdx)) return;
+    if (trackIdx >= tracks.size() || clipIdx >= tracks[trackIdx].clips.size()) {
+        std::cerr << "Invalid track or clip index." << std::endl;
+        return;
+    }
+        
+       
 
     auto& clip = tracks[trackIdx].clips[clipIdx];
 
@@ -287,70 +282,70 @@ void Engine::Core::UpdateStreamers(const std::vector<Track>& tracks) {
     std::lock_guard<std::mutex> lock(streamersMutex);
     const double currentTime = playheadPosition.load();
     std::cout << "Current playhead position: " << currentTime << std::endl;
-
-    bool allClipsFinished = true;
-
-    // Очистка неактивных стримеров
+    // Удаляем стримеры для клипов, которые больше не активны
     for (auto it = activeStreamers.begin(); it != activeStreamers.end();) {
-        if (!it->second.isActive) {
+        bool isClipActive = false;
+
+        // Проверяем, активен ли клип в текущий момент времени
+        for (const auto& track : tracks) {
+            for (const auto& clip : track.clips) {
+                if (clip.IsActive(currentTime) && reinterpret_cast<size_t>(&clip) == it->first) {
+                    isClipActive = true;
+                    break;
+                }
+            }
+            if (isClipActive) break;
+        }
+
+        if (!isClipActive) {
             std::cout << "Removing inactive streamer: " << it->first << std::endl;
             it = activeStreamers.erase(it);
-        }
-        else {
+        } else {
             ++it;
         }
     }
 
-    // Добавление новых стримеров для активных клипов
+    // Добавляем новые стримеры для активных клипов
     for (size_t trackIdx = 0; trackIdx < tracks.size(); ++trackIdx) {
         const auto& track = tracks[trackIdx];
-        if (track.isMuted || track.isEmpty) continue;
+        if (track.isMuted) continue;
 
-        for (const auto* clip : track.GetActiveClips(currentTime)) {
-            size_t clipId = reinterpret_cast<size_t>(clip);
+        for (const auto& clip : track.clips) {
+            if (clip.IsActive(currentTime)) {
+                size_t clipId = reinterpret_cast<size_t>(&clip);
 
-            // Проверяем, существует ли уже стример для этого клипа
-            if (activeStreamers.count(clipId) || clip->isFinished) {
-                continue; // Стример уже существует или клип завершен
+                if (!activeStreamers.count(clipId)) {
+                    ClipStreamer newStreamer;
+                    newStreamer.volume = clip.volume * track.volume;
+                    newStreamer.globalStartTime = clip.startTime;
+
+                    if (clip.loadToRAM && !clip.samples.empty()) {
+                        // Используем данные из RAM
+                        newStreamer.ramSamples = &clip.samples;
+                        newStreamer.position = static_cast<sf_count_t>(
+                            (currentTime - clip.startTime + clip.offset) * SAMPLE_RATE
+                        );
+                    } else {
+                        // Используем потоковое чтение с диска
+                        newStreamer.file = SndfileHandle(clip.path);
+                        newStreamer.position = static_cast<sf_count_t>(
+                            (currentTime - clip.startTime + clip.offset) * SAMPLE_RATE
+                        );
+                        newStreamer.file.seek(newStreamer.position, SEEK_SET);
+                    }
+
+                    newStreamer.isActive = true;
+                    activeStreamers.emplace(clipId, std::move(newStreamer));
+                    std::cout << "New streamer added for clip: " << clip.path << std::endl;
+                }
             }
-
-            // Создаем новый стример только если его еще нет
-            ClipStreamer newStreamer;
-            newStreamer.volume = clip->volume * track.volume;
-            newStreamer.globalStartTime = clip->startTime;
-
-            if (clip->loadToRAM && !clip->samples.empty()) {
-                newStreamer.ramSamples = &clip->samples;
-                newStreamer.position = static_cast<sf_count_t>(
-                    (currentTime - clip->startTime + clip->offset) * SAMPLE_RATE
-                    );
-            }
-            else {
-                newStreamer.file = SndfileHandle(clip->path);
-                newStreamer.position = static_cast<sf_count_t>(
-                    (currentTime - clip->startTime + clip->offset) * SAMPLE_RATE
-                    );
-                newStreamer.file.seek(newStreamer.position, SEEK_SET);
-            }
-
-            newStreamer.isActive = true;
-            activeStreamers.emplace(clipId, std::move(newStreamer));
-            std::cout << "New streamer added for clip: " << clip->path << std::endl;
         }
-        allClipsFinished = false; // Есть активные клипы
-    }
-
-    std::cout << "Streamer count " << activeStreamers.size() << std::endl;
-
-    // Если все клипы завершены, останавливаем воспроизведение
-    if (allClipsFinished && activeStreamers.empty()) {
-        std::cout << "All clips finished, stopping playback..." << std::endl;
-        StopPlayback();
     }
 }
 
 // Проверка валидности индекса клипа
-bool Engine::Core::IsValidClipIndex(size_t trackIdx, size_t clipIdx) const {
+bool Engine::Core::IsValidClipIndex(size_t trackIdx, size_t clipIdx) const 
+{
     if(trackIdx < tracks.size() && clipIdx < tracks[trackIdx].clips.size()) return true;
     else {
         std::cerr << "Invalid track or clip index." << std::endl;
@@ -418,9 +413,10 @@ void Engine::LoadToTrack(std::string path, double StartTime, int mode, int Track
             path,
             StartTime,
             0.0,
-            5.0,
+            5,
             0.8f
             });
+		Clip.CalculateDuration();
         std::cout << "Audio clip added to track: " << path << std::endl;
         break;
     }
