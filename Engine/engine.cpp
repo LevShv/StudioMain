@@ -36,7 +36,7 @@ int Engine::Core::AudioCallback(const void* inputBuffer, void* outputBuffer,
     void* userData) {
     Core* core = static_cast<Core*>(userData);
     float* out = static_cast<float*>(outputBuffer);
-    std::memset(out, 0, framesPerBuffer * sizeof(float)); // Очистка буфера
+    std::memset(out, 0, framesPerBuffer * 2 * sizeof(float)); // Очистка буфера (стерео: 2 канала)
 
     if (!core->isPlaying) return paContinue;
 
@@ -45,29 +45,34 @@ int Engine::Core::AudioCallback(const void* inputBuffer, void* outputBuffer,
     for (auto& [id, streamer] : core->activeStreamers) {
         if (!streamer.isActive) continue;
 
-        std::vector<float> buffer(framesPerBuffer);
+        // Определяем количество каналов в файле
+        int channels = streamer.file.channels();
+        std::vector<float> buffer(framesPerBuffer * channels); // Буфер для многоканальных данных
         sf_count_t readCount = 0;
 
         if (streamer.ramSamples) {
             readCount = std::min<sf_count_t>(
-                framesPerBuffer,
+                framesPerBuffer * channels,
                 streamer.ramSamples->size() - streamer.position
             );
             std::memcpy(buffer.data(), streamer.ramSamples->data() + streamer.position,
                 readCount * sizeof(float));
         }
         else {
-            readCount = streamer.file.read(buffer.data(), framesPerBuffer);
+            readCount = streamer.file.read(buffer.data(), framesPerBuffer * channels);
         }
 
+        // Записываем данные в выходной буфер (стерео)
         for (unsigned long i = 0; i < framesPerBuffer; ++i) {
-            if (i < static_cast<unsigned long>(readCount)) {
-                out[i] += buffer[i] * streamer.volume;
+            if (i < static_cast<unsigned long>(readCount / channels)) {
+                float sample = buffer[i * channels] * streamer.volume; // Первый канал (левый)
+                out[2 * i] += sample;     // Левый канал
+                out[2 * i + 1] += sample; // Правый канал
             }
         }
 
         streamer.position += readCount;
-        if (readCount < framesPerBuffer) {
+        if (readCount < framesPerBuffer * channels) {
             streamer.isActive = false; // Клип закончился
             std::cout << "Clip finished: " << id << std::endl;
         }
@@ -85,7 +90,7 @@ void Engine::Core::StartPlayback() {
     std::lock_guard<std::mutex> lock(streamersMutex);
 
     if (!audioStream) {
-        PaError err = Pa_OpenDefaultStream(&audioStream, 0, 1, paFloat32,
+        PaError err = Pa_OpenDefaultStream(&audioStream, 0, 2, paFloat32,
             SAMPLE_RATE, FRAMES_PER_BUFFER,
             AudioCallback, this);
         if (err != paNoError) {
