@@ -36,7 +36,6 @@ int main(int argc, char *argv[])
     ViewModel viewModel;
     engine.rootContext()->setContextProperty("viewModel", &viewModel);
 
-
     engine.load(QUrl(QStringLiteral("qrc:/View/MainWindowView/MainWindow.qml")));
     if (engine.rootObjects().isEmpty())
         return -1;
