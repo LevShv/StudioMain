@@ -11,6 +11,21 @@ class ViewModel : public QObject {
       
 public:
 
+    struct Audioclip {
+        double StratTime;
+        double EndTime;
+    };
+
+    class Track{
+
+        double Volume;
+
+		std::vector<Audioclip> clips;
+    };
+
+	std::vector<Track> tracks;
+
+
 	Engine engine;
 
     explicit ViewModel(QObject* parent = nullptr);
