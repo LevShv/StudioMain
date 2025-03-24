@@ -9,6 +9,7 @@
 #include <thread>
 #include <mutex>
 #include <unordered_map>
+#include <RtMidi.h>
 
 class Engine {
 public:

@@ -85,6 +85,7 @@ int Engine::Core::AudioCallback(const void* inputBuffer, void* outputBuffer,
 
     return paContinue;
 }
+
 // Запуск воспроизведения
 void Engine::Core::StartPlayback() {
     std::lock_guard<std::mutex> lock(streamersMutex);

@@ -38,47 +38,47 @@ m_volume(50)
 	//engine.LoadToTrack("Misc/Village_party.wav", 4, 1, 2);
 
 	/*engine.TestPlay();*/
-	try {
-		// Создаем объект для работы с MIDI-входом
-		RtMidiIn midiIn;
+	//try {
+	//	// Создаем объект для работы с MIDI-входом
+	//	RtMidiIn midiIn;
 
-		// Проверяем количество доступных MIDI-портов
-		unsigned int portCount = midiIn.getPortCount();
+	//	// Проверяем количество доступных MIDI-портов
+	//	unsigned int portCount = midiIn.getPortCount();
 
-		if (portCount == 0) {
-			std::cout << "No MIDI input ports available!" << std::endl;
-		}
+	//	if (portCount == 0) {
+	//		std::cout << "No MIDI input ports available!" << std::endl;
+	//	}
 
-		// Выводим список доступных MIDI-портов
-		std::cout << "Available MIDI input ports:" << std::endl;
-		for (unsigned int i = 0; i < portCount; i++) {
-			std::string portName = midiIn.getPortName(i);
-			std::cout << "  Port #" << i << ": " << portName << std::endl;
-		}
+	//	// Выводим список доступных MIDI-портов
+	//	std::cout << "Available MIDI input ports:" << std::endl;
+	//	for (unsigned int i = 0; i < portCount; i++) {
+	//		std::string portName = midiIn.getPortName(i);
+	//		std::cout << "  Port #" << i << ": " << portName << std::endl;
+	//	}
 
-		// Открываем первый MIDI-порт
-		midiIn.openPort(0);
+	//	// Открываем первый MIDI-порт
+	//	midiIn.openPort(0);
 
-		std::cout << "Listening to MIDI input on port 0..." << std::endl;
+	//	std::cout << "Listening to MIDI input on port 0..." << std::endl;
 
-		// Бесконечный цикл для чтения MIDI-сообщений
-		std::vector<unsigned char> message;
-		double stamp;
-		while (true) {
-			stamp = midiIn.getMessage(&message); // Получаем сообщение
-			if (!message.empty()) {
-				std::cout << "Received MIDI message: ";
-				for (unsigned int i = 0; i < message.size(); i++) {
-					std::cout << "Byte " << i << " = " << (int)message[i] << ", ";
-				}
-				std::cout << std::endl;
-			}
-		}
-	}
-	catch (RtMidiError& error) {
-		// Обработка ошибок
-		std::cerr << "RtMidi error: " << error.getMessage() << std::endl;
-	}
+	//	// Бесконечный цикл для чтения MIDI-сообщений
+	//	std::vector<unsigned char> message;
+	//	double stamp;
+	//	while (true) {
+	//		stamp = midiIn.getMessage(&message); // Получаем сообщение
+	//		if (!message.empty()) {
+	//			std::cout << "Received MIDI message: ";
+	//			for (unsigned int i = 0; i < message.size(); i++) {
+	//				std::cout << "Byte " << i << " = " << (int)message[i] << ", ";
+	//			}
+	//			std::cout << std::endl;
+	//		}
+	//	}
+	//}
+	//catch (RtMidiError& error) {
+	//	// Обработка ошибок
+	//	std::cerr << "RtMidi error: " << error.getMessage() << std::endl;
+	//}
 }
 
 Q_INVOKABLE void ViewModel::togglePlayback()
