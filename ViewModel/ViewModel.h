@@ -1,52 +1,31 @@
+// ViewModel.h
 #pragma once
-
 #include <QObject>
-#include <MainWindowView.h>
-#include <engine.h>
+#include "engine.h" // Предполагается, что у вас есть этот файл
 
 class ViewModel : public QObject {
     Q_OBJECT
-        Q_PROPERTY(bool isPlaying READ isPlaying NOTIFY isPlayingChanged) // Свойство для состояния трека
-        Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged) // Свойство для громкости
-      
+        Q_PROPERTY(bool isPlaying READ isPlaying NOTIFY isPlayingChanged)
+        Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged)
+
 public:
-
-    struct Audioclip {
-        double StratTime;
-        double EndTime;
-    };
-
-    class Track{
-
-        double Volume;
-
-		std::vector<Audioclip> clips;
-    };
-
-	std::vector<Track> tracks;
-
-
-	Engine engine;
-
     explicit ViewModel(QObject* parent = nullptr);
+    ~ViewModel();
 
-    Q_INVOKABLE void togglePlayback(); // Метод для переключения состояния         
-    bool isPlaying() const; // Метод для чтения свойства
+    Q_INVOKABLE void togglePlayback();
+    Q_INVOKABLE void setPlayheadPosition(double position);
+    Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
 
-    Q_INVOKABLE void setVolume(int volume); // Метод для установки свойства volume
-    int volume() const;// Метод для чтения свойства volume
+    bool isPlaying() const;
+    int volume() const;
+    void setVolume(int volume);
 
-	Q_INVOKABLE void setPlayheadPosition(double position); // Метод для установки позиции воспроизведения 
-	Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime); // Метод для перемещения клипа по дорожке
 signals:
-    void isPlayingChanged(); // Сигнал для уведомления об изменении свойства
-    void volumeChanged(); // Сигнал для уведомления об изменении volume
-
+    void isPlayingChanged();
+    void volumeChanged();
 
 private:
-    //bool m_isPlaying; // Флаг, указывающий, играет ли трек
-    int m_volume; // Текущая громкость
-
-    std::atomic<bool> m_isPlaying{ false };
-
+    Engine engine;
+    bool m_isPlaying = false;
+    int m_volume = 50;
 };
