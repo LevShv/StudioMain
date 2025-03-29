@@ -1,7 +1,10 @@
+#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
+
 #include "ViewModel.h"
 #include <QtCore/QDebug>
 #include <RtMidi.h>
-#include <JuceHeader.h>
+
 
 
 
@@ -9,7 +12,7 @@ ViewModel::ViewModel(QObject* parent) : QObject(parent),
 m_isPlaying(false),
 m_volume(50) 
 {
-	juce::DebugOutput::setDbgOutputActive(true);
+	//juce::DebugOutput::setDbgOutputActive(true);
 	engine.LoadToTrack("Misc/Step5.wav", 4, 2, 0);
 	//engine.LoadToTrack("Misc/choose
 	//engine.LoadToTrack("Misc/choose.wav", 0.5, 2, 1);
