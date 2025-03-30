@@ -271,11 +271,20 @@ Engine::Engine() {
     deviceManager.addAudioCallback(&audioSourcePlayer);
 
     juce::AudioDeviceManager::AudioDeviceSetup setup;
-    deviceManager.initialise(2, 2, nullptr, true);
+    /*deviceManager.initialise(2, 2, nullptr, true);*/
+    deviceManager.initialiseWithDefaultDevices(2, 2);
     setup.sampleRate = 44100.0;
     deviceManager.setAudioDeviceSetup(setup, true);
 
     configureMidiDevices();
+
+    auto* currentDevice = deviceManager.getCurrentAudioDevice();
+    if (currentDevice) {
+        LOG("Current audio device: " << currentDevice->getName());
+    }
+    else {
+        LOG_ERROR("No audio device available!");
+    }
 }
 
 Engine::~Engine() {
