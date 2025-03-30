@@ -27,6 +27,7 @@ Engine::Core::~Core() {
 }
 
 void Engine::Core::startAudio(juce::AudioDeviceManager& deviceManager) {
+    LOG("Starting audio...");
     deviceManager.addAudioCallback(&audioSourcePlayer);
 }
 
@@ -37,6 +38,8 @@ void Engine::Core::stopAudio(juce::AudioDeviceManager& deviceManager) {
 void Engine::Core::prepareToPlay(int samplesPerBlock, double newSampleRate) {
     sampleRate = newSampleRate;
     transportPlaying = false;
+
+    LOG("prepareToPlay called with sampleRate: " << newSampleRate);
 
     for (auto& track : tracks) {
         if (track.isMidiTrack) continue;
@@ -62,6 +65,7 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
 
     if (!transportPlaying) {
         info.clearActiveBufferRegion();
+        LOG("Transport not playing. Clearing buffer.");
         return;
     }
 
