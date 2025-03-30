@@ -273,29 +273,84 @@ void Engine::Core::loadClipToRAM(AudioClip& clip) {
 }
 
 // Engine implementation
+
 Engine::Engine() {
 
+    // 1. Инициализация аудиосистемы (явно указываем типы)
     audioSourcePlayer.setSource(&core);
     deviceManager.addAudioCallback(&audioSourcePlayer);
 
-    configureMidiDevices();
+    for (auto deviceType : deviceManager.getAvailableDeviceTypes()) {
+        for (auto device : deviceType->getDeviceNames()) {
+            LOG(" - " << device);
+        }
+    }
 
-    juce::AudioDeviceManager::AudioDeviceSetup setup;
-    deviceManager.initialise(2, 2, nullptr, true); // 2 in/out channels
-    deviceManager.addAudioCallback(&audioSourcePlayer);
 
-    // Получаем текущие настройки и устанавливаем sample rate
-    deviceManager.getAudioDeviceSetup(setup);
-    setup.sampleRate = 44100.0; // или ваш предпочтительный sample rate
-    deviceManager.setAudioDeviceSetup(setup, true);
+    // 2. Получение списка устройств (без auto)
+    juce::StringArray outputDevices;
+    juce::AudioIODeviceType* deviceType = deviceManager.getCurrentDeviceTypeObject();
 
-    auto* currentDevice = deviceManager.getCurrentAudioDevice();
-    if (currentDevice) {
-        LOG("Current audio device: " << currentDevice->getName());
+    if (deviceType != nullptr) {
+        deviceType->scanForDevices(); // Явно обновляем список
+        outputDevices = deviceType->getDeviceNames(false); // false для output
+    }
+
+    // 3. Вывод в консоль с явными типами
+    std::cout << "\n=== Devices: ===\n";
+    if (outputDevices.isEmpty()) {
+        std::cout << "Devices did not found!\n";
     }
     else {
-        LOG_ERROR("No audio device available!");
+        for (int i = 0; i < outputDevices.size(); ++i) {
+            std::cout << "[" << i << "] " << outputDevices[i].toStdString() << "\n";
+        }
+
+        // 4. Ввод с проверкой (явные типы)
+        int selectedIndex = 0;
+        std::cout << "\nchoose device: ";
+
+        std::string input;
+        std::getline(std::cin, input);
+
+        if (!input.empty()) {
+            try {
+                selectedIndex = std::stoi(input);
+                if (selectedIndex < 0 || selectedIndex >= outputDevices.size()) {
+                    throw std::out_of_range("Err");
+                }
+            }
+            catch (...) {
+                std::cout << "Bad input.\n";
+                selectedIndex = 0;
+            }
+        }
+
+        // 5. Установка устройства (явный тип)
+        juce::AudioDeviceManager::AudioDeviceSetup setup;
+        deviceManager.getAudioDeviceSetup(setup);
+        setup.outputDeviceName = outputDevices[selectedIndex];
+
+        const juce::String error = deviceManager.setAudioDeviceSetup(setup, true);
+        if (error.isNotEmpty()) {
+            std::cerr << "Ошибка выбора устройства: " << error.toStdString() << "\n";
+        }
+        else {
+            std::cout << "Успешно выбрано: " << outputDevices[selectedIndex].toStdString() << "\n";
+        }
     }
+
+    // 6. Инициализация с явными типами
+     juce::AudioIODevice* audioDevice = deviceManager.getCurrentAudioDevice();
+    if (audioDevice != nullptr) {
+        const int bufferSize = audioDevice->getCurrentBufferSizeSamples();
+        const double sampleRate = audioDevice->getCurrentSampleRate();
+        core.prepareToPlay(bufferSize, sampleRate);
+    }
+
+    // 7. Настройка MIDI
+    configureMidiDevices();
+    
 }
 
 Engine::~Engine() {
