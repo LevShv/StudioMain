@@ -121,6 +121,9 @@ void Engine::Core::loadClip(int trackIndex, const juce::File& file, double start
 }
 
 void Engine::Core::moveClip(int trackIndex, int clipIndex, double newStartTime) {
+
+    LOG_INFO("Moved to " << newStartTime);
+
     if (trackIndex >= 0 && trackIndex < tracks.size() &&
         clipIndex >= 0 && clipIndex < tracks.getReference(trackIndex).clips.size()) {
         const juce::ScopedLock sl(lock);
@@ -131,6 +134,8 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double newStartTime) 
 
 void Engine::Core::updateActiveClips() {
     activeClips.clear();
+
+    LOG(position);
 
     for (int i = 0; i < tracks.size(); ++i) {
         auto& track = tracks.getReference(i);

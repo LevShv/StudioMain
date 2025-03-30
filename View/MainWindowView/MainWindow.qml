@@ -81,9 +81,6 @@ Window {
                    }
                }
            }
-
-
-
            // ChanelRack (редактирование самих треков)
            Rectangle {
                id: chanelrack
@@ -287,10 +284,12 @@ Window {
                 Slider {//громкость
                     id: volumeSlider
                     Layout.fillWidth: true
-                    x:1500
+                    x: 1500
                     from: 0
                     to: 100
-                    value: 50
+                    onMoved: {
+                        viewModel.moveClip(0,0,value/10)
+                    }
                 }
                 Rectangle {
                     id: mainbuttons //все кнопки play,stop,record
