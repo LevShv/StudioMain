@@ -21,6 +21,18 @@
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
+    <Filter Include="MainWindowWiew">
+      <UniqueIdentifier>{3af7ff94-dc89-4513-b262-27eeac9fde07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{13f8d1b3-9352-4e9b-8025-bd566cc849f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ViewModel">
+      <UniqueIdentifier>{29308329-de07-405c-94ab-636ed39b67ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools">
+      <UniqueIdentifier>{61892b3f-5ef5-4a27-99e2-706bf69b4ba6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -29,9 +41,35 @@
     <QtRcc Include="qml.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
-    <None Include="main.qml">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="View\MainWindowView\MainWindowView.cpp">
+      <Filter>MainWindowWiew</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\engine.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewModel\ViewModel.cpp">
+      <Filter>ViewModel</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="View\MainWindowView\MainWindow.qml">
+      <Filter>MainWindowWiew</Filter>
     </None>
-
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Engine\engine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Tools\log.h">
+      <Filter>Tools</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="ViewModel\ViewModel.h">
+      <Filter>ViewModel</Filter>
+    </QtMoc>
+    <QtMoc Include="View\MainWindowView\MainWindowView.h">
+      <Filter>MainWindowWiew</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>
