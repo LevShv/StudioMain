@@ -7,7 +7,7 @@ Window {
     visible: true
     width: 640
     height: 480
-    title: "StudioMain"
+    title: "StudioMain  "
     SplitView {
            anchors.fill: parent
            orientation: Qt.Horizontal
