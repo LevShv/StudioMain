@@ -1,5 +1,6 @@
 // ViewModel.h
 #pragma once
+#include <log.h>
 #include <QObject>
 #include "engine.h" // Предполагается, что у вас есть этот файл
 
@@ -10,7 +11,6 @@ class ViewModel : public QObject {
 
 public:
     explicit ViewModel(QObject* parent = nullptr);
-    ~ViewModel();
 
     Q_INVOKABLE void togglePlayback();
     Q_INVOKABLE void setPlayheadPosition(double position);

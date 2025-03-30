@@ -306,18 +306,20 @@ Window {
                   //  horizontalCenter:mainbuttons
                     spacing: 5
                     ToolButton {
-                            id:play
-                            contentItem: Text {
-                            text: "▶️"
-                            Layout.leftMargin: 15
-                            font.pixelSize: 16
-                            horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideNone
-                            }
-                             background: Rectangle {
-                             color: parent.pressed ? "gray" : "#4C566A"
-                                }
+                       id:play
+                       text: viewModel.isPlaying ? "Pause" : "Play" // Текст кнопки зависит от состояния
+                       onClicked: viewModel.togglePlayback() 
+                           // contentItem: Text {
+                           // text: "▶️"
+                           // Layout.leftMargin: 15
+                           // font.pixelSize: 16
+                           // horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
+                           // verticalAlignment: Text.AlignVCenter
+                           // elide: Text.ElideNone
+                           // }
+                       background: Rectangle {
+                       color: parent.pressed ? "gray" : "#4C566A"
+                       }
                     }
                     ToolButton {
                             id:record

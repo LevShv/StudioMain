@@ -1,13 +1,13 @@
 // ViewModel.cpp
+
 #include "ViewModel.h"
 #include <QtCore/QDebug>
+#include <string>
+
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent)
 {
     engine.AddClip(0, "Misc/Happy.wav", 0.0, false);
-}
-ViewModel::~ViewModel() {
-    
 }
 
 Q_INVOKABLE void ViewModel::togglePlayback()

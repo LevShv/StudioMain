@@ -1,4 +1,5 @@
 #pragma once
+#include <log.h>
 #include <JuceHeader.h>
 class Engine {
 public:
@@ -36,12 +37,15 @@ public:
 
 private:
 
+    void configureMidiDevices();
+
     class Core : public juce::AudioSource {
     public:
 
         Core();
         ~Core();
 
+        juce::CriticalSection lock;
         // Управление аудиоустройством
         void startAudio(juce::AudioDeviceManager& deviceManager);
         void stopAudio(juce::AudioDeviceManager& deviceManager);
@@ -71,7 +75,7 @@ private:
         double sampleRate = 44100.0;
         double position = 0.0;
         bool transportPlaying = false;
-        juce::CriticalSection lock;
+        
 
         struct ActiveClip {
             std::unique_ptr<juce::AudioFormatReaderSource> source;
