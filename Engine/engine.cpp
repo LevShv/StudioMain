@@ -64,7 +64,7 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
         info.clearActiveBufferRegion();
         return;
     }
-    updateActiveClips();
+
     // Очистка буфера ПЕРЕД заполнением
     info.clearActiveBufferRegion();
 
@@ -107,6 +107,7 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
 
     // Корректное обновление позиции
     position = blockDuration;
+    updateActiveClips();
  
 }
 
