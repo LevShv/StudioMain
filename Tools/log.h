@@ -2,11 +2,13 @@
 #include <windows.h>
 #include <iostream>
 
+#define LOG(text) std::cout << text << std::endl;
+
 // Базовый макрос для цветного вывода
 #define LOG_COLOR(text, color_code) { \
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); \
     SetConsoleTextAttribute(hConsole, color_code); \
-    std::cout << text << std::endl; \
+    LOG(text); \
     SetConsoleTextAttribute(hConsole, 7); \
 }
 
