@@ -61,11 +61,11 @@ void Engine::Core::releaseResources() {
 
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const juce::ScopedLock sl(lock);
-    LOG("Position: " << position << ", Playing: " << transportPlaying << ", Active clips: " << activeClips.size());
+   /* LOG("Position: " << position << ", Playing: " << transportPlaying << ", Active clips: " << activeClips.size());*/
 
     if (!transportPlaying) {
         info.clearActiveBufferRegion();
-        LOG("Transport not playing. Clearing buffer.");
+       /* LOG("Transport not playing. Clearing buffer.");*/
         return;
     }
 
@@ -110,8 +110,13 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     processMidiBlocks(info, startTime, endTime);
 
     // Корректное обновление позиции
-    position = blockDuration;
+    /*position = blockDuration;*/
+
+
+
     updateActiveClips();
+
+    position += blockDuration; // Обновляем ПОСЛЕ
  
 }
 
@@ -231,6 +236,8 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double newStartTime) 
 void Engine::Core::updateActiveClips() {
     activeClips.clear();
 
+	LOG(position);
+
     for (auto& track : tracks) {
         if (track.muted) continue;
 
@@ -267,16 +274,20 @@ void Engine::Core::loadClipToRAM(AudioClip& clip) {
 
 // Engine implementation
 Engine::Engine() {
+
     audioSourcePlayer.setSource(&core);
     deviceManager.addAudioCallback(&audioSourcePlayer);
 
-    juce::AudioDeviceManager::AudioDeviceSetup setup;
-    /*deviceManager.initialise(2, 2, nullptr, true);*/
-    deviceManager.initialiseWithDefaultDevices(2, 2);
-    setup.sampleRate = 44100.0;
-    deviceManager.setAudioDeviceSetup(setup, true);
-
     configureMidiDevices();
+
+    juce::AudioDeviceManager::AudioDeviceSetup setup;
+    deviceManager.initialise(2, 2, nullptr, true); // 2 in/out channels
+    deviceManager.addAudioCallback(&audioSourcePlayer);
+
+    // Получаем текущие настройки и устанавливаем sample rate
+    deviceManager.getAudioDeviceSetup(setup);
+    setup.sampleRate = 44100.0; // или ваш предпочтительный sample rate
+    deviceManager.setAudioDeviceSetup(setup, true);
 
     auto* currentDevice = deviceManager.getCurrentAudioDevice();
     if (currentDevice) {
@@ -308,11 +319,15 @@ void Engine::AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence
 }
 
 void Engine::StopMix() { core.stop(); }
+
 void Engine::PlayMix() { core.play(); }
+
 void Engine::MoveClip(int trackIndex, int clipIndex, double newStartTime) {
     core.moveClip(trackIndex, clipIndex, newStartTime);
 }
+
 void Engine::SetPlayheadPosition(double position) { core.setPosition(position); }
+
 bool Engine::IsPlaying() { juce::ScopedLock sl(core.lock); return core.isPlaying(); }
 
 void Engine::SendMidiMessage(const juce::MidiMessage& message) {
