@@ -1,5 +1,4 @@
 
-
 #include "engine.h"
 
 Engine::Core::Core() {
@@ -10,11 +9,12 @@ Engine::Core::Core() {
         midiOutput = juce::MidiOutput::openDevice(midiOutputs[0].identifier);
     }
 
-    // Create 10 tracks (5 audio, 5 MIDI by default)
+    // Создаем треки с корректной семантикой перемещения
+    tracks.reserve(10);
     for (int i = 0; i < 10; i++) {
         Track track;
         track.isMidiTrack = (i >= 5);
-        tracks.push_back(std::move(track));
+        tracks.emplace_back(std::move(track));
     }
 
     audioSourcePlayer.setSource(this);
@@ -55,35 +55,46 @@ void Engine::Core::releaseResources() {
     activeClips.clear();
 }
 
+
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const juce::ScopedLock sl(lock);
+    LOG("Position: " << position << ", Playing: " << transportPlaying << ", Active clips: " << activeClips.size());
 
     if (!transportPlaying) {
         info.clearActiveBufferRegion();
         return;
     }
-
+    updateActiveClips();
+    // Очистка буфера ПЕРЕД заполнением
     info.clearActiveBufferRegion();
-    const double startTime = position;
-    const double endTime = position + (info.numSamples / sampleRate);
 
-    // Process audio clips
+    const double startTime = position;
+    const double blockDuration = info.numSamples / sampleRate;
+    const double endTime = startTime + blockDuration;
+
+    // Обработка аудио клипов
     for (auto& active : activeClips) {
         if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
             if (audioClip->useRAM) {
-                const int startSample = static_cast<int>(active.position);
-                const int numSamples = juce::jmin(info.numSamples,
-                    audioClip->buffer.getNumSamples() - startSample);
+                const int startSample = static_cast<int>((startTime - audioClip->startTime) * sampleRate);
+                const int numSamples = juce::jmin(
+                    info.numSamples,
+                    audioClip->buffer.getNumSamples() - startSample
+                );
 
-                for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                    info.buffer->addFrom(channel, info.startSample,
-                        audioClip->buffer,
-                        channel % audioClip->buffer.getNumChannels(),
-                        startSample,
-                        numSamples,
-                        active.track->gain * audioClip->gain);
+                if (startSample >= 0 && numSamples > 0) {
+                    for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+                        info.buffer->addFrom(
+                            channel,
+                            info.startSample,
+                            audioClip->buffer,
+                            channel % audioClip->buffer.getNumChannels(),
+                            startSample,
+                            numSamples,
+                            active.track->gain * audioClip->gain
+                        );
+                    }
                 }
-                active.position += numSamples;
             }
             else if (active.source != nullptr) {
                 active.source->getNextAudioBlock(info);
@@ -91,15 +102,19 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
         }
     }
 
-    // Process MIDI
+    // Обработка MIDI
     processMidiBlocks(info, startTime, endTime);
-    position = endTime;
-    updateActiveClips();
+
+    // Корректное обновление позиции
+    position = blockDuration;
+ 
 }
 
-void Engine::Core::handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message)
-{
-
+void Engine::Core::handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) {
+    // Пример обработки входящих сообщений
+    if (message.isNoteOn()) {
+        LOG("MIDI Note On: " << message.getNoteNumber());
+    }
 }
 
 void Engine::Core::processMidiBlocks(const juce::AudioSourceChannelInfo& info,
@@ -130,12 +145,15 @@ void Engine::Core::processMidiBlocks(const juce::AudioSourceChannelInfo& info,
 void Engine::Core::play() {
     const juce::ScopedLock sl(lock);
     transportPlaying = true;
+    // Не сбрасываем позицию - продолжение с текущего места
+    LOG("Playback STARTED (or CONTINUED)");
     updateActiveClips();
 }
 
 void Engine::Core::stop() {
     const juce::ScopedLock sl(lock);
     transportPlaying = false;
+    // Не очищаем позицию - запоминаем, где остановились
     activeClips.clear();
 
     if (midiOutput) {
@@ -208,10 +226,7 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double newStartTime) 
 void Engine::Core::updateActiveClips() {
     activeClips.clear();
 
-    LOG(position);
-
-    for (int i = 0; i < tracks.size(); ++i) {
-        auto& track = tracks.at(i);
+    for (auto& track : tracks) {
         if (track.muted) continue;
 
         for (auto& clip : track.clips) {
@@ -221,20 +236,17 @@ void Engine::Core::updateActiveClips() {
                 active.track = &track;
 
                 if (auto* audioClip = dynamic_cast<AudioClip*>(clip.get())) {
-                    if (!audioClip->useRAM) {
+                    if (!audioClip->useRAM) { // Только для клипов не в RAM
                         if (auto reader = formatManager.createReaderFor(audioClip->file)) {
-                            // Создаем источник, передавая ему reader и флаг управления
-                            active.source = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
+                            auto readerPtr = std::unique_ptr<juce::AudioFormatReader>(reader);
+                            active.source = std::make_unique<juce::AudioFormatReaderSource>(
+                                readerPtr.release(), true);
                             active.source->prepareToPlay(512, sampleRate);
                             active.source->setNextReadPosition(
                                 static_cast<juce::int64>((position - audioClip->startTime) * sampleRate));
                         }
                     }
-                    else {
-                        active.position = static_cast<juce::int64>((position - audioClip->startTime) * sampleRate);
-                    }
                 }
-
                 activeClips.add(std::move(active));
             }
         }
