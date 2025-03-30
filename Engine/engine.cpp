@@ -1,11 +1,12 @@
 #include "engine.h"
 
 Engine::Core::Core() {
+
     formatManager.registerBasicFormats();
-    tracks.add(Track());
+
+    for(int i = 0; i < defaultCountOfTracks; i++)
+        tracks.add(Track());
     audioSourcePlayer.setSource(this);  // Устанавливаем себя как источник аудио
-
-
 }
 
 Engine::Core::~Core() {
@@ -122,7 +123,7 @@ void Engine::Core::loadClip(int trackIndex, const juce::File& file, double start
 
 void Engine::Core::moveClip(int trackIndex, int clipIndex, double newStartTime) {
 
-    LOG_INFO("Moved to " << newStartTime);
+    LOG_INFO(tracks[trackIndex].clips[clipIndex].file.getFileName() << " Moved to " << newStartTime);
 
     if (trackIndex >= 0 && trackIndex < tracks.size() &&
         clipIndex >= 0 && clipIndex < tracks.getReference(trackIndex).clips.size()) {
@@ -146,6 +147,8 @@ void Engine::Core::updateActiveClips() {
                 ActiveClip active;
                 active.clip = &clip;
                 active.track = &track;  // Устанавливаем ссылку на трек
+
+                LOG(position << "Playing: " << clip.file.getFileName())
 
                 if (!clip.useRAM) {
                     if (auto reader = std::unique_ptr<juce::AudioFormatReader>(
@@ -172,6 +175,8 @@ void Engine::Core::loadClipToRAM(Clip& clip) {
         reader->read(&clip.buffer, 0, (int)reader->lengthInSamples, 0, true, true);
     }
 }
+
+// ################ Ручки ####################
 
 Engine::Engine()
 {
@@ -239,7 +244,7 @@ void Engine::AddClip(int trackInd, std::string path, int startTime, bool loadToR
             return;
         }
 
-        LOG_INFO("File path: " << audioFile.getFullPathName());
+        LOG_INFO("File path: " << audioFile2.getFullPathName());
 
         audioFile = audioFile2;
 

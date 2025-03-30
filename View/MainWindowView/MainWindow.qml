@@ -284,11 +284,21 @@ Window {
                 Slider {//громкость
                     id: volumeSlider
                     Layout.fillWidth: true
-                    x: 1500
+                    x: 1200
                     from: 0
                     to: 100
                     onMoved: {
                         viewModel.moveClip(0,0,value/10)
+                    }
+                }
+                Slider {//громкость
+                    id: volumeSlider2
+                    Layout.fillWidth: true
+                    x: 1500
+                    from: 0
+                    to: 100
+                    onMoved: {
+                        viewModel.setPlayheadPosition(value)
                     }
                 }
                 Rectangle {

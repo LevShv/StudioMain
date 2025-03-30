@@ -67,6 +67,9 @@ private:
         void getNextAudioBlock(const juce::AudioSourceChannelInfo&) override;
 
     private:
+
+        int defaultCountOfTracks = 10;
+
         juce::AudioFormatManager formatManager;
         juce::Array<Track> tracks;
         juce::AudioSourcePlayer audioSourcePlayer; // Добавлен AudioSourcePlayer
