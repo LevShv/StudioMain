@@ -7,8 +7,8 @@
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent)
 {
-    engine.AddClip(0, "Misc/Happy.wav", 0.0, false);
-    engine.AddClip(1, "Misc/Step5.wav", 1, true);
+    engine.AddAudioClip(0, "Misc/Happy.wav", 0.0, false);
+    engine.AddAudioClip(1, "Misc/Step5.wav", 1, true);
 }
 
 Q_INVOKABLE void ViewModel::togglePlayback()

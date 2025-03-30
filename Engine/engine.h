@@ -1,101 +1,115 @@
 #pragma once
 #include <log.h>
 #include <JuceHeader.h>
+
 class Engine {
 public:
 
-    struct Clip {
-        juce::File file;
+    struct ClipBase {
         double startTime = 0.0;
         double duration = 0.0;
         float gain = 1.0f;
         bool muted = false;
-        juce::AudioBuffer<float> buffer;
-        bool useRAM = false;
 
-        bool isActive(double time) const {
+        virtual ~ClipBase() = default;
+        virtual bool isActive(double time) const {
             return time >= startTime && time < startTime + duration;
         }
     };
 
+    struct AudioClip : public ClipBase {
+        juce::File file;
+        juce::AudioBuffer<float> buffer;
+        bool useRAM = false;
+    };
+
+    struct MidiClip : public ClipBase {
+        juce::MidiMessageSequence midiSequence;
+    };
+
     struct Track {
-        juce::Array<Clip> clips;
+        std::vector<std::unique_ptr<ClipBase>> clips;
         float gain = 1.0f;
         bool muted = false;
+        bool isMidiTrack = false;
+
+        Track() = default;
+
+        // Явно удаляем копирование
+        Track(const Track&) = delete;
+        Track& operator=(const Track&) = delete;
+
+        // Конструктор/оператор перемещения
+        Track(Track&&) noexcept = default;
+        Track& operator=(Track&&) noexcept = default;
     };
 
     Engine();
     ~Engine();
 
-    void AddClip(int trackInd, std::string path, int startTime, bool loadToRAM);
+    void AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM);
+    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startTime);
     void StopMix();
     void PlayMix();
     void MoveClip(int trackIndex, int clipIndex, double newStartTime);
     void SetPlayheadPosition(double position);
     bool IsPlaying();
-
+    void SendMidiMessage(const juce::MidiMessage& message);
 
 private:
-
-    void configureMidiDevices();
-
-    class Core : public juce::AudioSource {
+    class Core : public juce::AudioSource, private juce::MidiInputCallback {
     public:
-
         Core();
         ~Core();
 
+        std::unique_ptr<juce::MidiOutput> midiOutput;
         juce::CriticalSection lock;
-        // Управление аудиоустройством
+
         void startAudio(juce::AudioDeviceManager& deviceManager);
         void stopAudio(juce::AudioDeviceManager& deviceManager);
-
-        // Управление воспроизведением
         void play();
         void stop();
         void setPosition(double newPosition);
         double getPosition() const { return position; }
         bool isPlaying() const { return transportPlaying; }
 
-        // Работа с клипами
-        void loadClip(int trackIndex, const juce::File& file, double startTime, bool loadToRAM = false);
+        void loadAudioClip(int trackIndex, const juce::File& file, double startTime, bool loadToRAM);
+        void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startTime);
         void moveClip(int trackIndex, int clipIndex, double newStartTime);
 
-        // AudioSource interface
         void prepareToPlay(int samplesPerBlock, double sampleRate) override;
         void releaseResources() override;
         void getNextAudioBlock(const juce::AudioSourceChannelInfo&) override;
+        void handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) override;
 
     private:
+        struct ActiveClip {
+            std::unique_ptr<juce::AudioFormatReaderSource> source;
+            const ClipBase* clip = nullptr;
+            const Track* track = nullptr;
+            juce::int64 position = 0;
 
-        int defaultCountOfTracks = 10;
+
+        };
 
         juce::AudioFormatManager formatManager;
-        juce::Array<Track> tracks;
-        juce::AudioSourcePlayer audioSourcePlayer; // Добавлен AudioSourcePlayer
+        std::vector<Track> tracks;
+        juce::AudioSourcePlayer audioSourcePlayer;
 
-        bool playing = false;  // Добавляем объявление переменной
+
+        juce::Array<ActiveClip> activeClips;
         double sampleRate = 44100.0;
         double position = 0.0;
         bool transportPlaying = false;
-        
-
-        struct ActiveClip {
-            std::unique_ptr<juce::AudioFormatReaderSource> source;
-            const Clip* clip = nullptr;
-            const Track* track = nullptr;
-            juce::int64 position = 0;
-        };
-        juce::Array<ActiveClip> activeClips;
 
         void updateActiveClips();
-        void loadClipToRAM(Clip& clip);
+        void loadClipToRAM(AudioClip& clip);
+        void processMidiBlocks(const juce::AudioSourceChannelInfo&, double startTime, double endTime);
     };
 
     Core core;
     juce::AudioDeviceManager deviceManager;
     juce::AudioSourcePlayer audioSourcePlayer;
 
-
-
+    void configureMidiDevices();
 };
