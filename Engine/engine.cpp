@@ -1,21 +1,34 @@
+
 #include "engine.h"
 
 Engine::Core::Core() {
-
     formatManager.registerBasicFormats();
 
-    for(int i = 0; i < defaultCountOfTracks; i++)
-        tracks.add(Track());
-    audioSourcePlayer.setSource(this);  // Устанавливаем себя как источник аудио
+    auto midiOutputs = juce::MidiOutput::getAvailableDevices();
+    if (!midiOutputs.isEmpty()) {
+        midiOutput = juce::MidiOutput::openDevice(midiOutputs[0].identifier);
+    }
+
+    // Создаем треки с корректной семантикой перемещения
+    tracks.reserve(10);
+    for (int i = 0; i < 10; i++) {
+        Track track;
+        track.isMidiTrack = (i >= 5);
+        tracks.emplace_back(std::move(track));
+    }
+
+    audioSourcePlayer.setSource(this);
 }
 
 Engine::Core::~Core() {
     stop();
-    audioSourcePlayer.setSource(nullptr); // Важно для корректного освобождения ресурсов
+    audioSourcePlayer.setSource(nullptr);
+    midiOutput.reset();
 }
 
 void Engine::Core::startAudio(juce::AudioDeviceManager& deviceManager) {
-    deviceManager.addAudioCallback(&audioSourcePlayer); // Регистрируем audioSourcePlayer
+    LOG("Starting audio...");
+    deviceManager.addAudioCallback(&audioSourcePlayer);
 }
 
 void Engine::Core::stopAudio(juce::AudioDeviceManager& deviceManager) {
@@ -24,72 +37,140 @@ void Engine::Core::stopAudio(juce::AudioDeviceManager& deviceManager) {
 
 void Engine::Core::prepareToPlay(int samplesPerBlock, double newSampleRate) {
     sampleRate = newSampleRate;
-    transportPlaying = false; // Инициализируем состояние
+    transportPlaying = false;
 
-    for (auto& track : tracks)
-        for (auto& clip : track.clips)
-            if (clip.useRAM)
-                loadClipToRAM(clip);
+    LOG("prepareToPlay called with sampleRate: " << newSampleRate);
+
+    for (auto& track : tracks) {
+        if (track.isMidiTrack) continue;
+
+        for (auto& clip : track.clips) {
+            if (auto* audioClip = dynamic_cast<AudioClip*>(clip.get())) {
+                if (audioClip->useRAM) {
+                    loadClipToRAM(*audioClip);
+                }
+            }
+        }
+    }
 }
 
 void Engine::Core::releaseResources() {
     activeClips.clear();
 }
 
+
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
-   
     const juce::ScopedLock sl(lock);
+   /* LOG("Position: " << position << ", Playing: " << transportPlaying << ", Active clips: " << activeClips.size());*/
 
     if (!transportPlaying) {
         info.clearActiveBufferRegion();
+       /* LOG("Transport not playing. Clearing buffer.");*/
         return;
     }
 
-    // Очищаем буфер
-    for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-        info.buffer->clear(channel, info.startSample, info.numSamples);
-    }
+    // Очистка буфера ПЕРЕД заполнением
+    info.clearActiveBufferRegion();
 
-    // Обрабатываем активные клипы
+    const double startTime = position;
+    const double blockDuration = info.numSamples / sampleRate;
+    const double endTime = startTime + blockDuration;
+
+    // Обработка аудио клипов
     for (auto& active : activeClips) {
-        if (active.clip->useRAM) {
-            // Воспроизведение из RAM
-            const int startSample = static_cast<int>(active.position);
-            const int numSamples = juce::jmin(info.numSamples,
-                active.clip->buffer.getNumSamples() - startSample);
+        if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
+            if (audioClip->useRAM) {
+                const int startSample = static_cast<int>((startTime - audioClip->startTime) * sampleRate);
+                const int numSamples = juce::jmin(
+                    info.numSamples,
+                    audioClip->buffer.getNumSamples() - startSample
+                );
 
-            for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                info.buffer->addFrom(channel, info.startSample,
-                    active.clip->buffer,
-                    channel % active.clip->buffer.getNumChannels(),
-                    startSample,
-                    numSamples);
+                if (startSample >= 0 && numSamples > 0) {
+                    for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+                        info.buffer->addFrom(
+                            channel,
+                            info.startSample,
+                            audioClip->buffer,
+                            channel % audioClip->buffer.getNumChannels(),
+                            startSample,
+                            numSamples,
+                            active.track->gain * audioClip->gain
+                        );
+                    }
+                }
             }
-            active.position += numSamples;
-        }
-        else if (active.source != nullptr) {
-            // Воспроизведение из файла
-            active.source->getNextAudioBlock(info);
+            else if (active.source != nullptr) {
+                active.source->getNextAudioBlock(info);
+            }
         }
     }
 
-    position += info.numSamples / sampleRate;
+    // Обработка MIDI
+    processMidiBlocks(info, startTime, endTime);
+
+    // Корректное обновление позиции
+    /*position = blockDuration;*/
+
+
+
     updateActiveClips();
-    
+
+    position += blockDuration; // Обновляем ПОСЛЕ
+ 
+}
+
+void Engine::Core::handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) {
+    // Пример обработки входящих сообщений
+    if (message.isNoteOn()) {
+        LOG("MIDI Note On: " << message.getNoteNumber());
+    }
+}
+
+void Engine::Core::processMidiBlocks(const juce::AudioSourceChannelInfo& info,
+    double startTime, double endTime) {
+    juce::MidiBuffer midiBuffer;
+
+    for (auto& active : activeClips) {
+        if (auto* midiClip = dynamic_cast<const MidiClip*>(active.clip)) {
+            for (const auto& event : midiClip->midiSequence) {
+                double eventTime = midiClip->startTime + event->message.getTimeStamp();
+
+                if (eventTime >= startTime && eventTime < endTime) {
+                    int sampleOffset = static_cast<int>((eventTime - startTime) * sampleRate);
+                    midiBuffer.addEvent(event->message, sampleOffset);
+                }
+            }
+        }
+    }
+
+    if (midiOutput && !midiBuffer.isEmpty()) {
+        // Современный способ итерации по MidiBuffer
+        for (const auto& metadata : midiBuffer) {
+            midiOutput->sendMessageNow(metadata.getMessage());
+        }
+    }
 }
 
 void Engine::Core::play() {
     const juce::ScopedLock sl(lock);
     transportPlaying = true;
-    playing = true;
+    // Не сбрасываем позицию - продолжение с текущего места
+    LOG("Playback STARTED (or CONTINUED)");
     updateActiveClips();
 }
 
 void Engine::Core::stop() {
     const juce::ScopedLock sl(lock);
     transportPlaying = false;
-    playing = false;
+    // Не очищаем позицию - запоминаем, где остановились
     activeClips.clear();
+
+    if (midiOutput) {
+        for (int channel = 1; channel <= 16; ++channel) {
+            midiOutput->sendMessageNow(juce::MidiMessage::allNotesOff(channel));
+        }
+    }
 }
 
 void Engine::Core::setPosition(double newPosition) {
@@ -98,37 +179,66 @@ void Engine::Core::setPosition(double newPosition) {
     updateActiveClips();
 }
 
-void Engine::Core::loadClip(int trackIndex, const juce::File& file, double startTime, bool loadToRAM) {
-    if (trackIndex >= 0 && trackIndex < tracks.size()) {
-        Clip newClip;
-        newClip.file = file;
-        newClip.startTime = startTime;
-        newClip.useRAM = loadToRAM;
-
-        if (auto reader = std::unique_ptr<juce::AudioFormatReader>(formatManager.createReaderFor(file))) {
-            newClip.duration = reader->lengthInSamples / reader->sampleRate;
-            if (loadToRAM) {
-                newClip.buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
-                reader->read(&newClip.buffer, 0, (int)reader->lengthInSamples, 0, true, true);
-                LOG_SUCCESS("Loaded to RAM " << file.getFileName());
-            }
-            else {
-                LOG_SUCCESS("File reader set as a clip " << file.getFileName())
-            }
-        }
-
-        tracks.getReference(trackIndex).clips.add(newClip);
+void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file,
+    double startTime, bool loadToRAM) {
+    if (trackIndex < 0 || trackIndex >= tracks.size() || tracks[trackIndex].isMidiTrack) {
+        LOG_ERROR("Invalid track index or MIDI track");
+        return;
     }
+
+    auto newClip = std::make_unique<AudioClip>();
+    newClip->file = file;
+    newClip->startTime = startTime;
+    newClip->useRAM = loadToRAM;
+
+    if (auto reader = formatManager.createReaderFor(file)) {
+        newClip->duration = reader->lengthInSamples / reader->sampleRate;
+
+        if (loadToRAM) {
+            newClip->buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
+            reader->read(&newClip->buffer, 0, (int)reader->lengthInSamples, 0, true, true);
+        }
+    }
+
+    tracks.at(trackIndex).clips.push_back(std::move(newClip));
+}
+
+void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence,
+    double startTime) {
+
+    if (trackIndex < 0 || trackIndex >= tracks.size()) {
+        LOG_ERROR("Invalid track index");
+        return;
+    }
+    if (!tracks[trackIndex].isMidiTrack) {
+        if (tracks[trackIndex].clips.size() == 0) {
+            tracks[trackIndex].isMidiTrack = true;
+        } 
+        else {
+            LOG_ERROR("This track is not a MIDI track!");
+            return;
+        }
+    }
+
+    auto newClip = std::make_unique<MidiClip>();
+    newClip->midiSequence = sequence;
+    newClip->startTime = startTime;
+
+    double endTime = 0;
+    for (int i = 0; i < sequence.getNumEvents(); i++) {
+        auto event = sequence.getEventPointer(i);
+        endTime = juce::jmax(endTime, event->message.getTimeStamp());
+    }
+    newClip->duration = endTime + 0.1;
+
+    tracks.at(trackIndex).clips.push_back(std::move(newClip));
 }
 
 void Engine::Core::moveClip(int trackIndex, int clipIndex, double newStartTime) {
-
-    LOG_INFO(tracks[trackIndex].clips[clipIndex].file.getFileName() << " Moved to " << newStartTime);
-
     if (trackIndex >= 0 && trackIndex < tracks.size() &&
-        clipIndex >= 0 && clipIndex < tracks.getReference(trackIndex).clips.size()) {
+        clipIndex >= 0 && clipIndex < tracks.at(trackIndex).clips.size()) {
         const juce::ScopedLock sl(lock);
-        tracks.getReference(trackIndex).clips.getReference(clipIndex).startTime = newStartTime;
+        tracks.at(trackIndex).clips[clipIndex]->startTime = newStartTime;
         updateActiveClips();
     }
 }
@@ -136,164 +246,198 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double newStartTime) 
 void Engine::Core::updateActiveClips() {
     activeClips.clear();
 
-    LOG(position);
+	LOG(position);
 
-    for (int i = 0; i < tracks.size(); ++i) {
-        auto& track = tracks.getReference(i);
+    for (auto& track : tracks) {
         if (track.muted) continue;
 
         for (auto& clip : track.clips) {
-            if (clip.isActive(position)) {
+            if (clip->isActive(position)) {
                 ActiveClip active;
-                active.clip = &clip;
-                active.track = &track;  // Устанавливаем ссылку на трек
+                active.clip = clip.get();
+                active.track = &track;
 
-                LOG(position << "Playing: " << clip.file.getFileName())
-
-                if (!clip.useRAM) {
-                    if (auto reader = std::unique_ptr<juce::AudioFormatReader>(
-                        formatManager.createReaderFor(clip.file))) {
-
-                        active.source = std::make_unique<juce::AudioFormatReaderSource>(reader.release(), true);
-                        active.source->prepareToPlay(512, sampleRate);
-                        active.source->setNextReadPosition(static_cast<juce::int64>((position - clip.startTime) * sampleRate));
+                if (auto* audioClip = dynamic_cast<AudioClip*>(clip.get())) {
+                    if (!audioClip->useRAM) { // Только для клипов не в RAM
+                        if (auto reader = formatManager.createReaderFor(audioClip->file)) {
+                            auto readerPtr = std::unique_ptr<juce::AudioFormatReader>(reader);
+                            active.source = std::make_unique<juce::AudioFormatReaderSource>(
+                                readerPtr.release(), true);
+                            active.source->prepareToPlay(512, sampleRate);
+                            active.source->setNextReadPosition(
+                                static_cast<juce::int64>((position - audioClip->startTime) * sampleRate));
+                        }
                     }
                 }
-                else {
-                    active.position = static_cast<juce::int64>((position - clip.startTime) * sampleRate);
-                }
-
                 activeClips.add(std::move(active));
             }
         }
     }
 }
 
-void Engine::Core::loadClipToRAM(Clip& clip) {
-    if (auto reader = std::unique_ptr<juce::AudioFormatReader>(formatManager.createReaderFor(clip.file))) {
+void Engine::Core::loadClipToRAM(AudioClip& clip) {
+    if (auto reader = formatManager.createReaderFor(clip.file)) {
         clip.buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
         reader->read(&clip.buffer, 0, (int)reader->lengthInSamples, 0, true, true);
     }
 }
 
-// ################ Ручки ####################
+// Engine implementation
 
-Engine::Engine()
-{
-    //// Логируем список доступных устройств
-    //auto midiInputs = juce::MidiInput::getAvailableDevices();
-    //LOG_INFO("Available MIDI Inputs:");
-    //for (const auto& input : midiInputs) {
-    //    LOG_INFO(" - " << input.name << " (ID: " << input.identifier << ")");
-    //}
+Engine::Engine() {
 
-    //// Безопасно отключаем устройства
-    //for (const auto& input : midiInputs) {
-    //    if (deviceManager.isMidiInputDeviceEnabled(input.identifier)) {
-    //        deviceManager.setMidiInputDeviceEnabled(input.identifier, false);
-    //    }
-    //}
-
-    //// Отключаем MIDI-выход
-    //deviceManager.setDefaultMidiOutputDevice(juce::String());
-
-    // Настраиваем аудио
+    // 1. Инициализация аудиосистемы (явно указываем типы)
     audioSourcePlayer.setSource(&core);
     deviceManager.addAudioCallback(&audioSourcePlayer);
 
-    configureMidiDevices();
-    
-    juce::AudioDeviceManager::AudioDeviceSetup setup;
-    deviceManager.initialise(2, 2, nullptr, true); // 2 in/out channels
-    deviceManager.addAudioCallback(&audioSourcePlayer);
-
-    // Получаем текущие настройки и устанавливаем sample rate
-    deviceManager.getAudioDeviceSetup(setup);
-    setup.sampleRate = 44100.0; // или ваш предпочтительный sample rate
-    deviceManager.setAudioDeviceSetup(setup, true);
-
-}
-
-Engine::~Engine()
-{
-    deviceManager.removeAudioCallback(&audioSourcePlayer);
-    audioSourcePlayer.setSource(nullptr);
-   // deviceManager.removeMidiInputDeviceCallback(); // Добавьте эту строку
-
-}
-
-void Engine::AddClip(int trackInd, std::string path, int startTime, bool loadToRAM)
-{
-    juce::File audioFile;
-
-    try {
+    for (auto deviceType : deviceManager.getAvailableDeviceTypes()) {
+        for (auto device : deviceType->getDeviceNames()) {
+            LOG(" - " << device);
+        }
+    }
 
 
+    // 2. Получение списка устройств (без auto)
+    juce::StringArray outputDevices;
+    juce::AudioIODeviceType* deviceType = deviceManager.getCurrentDeviceTypeObject();
 
-        // 1. Создаем нормализованный путь
-        juce::String normalizedPath = juce::String(path)
-            .replace("\\", "/")          // Унифицируем разделители
-            .replace("//", "/");         // Убираем дублирующие слеши
+    if (deviceType != nullptr) {
+        deviceType->scanForDevices(); // Явно обновляем список
+        outputDevices = deviceType->getDeviceNames(false); // false для output
+    }
 
-        // 2. Создаем файловый объект с проверкой
-        juce::File audioFile2(normalizedPath);
-
-        // 3. Дополнительные проверки
-        if (normalizedPath.isEmpty()) {
-            LOG_ERROR("Error: Empty path provided");
-            return;
+    // 3. Вывод в консоль с явными типами
+    std::cout << "\n=== Devices: ===\n";
+    if (outputDevices.isEmpty()) {
+        std::cout << "Devices did not found!\n";
+    }
+    else {
+        for (int i = 0; i < outputDevices.size(); ++i) {
+            std::cout << "[" << i << "] " << outputDevices[i].toStdString() << "\n";
         }
 
-        LOG_INFO("File path: " << audioFile2.getFullPathName());
+        // 4. Ввод с проверкой (явные типы)
+        int selectedIndex = 0;
+        std::cout << "\nchoose device: ";
 
-        audioFile = audioFile2;
+        std::string input;
+        std::getline(std::cin, input);
 
+        if (!input.empty()) {
+            try {
+                selectedIndex = std::stoi(input);
+                if (selectedIndex < 0 || selectedIndex >= outputDevices.size()) {
+                    throw std::out_of_range("Err");
+                }
+            }
+            catch (...) {
+                std::cout << "Bad input.\n";
+                selectedIndex = 0;
+            }
+        }
+
+        // 5. Установка устройства (явный тип)
+        juce::AudioDeviceManager::AudioDeviceSetup setup;
+        deviceManager.getAudioDeviceSetup(setup);
+        setup.outputDeviceName = outputDevices[selectedIndex];
+
+        const juce::String error = deviceManager.setAudioDeviceSetup(setup, true);
+        if (error.isNotEmpty()) {
+            std::cerr << "Ошибка выбора устройства: " << error.toStdString() << "\n";
+        }
+        else {
+            std::cout << "Успешно выбрано: " << outputDevices[selectedIndex].toStdString() << "\n";
+        }
     }
-    catch (const std::exception& e) {
-        LOG_ERROR("Critical error: " << e.what());
+
+    // 6. Инициализация с явными типами
+     juce::AudioIODevice* audioDevice = deviceManager.getCurrentAudioDevice();
+    if (audioDevice != nullptr) {
+        const int bufferSize = audioDevice->getCurrentBufferSizeSamples();
+        const double sampleRate = audioDevice->getCurrentSampleRate();
+        core.prepareToPlay(bufferSize, sampleRate);
     }
 
-    // Проверка существования файла
-    if (!audioFile.exists()) {
-        // Файл не существует
-        LOG_ERROR("File Does not exist " << audioFile.getFullPathName());
-        return;
-    }
+    // 7. Настройка MIDI
+    configureMidiDevices();
+    
+}
 
-    // Проверка, что это именно файл (а не директория)
+Engine::~Engine() {
+    deviceManager.removeAudioCallback(&audioSourcePlayer);
+    audioSourcePlayer.setSource(nullptr);
+}
+
+void Engine::AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM) {
+    juce::File audioFile(juce::String(path).replace("\\", "/").replace("//", "/"));
+
     if (!audioFile.existsAsFile()) {
-        LOG_ERROR("This is directory, not a file " << audioFile.getFullPathName());
+        LOG_ERROR("File does not exist or is not accessible: " << path);
         return;
     }
 
-    if (!audioFile.hasReadAccess()) {
-        LOG_ERROR("No access to read " << path);
-        return;
-    }
-    core.loadClip(trackInd, audioFile, startTime, loadToRAM);
+    core.loadAudioClip(trackInd, audioFile, startTime, loadToRAM);
+}
+
+void Engine::AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startTime) {
+    core.loadMidiClip(trackInd, sequence, startTime);
 }
 
 void Engine::StopMix() { core.stop(); }
 
 void Engine::PlayMix() { core.play(); }
 
-void Engine::MoveClip(int trackIndex, int clipIndex, double newStartTime) { core.moveClip(trackIndex, clipIndex, newStartTime); }
+void Engine::MoveClip(int trackIndex, int clipIndex, double newStartTime) {
+    core.moveClip(trackIndex, clipIndex, newStartTime);
+}
 
 void Engine::SetPlayheadPosition(double position) { core.setPosition(position); }
 
 bool Engine::IsPlaying() { juce::ScopedLock sl(core.lock); return core.isPlaying(); }
 
-void Engine::configureMidiDevices()
-{
-    auto midiInputs = juce::MidiInput::getAvailableDevices();
+void Engine::SendMidiMessage(const juce::MidiMessage& message) {
+    if (core.midiOutput) {
+        core.midiOutput->sendMessageNow(message);
+    }
+}
 
-    if (!midiInputs.isEmpty()) {
-        for (const auto& input : midiInputs) {
-            deviceManager.setMidiInputDeviceEnabled(input.identifier, false);
+void Engine::configureMidiDevices() {
+    auto midiOutputs = juce::MidiOutput::getAvailableDevices();
+
+    if (midiOutputs.isEmpty()) {
+        LOG_ERROR("No MIDI output devices found!");
+        return;
+    }
+
+    std::cout << "\n=== Available MIDI Outputs ===\n";
+    for (size_t i = 0; i < midiOutputs.size(); ++i) {
+        std::cout << "[" << i << "] " << midiOutputs[i].name.toStdString() << "\n";
+    }
+
+    int selectedIndex = 0;
+    std::cout << "Choose MIDI device: ";
+    std::string input;
+    std::getline(std::cin, input);
+
+    try {
+        selectedIndex = std::stoi(input);
+        if (selectedIndex < 0 || selectedIndex >= midiOutputs.size()) {
+            throw std::out_of_range("Invalid selection");
         }
-        deviceManager.setDefaultMidiOutputDevice({});
+    }
+    catch (...) {
+        std::cout << "Bad input. Defaulting to 0.\n";
+        selectedIndex = 0;
+    }
+
+    // Закрываем старый выход и открываем новый
+    core.midiOutput.reset();
+    core.midiOutput = juce::MidiOutput::openDevice(midiOutputs[selectedIndex].identifier);
+
+    if (core.midiOutput) {
+        std::cout << "Selected MIDI Output: " << midiOutputs[selectedIndex].name.toStdString() << "\n";
     }
     else {
-        LOG_WARN("No MIDI devices to configure.");
+        std::cerr << "Failed to open MIDI Output!\n";
     }
 }

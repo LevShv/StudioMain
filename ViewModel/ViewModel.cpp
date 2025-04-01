@@ -7,8 +7,21 @@
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent)
 {
-    engine.AddClip(0, "Misc/Happy.wav", 0.0, false);
-    engine.AddClip(1, "Misc/Step5.wav", 1, true);
+
+    juce::MidiMessageSequence sequence;
+
+    sequence.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);   // Нота C4
+    sequence.addEvent(juce::MidiMessage::noteOff(1, 60), 0.5);                   // Выключение C4 через 0.5 сек
+
+    sequence.addEvent(juce::MidiMessage::noteOn(1, 64, (juce::uint8)100), 1.0);   // Нота E4
+    sequence.addEvent(juce::MidiMessage::noteOff(1, 64), 1.5);
+
+    sequence.addEvent(juce::MidiMessage::noteOn(1, 67, (juce::uint8)100), 2.0);   // Нота G4
+    sequence.addEvent(juce::MidiMessage::noteOff(1, 67), 2.5);
+
+    engine.AddAudioClip(0, "Misc/Happy.wav", 0.0, false);
+    engine.AddAudioClip(1, "Misc/Step5.wav", 1, true);
+	engine.AddMidiClip(2, sequence, 0.0);
 }
 
 Q_INVOKABLE void ViewModel::togglePlayback()

@@ -68,6 +68,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>C:\Users\llvvv\source\repos\Studio\StudioMain\Tools;C:\JUCE\modules;C:\Users\user\source\repos\LevShv\StudioMain\Tools;C:\Users\user\source\repos\LevShv\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine;C:\Users\llvvv\source\repos\Studio\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\Engine;C:\Users\user\source\repos\LevShv\StudioMain\View\MainWindowView;C:\Users\llvvv\source\repos\Studio\StudioMain\View\MainWindowView;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>C:\Users\user\source\repos\LevShv\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine\engineLibs\Juce;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
