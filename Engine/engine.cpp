@@ -205,9 +205,19 @@ void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file,
 
 void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence,
     double startTime) {
-    if (trackIndex < 0 || trackIndex >= tracks.size() || !tracks[trackIndex].isMidiTrack) {
-        LOG_ERROR("Invalid track index or not a MIDI track");
+
+    if (trackIndex < 0 || trackIndex >= tracks.size()) {
+        LOG_ERROR("Invalid track index");
         return;
+    }
+    if (!tracks[trackIndex].isMidiTrack) {
+        if (tracks[trackIndex].clips.size() == 0) {
+            tracks[trackIndex].isMidiTrack = true;
+        } 
+        else {
+            LOG_ERROR("This track is not a MIDI track!");
+            return;
+        }
     }
 
     auto newClip = std::make_unique<MidiClip>();
@@ -392,10 +402,42 @@ void Engine::SendMidiMessage(const juce::MidiMessage& message) {
 }
 
 void Engine::configureMidiDevices() {
-    auto midiInputs = juce::MidiInput::getAvailableDevices();
-    if (!midiInputs.isEmpty()) {
-        for (const auto& input : midiInputs) {
-            deviceManager.setMidiInputDeviceEnabled(input.identifier, false);
+    auto midiOutputs = juce::MidiOutput::getAvailableDevices();
+
+    if (midiOutputs.isEmpty()) {
+        LOG_ERROR("No MIDI output devices found!");
+        return;
+    }
+
+    std::cout << "\n=== Available MIDI Outputs ===\n";
+    for (size_t i = 0; i < midiOutputs.size(); ++i) {
+        std::cout << "[" << i << "] " << midiOutputs[i].name.toStdString() << "\n";
+    }
+
+    int selectedIndex = 0;
+    std::cout << "Choose MIDI device: ";
+    std::string input;
+    std::getline(std::cin, input);
+
+    try {
+        selectedIndex = std::stoi(input);
+        if (selectedIndex < 0 || selectedIndex >= midiOutputs.size()) {
+            throw std::out_of_range("Invalid selection");
         }
+    }
+    catch (...) {
+        std::cout << "Bad input. Defaulting to 0.\n";
+        selectedIndex = 0;
+    }
+
+    // «акрываем старый выход и открываем новый
+    core.midiOutput.reset();
+    core.midiOutput = juce::MidiOutput::openDevice(midiOutputs[selectedIndex].identifier);
+
+    if (core.midiOutput) {
+        std::cout << "Selected MIDI Output: " << midiOutputs[selectedIndex].name.toStdString() << "\n";
+    }
+    else {
+        std::cerr << "Failed to open MIDI Output!\n";
     }
 }
