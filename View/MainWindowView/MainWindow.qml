@@ -3,7 +3,7 @@ import QtQuick.Window 2.2
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 
 import QtQuick.Controls.Material
-import FileBrowser 1.0 
+import FileBrowser 
 import Qt.labs.folderlistmodel 2.15
 
 Window {
@@ -20,109 +20,97 @@ Window {
     anchors.topMargin: 102
     orientation: Qt.Horizontal
 
-        // Левая панель (список треков)
+
+    // Левая панель (браузер файлов)
         Rectangle {
-            anchors.fill: parent
+            id: fileBrowser
+            implicitWidth: 300
+            SplitView.minimumWidth: 200
             color: "#2E3440"
-    
-            // Публичные свойства для управления извне
-            property string currentFolder: Qt.resolvedUrl("file://" + StandardPaths.standardLocations(StandardPaths.HomeLocation)[0])
-            property alias folderModel: folderModel
-    
-            signal folderChanged(string newFolder)
-    
+
+            // Создаем экземпляр нашего C++ класса
+            FileBrowser {
+                id: browser
+                onCurrentFolderChanged: folderModel.folder = browser.currentFolder
+            }
+
             Column {
                 anchors.fill: parent
                 spacing: 10
-        
+
                 // Панель навигации
                 Row {
                     width: parent.width
                     padding: 5
                     spacing: 5
-            
+
                     Button {
                         text: "←"
-                        onClicked: navigateUp()
+                        onClicked: browser.setCurrentFolder(browser.parentFolder())
                     }
-            
+
                     Button {
                         text: "⌂"
-                        onClicked: goHome()
+                        onClicked: browser.setCurrentFolder(browser.homeFolder())
                     }
-            
+
                     TextField {
                         id: pathField
                         width: parent.width - 100
-                        text: currentFolder
-                        onAccepted: currentFolder = text
+                        text: browser.currentFolder
+                        onAccepted: browser.setCurrentFolder(text)
                     }
                 }
-        
+
                 // Список файлов
                 ListView {
                     width: parent.width
                     height: parent.height - 50
                     model: folderModel
                     clip: true
-            
+
                     delegate: Rectangle {
                         width: parent.width
                         height: 40
                         color: ListView.isCurrentItem ? "#4C566A" : "transparent"
-                
+
                         Row {
                             spacing: 10
                             anchors.verticalCenter: parent.verticalCenter
                             leftPadding: 10
-                    
+
                             Text {
                                 text: fileIsDir ? "📁" : "📄"
                                 font.pixelSize: 16
                             }
-                    
+
                             Text {
                                 text: fileName
                                 color: "white"
                                 font.pixelSize: 14
                             }
                         }
-                
+
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: handleClick(fileName, fileIsDir)
+                            onClicked: {
+                                if (fileIsDir) {
+                                    browser.setCurrentFolder(Qt.resolvedUrl(folderModel.folder + "/" + fileName))
+                                } else {
+                                    browser.openFile(Qt.resolvedUrl(folderModel.folder + "/" + fileName))
+                                }
+                            }
                         }
                     }
                 }
             }
-    
-            function navigateUp() {
-                var dir = Qt.resolvedUrl(currentFolder + "/..")
-                currentFolder = dir
-            }
-    
-            function goHome() {
-                currentFolder = Qt.resolvedUrl("file://" + StandardPaths.standardLocations(StandardPaths.HomeLocation)[0])
-            }
-    
-            function handleClick(name, isDir) {
-                if (isDir) {
-                    currentFolder = Qt.resolvedUrl(currentFolder + "/" + name)
-                } else {
-                    Qt.openUrlExternally(Qt.resolvedUrl(currentFolder + "/" + name))
-                }
-            }
-    
+
             FolderListModel {
                 id: folderModel
-                folder: currentFolder
+                folder: browser.currentFolder
                 showDirsFirst: true
                 showDotAndDotDot: true
-            }
-    
-            onCurrentFolderChanged: {
-                folderModel.folder = currentFolder
-                folderChanged(currentFolder)
+                nameFilters: ["*"]  // Показывать все файлы
             }
         }
             // ChanelRack (редактирование самих треков)
