@@ -4,6 +4,7 @@
 
 #include <MainWindowView.h>
 #include <ViewModel.h>
+#include "filebrowser.h"
 
 #include <iostream>
 #include <windows.h>
@@ -31,12 +32,17 @@ int main(int argc, char *argv[])
 
     QGuiApplication app(argc, argv);
 
+	qmlRegisterType<FileBrowser>("FileBrowser", 1, 0, "FileBrowser");
+
     QQmlApplicationEngine engine;
 
     ViewModel viewModel;
     engine.rootContext()->setContextProperty("viewModel", &viewModel);
 
     engine.load(QUrl(QStringLiteral("qrc:/View/MainWindowView/MainWindow.qml")));
+
+	qDebug() << "Root objects:" << engine.rootObjects();
+
     if (engine.rootObjects().isEmpty())
         return -1;
 

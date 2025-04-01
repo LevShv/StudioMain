@@ -5,17 +5,9 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>qml;cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>qrc;rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="Form Files">
-      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
-      <Extensions>ui</Extensions>
     </Filter>
     <Filter Include="Translation Files">
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
@@ -32,6 +24,9 @@
     </Filter>
     <Filter Include="Tools">
       <UniqueIdentifier>{61892b3f-5ef5-4a27-99e2-706bf69b4ba6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FileBrowser">
+      <UniqueIdentifier>{057a07f6-2fc5-4dae-b6ed-8afcbc2255e6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -50,10 +45,16 @@
     <ClCompile Include="ViewModel\ViewModel.cpp">
       <Filter>ViewModel</Filter>
     </ClCompile>
+    <ClCompile Include="FileBrowser.cpp">
+      <Filter>FileBrowser</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="View\MainWindowView\MainWindow.qml">
       <Filter>MainWindowWiew</Filter>
+    </None>
+    <None Include="FileBrowser.qml">
+      <Filter>FileBrowser</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -70,6 +71,9 @@
     </QtMoc>
     <QtMoc Include="View\MainWindowView\MainWindowView.h">
       <Filter>MainWindowWiew</Filter>
+    </QtMoc>
+    <QtMoc Include="FileBrowser.h">
+      <Filter>FileBrowser</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>

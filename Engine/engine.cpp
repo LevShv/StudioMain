@@ -368,6 +368,7 @@ Engine::~Engine() {
     audioSourcePlayer.setSource(nullptr);
 }
 
+
 void Engine::AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM) {
     juce::File audioFile(juce::String(path).replace("\\", "/").replace("//", "/"));
 
