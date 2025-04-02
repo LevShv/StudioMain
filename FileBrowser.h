@@ -17,10 +17,10 @@ class FileBrowser : public QObject
 public:
     explicit FileBrowser(QObject* parent = nullptr);
 
-    QString currentFolder() const;
-    void setCurrentFolder(const QString& folder);
+    Q_INVOKABLE QString currentFolder() const;
+    Q_INVOKABLE void setCurrentFolder(const QString& folder);
 
-    QString homeFolder() const;
+    Q_INVOKABLE QString homeFolder() const;
     Q_INVOKABLE QString parentFolder() const;
     Q_INVOKABLE void openFile(const QString& filePath);
     Q_INVOKABLE bool isDir(const QString& path) const;

@@ -110,6 +110,7 @@
     <ClCompile Include="ViewModel\ViewModel.cpp" />
     <ClCompile Include="View\MainWindowView\MainWindowView.cpp" />
     <None Include="FileBrowser.qml" />
+    <None Include="old.qml" />
     <None Include="View\MainWindowView\MainWindow.qml" />
     <QtRcc Include="qml.qrc" />
   </ItemGroup>

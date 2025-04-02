@@ -3,539 +3,456 @@ import QtQuick.Window 2.2
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 
 import QtQuick.Controls.Material
-import FileBrowser 
+import FileBrowser 1.0
 import Qt.labs.folderlistmodel 2.15
 
 Window {
-    Component.onCompleted: {
-        Application.style = "Material" // Или "Material", "Universal", "Basic"
-    }
+
     visible: true
     width: 1500
     height: 1080
     title: "StudioMain"
-    
-    SplitView {
-    anchors.fill: parent
-    anchors.topMargin: 102
-    orientation: Qt.Horizontal
 
+    color: "#2E3440"
 
-    // Левая панель (браузер файлов)
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
+
+        // Верхняя панель инструментов
         Rectangle {
-            id: fileBrowser
-            implicitWidth: 300
-            SplitView.minimumWidth: 200
+            id: toolbar
+            Layout.fillWidth: true
+            Layout.preferredHeight: 102
             color: "#2E3440"
 
-            // Создаем экземпляр нашего C++ класса
-            FileBrowser {
-                id: browser
-                onCurrentFolderChanged: {
-                    console.log("QML: Folder changed to", browser.currentFolder);
-                    folderModel.folder = "file://" + browser.currentFolder;
-                    pathField.text = browser.currentFolder;
-                }
-            }
-
-            Column {
+            ColumnLayout {
                 anchors.fill: parent
-                spacing: 10
+                spacing: 0
 
-                // Панель навигации
-                Row {
-                    width: parent.width
-                    padding: 5
-                    spacing: 5
-
-                    Button {
-                        text: "←"
-                        onClicked: {
-                            var parentFolder = browser.parentFolder();
-                            console.log("Navigating to parent:", parentFolder);
-                            browser.setCurrentFolder(parentFolder);
-                        }
-                    }
-
-                    Button {
-                        text: "⌂"
-                    
-                        onClicked: {
-                            console.log("Navigating home");
-                            browser.setCurrentFolder(browser.homeFolder());
-                        }
-                    }
-
-                    TextField {
-                        id: pathField
-                        width: parent.width - 100
-                        text: browser.currentFolder
-                        onAccepted: {
-                            console.log("Manual path input:", text);
-                            browser.setCurrentFolder(text);
-                        }
-                    }
+                // Верхняя секция (пустая)
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 48
+                    color: "#4C566A"
                 }
 
-                // Список файлов
-                ListView {
-                    width: parent.width
-                    height: parent.height - 50
-                    model: folderModel
-                    clip: true
+                // Нижняя секция с элементами управления
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 48
+                    color: "#4C566A"
 
-                    delegate: Rectangle {
-                        width: parent.width
-                        height: 40
-                        color: ListView.isCurrentItem ? "#4C566A" : "transparent"
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: 10
 
+                        // Левая группа кнопок
                         Row {
-                            spacing: 10
-                            anchors.verticalCenter: parent.verticalCenter
-                            leftPadding: 10
+                            Layout.alignment: Qt.AlignLeft
+                            spacing: 5
 
-                            Text {
-                                text: fileIsDir ? "📁" : "📄"
-                                font.pixelSize: 16
+
+                            ToolButton {
+                                text: "Создать"
+                                implicitWidth: 100
                             }
-
-                            Text {
-                                text: fileName
-                                color: "white"
-                                font.pixelSize: 14
+                            ToolButton {
+                                text: "Копировать"
+                                implicitWidth: 100
+                            }
+                            ToolButton {
+                                text: "Сохранить"
+                                implicitWidth: 100
                             }
                         }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                var fullPath = folderModel.folder + "/" + fileName;
-                                fullPath = fullPath.replace("file://", "");
-                                console.log("Clicked:", fullPath);
-                
-                                if (fileIsDir) {
-                                    browser.setCurrentFolder(fullPath);
-                                } else {
-                                    browser.openFile(fullPath);
-                                }
+                        // Центральная группа кнопок
+                        Row {
+                            Layout.alignment: Qt.AlignHCenter
+                            spacing: 5
+
+                            ToolButton {
+                                text: viewModel.isPlaying ? "⏸️" : "▶️"
+                                implicitWidth: 60
+                            }
+                            ToolButton {
+                                text: "⏺️"
+                                implicitWidth: 60
+                            }
+                        }
+
+                        // Правая группа элементов
+                        Row {
+                            Layout.alignment: Qt.AlignRight
+                            spacing: 10
+
+
+                            Slider {
+                                width: 150
+                                from: 0
+                                to: 100
+                            }
+                            Slider {
+                                width: 150
+                                from: 0
+                                to: 100
                             }
                         }
                     }
                 }
-            }
-
-            FolderListModel {
-                id: folderModel
-                folder: "file://" + browser.currentFolder
-                showDirsFirst: true
-                showDotAndDotDot: true
-                onFolderChanged: console.log("Model folder updated:", folder)
             }
         }
-            // ChanelRack (редактирование самих треков)
 
-        //звуковые дорожки
+        // Основная рабочая область
         Rectangle {
-            id: playlistRoot
-            property color backgroundColor: "#1E1E1E"
-            property color trackColor: "#2D2D2D"
-            property color textColor: "#CCCCCC"
-            property color highlightColor: "#3A3A3A"
-            property color borderColor: "#444444"
-            property int trackHeight: 30
-            property int timeRulerHeight: 25
-            property int trackHeaderWidth: 100
-            property int beatWidth: 40
-            property int beatsPerMeasure: 4
-            property int totalMeasures: 16
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: "transparent"
 
-            // Playlist data model would go here in a real implementation
-            property var tracks: [
-                {name: "Track 1", clips: [{start: 0, length: 4, color: "#FF5722"}]},
-                {name: "Track 2", clips: [{start: 4, length: 8, color: "#4CAF50"}]},
-                {name: "Track 3", clips: [{start: 8, length: 4, color: "#2196F3"}]}
-            ]
-
-
-            Rectangle {
-                id: playlistContainer
+            SplitView {
                 anchors.fill: parent
-                anchors.leftMargin: 0
-                anchors.topMargin: 0
-                color: playlistRoot.backgroundColor
-                border.color: playlistRoot.borderColor
-                border.width: 1
+                orientation: Qt.Horizontal
 
-
-                // Time ruler (top header)
+                // Левая панель (200px фиксированная, но адаптивная)
                 Rectangle {
-                    id: timeRuler
-                    width: parent.width - playlistRoot.trackHeaderWidth
-                    height: playlistRoot.timeRulerHeight
-                    color: playlistRoot.backgroundColor
-                    anchors.top: parent.top
-                    anchors.left: trackHeaders.right
+                    id: leftPanel
+                    SplitView.minimumWidth: 150
+                    SplitView.preferredWidth: 200
+                    SplitView.maximumWidth: 300
+                    color: "#2E3440"
 
-                    Row {
-                        spacing: 0
+                     // Создаем экземпляр нашего C++ класса
+                    FileBrowser {
+                        id: browser
+                        onCurrentFolderChanged: {
+                            console.log("QML: Folder changed to", browser.currentFolder);
+                            folderModel.folder = "file://" + browser.currentFolder;
+                            pathField.text = browser.currentFolder;
+                        }
+                    }
+
+                    Column {
                         anchors.fill: parent
+                        spacing: 10
 
-                        Repeater {
-                            model: playlistRoot.totalMeasures * playlistRoot.beatsPerMeasure
+                        // Панель навигации
+                        Row {
+                            width: parent.width
+                            padding: 5
+                            spacing: 5
 
-                            Rectangle {
-                                width: playlistRoot.beatWidth
-                                height: parent.height
-                                color: "transparent"
-                                border.color: index % playlistRoot.beatsPerMeasure === 0 ? Qt.darker(playlistRoot.borderColor, 1.3) : playlistRoot.borderColor
-                                border.width: 1
+                            Button {
+                                text: "←"
+                                onClicked: {
+                                    var parentFolder = browser.parentFolder();
+                                    console.log("Navigating to parent:", parentFolder);
+                                    browser.setCurrentFolder(parentFolder);
+                                }
+                            }
 
-                                Text {
-                                    text: index % playlistRoot.beatsPerMeasure === 0 ? Math.floor(index/playlistRoot.beatsPerMeasure) + 1 : ""
-                                    color: playlistRoot.textColor
-                                    font.pixelSize: 10
-                                    anchors.centerIn: parent
+                            Button {
+                                text: "⌂"
+                    
+                                onClicked: {
+                                    console.log("Navigating home");
+                                    browser.setCurrentFolder(browser.homeFolder());
+                                }
+                            }
+
+                            TextField {
+                                id: pathField
+                                width: parent.width - 100
+                                text: browser.currentFolder
+                                onAccepted: {
+                                    console.log("Manual path input:", text);
+                                    browser.setCurrentFolder(text);
                                 }
                             }
                         }
-                    }
-                }
 
-                // Track headers (left side)
-                Column {
-                    id: trackHeaders
-                    width: playlistRoot.trackHeaderWidth
-                    anchors.top: timeRuler.bottom
-                    anchors.bottom: parent.bottom
-                    spacing: 0
-
-                    Repeater {
-                        model: playlistRoot.tracks
-
-                        Rectangle {
+                        // Список файлов
+                        ListView {
                             width: parent.width
-                            height: playlistRoot.trackHeight
-                            color: playlistRoot.trackColor
-                            border.color: playlistRoot.borderColor
-                            border.width: 1
+                            height: parent.height - 50
+                            model: folderModel
+                            clip: true
 
-                            Text {
-                                text: modelData.name
-                                color: playlistRoot.textColor
-                                font.pixelSize: 12
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.left: parent.left
-                                anchors.leftMargin: 5
-                            }
+                            delegate: Rectangle {
+                                width: 200
+                                height: 40
+                                color: ListView.isCurrentItem ? "#4C566A" : "transparent"
 
-                            MouseArea {
-                                anchors.fill: parent
+                                Row {
+                                    spacing: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    leftPadding: 10
 
-                            }
-                        }
-                    }
-                }
+                                    Text {
+                                        text: fileIsDir ? "📁" : "📄"
+                                        font.pixelSize: 16
+                                    }
 
-                // Main playlist area (clips grid)
-                Flickable {
-                    id: playlistArea
-                    anchors.top: timeRuler.bottom
-                    anchors.left: trackHeaders.right
-                    anchors.bottom: parent.bottom
-                    anchors.right: parent.right
-                    clip: true
-                    contentWidth: playlistRoot.totalMeasures * playlistRoot.beatsPerMeasure * playlistRoot.beatWidth
-                    contentHeight: playlistRoot.tracks.length * playlistRoot.trackHeight
-
-
-                        Rectangle {
-                            x: 10
-                            width: 2
-                            height: 900
-                            color: "green"
-
-                            PropertyAnimation on x {
-                                duration: 50000  // 50 секунд
-                                to: 1420         // пока x не будет равно 250
-                                loops: Animation.Infinite   // бесконечная анимация
-                            }
-                        }
-
-
-                    // Grid background
-                    Grid {
-                        columns: playlistRoot.totalMeasures * playlistRoot.beatsPerMeasure
-                        rows: playlistRoot.tracks.length
-                        spacing: 0
-
-                        Repeater {
-                            model: playlistRoot.totalMeasures * playlistRoot.beatsPerMeasure * playlistRoot.tracks.length
-
-                            Rectangle {
-                                width: playlistRoot.beatWidth
-                                height: playlistRoot.trackHeight
-
-                                border.color: playlistRoot.borderColor
-                                border.width: 1
-                            }
-                        }
-                    }
-
-                    // Audio/MIDI clips
-                    Repeater {
-                        model: playlistRoot.tracks
-
-                        Repeater {
-                            model: modelData.clips
-
-                            Rectangle {
-                                x: modelData.start * playlistRoot.beatWidth
-                                y: index * playlistRoot.trackHeight
-                                width: modelData.length * playlistRoot.beatWidth
-                                height: playlistRoot.trackHeight - 2
-                                color: modelData.color
-                                radius: 2
-                                border.color: Qt.darker(modelData.color, 1.3)
-                                border.width: 1
-
-                                Text {
-                                    text: "Clip " + (index + 1)
-                                    color: "white"
-                                    font.pixelSize: 10
-                                    anchors.centerIn: parent
-                                    visible: width > 50
+                                    Text {
+                                        text: fileName
+                                        color: "white"
+                                        font.pixelSize: 14
+                                    }
                                 }
 
                                 MouseArea {
                                     anchors.fill: parent
-                                    drag.target: parent
-                                    drag.axis: Drag.XAxis
-                                    drag.minimumX: 0
-                                    drag.maximumX: playlistArea.contentWidth - parent.width
-
-
+                                    onClicked: {
+                                        // Получаем текущую папку и очищаем от file://
+                                        var currentFolder = folderModel.folder.toString();
+                                        currentFolder = currentFolder.startsWith("file://") ? currentFolder.substring(7) : currentFolder;
+        
+                                        // Удаляем qrc:/ если есть
+                                        currentFolder = currentFolder.replace("qrc:/", "");
+        
+                                        // Формируем полный путь (удаляем возможные двойные слеши)
+                                        var fullPath = (currentFolder + "/" + fileName).replace(/\/+/g, "/");
+        
+                                        // Для Windows: заменяем / на \, но не добавляем в начало
+                                        fullPath = fullPath.replace(/\//g, "\\");
+                                        if (fullPath.startsWith("\\")) {  // Экранированный обратный слеш
+                                            fullPath = fullPath.substring(1);
+                                        }
+        
+                                        console.log("Navigating to:", fullPath);
+        
+                                        if (fileIsDir) {
+                                            browser.setCurrentFolder(fullPath);
+                                        } else {
+                                            browser.openFile(fullPath);
+                                        }
+                                    }
                                 }
+                            
                             }
                         }
                     }
-                }
 
-                // Scroll bars
-                ScrollBar {
-                    id: verticalScroll
-                    width: 12
-                    anchors.top: timeRuler.bottom
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    policy: ScrollBar.AlwaysOn
-                    orientation: Qt.Vertical
-                    contentItem: Rectangle {
-                        color: "#aa0000"
-                        radius: width / 2
+                    FolderListModel {
+                        id: folderModel
+                        folder: "file://" + browser.currentFolder
+                        showDirsFirst: true
+                        showDotAndDotDot: true
+                        onFolderChanged: console.log("Model folder updated:", folder)
                     }
                 }
 
-                ScrollBar {
-                    id: horizontalScroll
-                    height: 12
-                    anchors.left: trackHeaders.right
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    policy: ScrollBar.AlwaysOn
-                    orientation: Qt.Horizontal
-                    contentItem: Rectangle {
-                        color: "#ff0000"
-                        radius: height / 2
-                    }
-                }
-            }
-        }
-    }
-
-    Rectangle {
-        id: rectangle1//Верхнее меню (Tool bar)
-        x: 0
-        y: 0
-        width: 1920
-        height: 102
-        color: "#2E3440"
-        border.color: "#ffffff"
-        ColumnLayout {
-            width: parent.width  // ← Можно так, или просто убрать anchors
-            height: parent.height
-            spacing: 1
-            Rectangle {
-                id: rectangle2
-                Layout.fillWidth: true
-                Layout.preferredHeight: 48  // Фиксированная высота
-                color: "#4C566A"
-
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: 10
-                    anchors.leftMargin: 10
-                }
-            }
-            Rectangle {
-                id: rectangle3
-                x: 0
-                y: 0
-                Layout.fillWidth: true
-                height: 48
-                color: "#4C566A"
-                Layout.topMargin: 10  // ← Если внутри Layout, используй margin
-                Layout.alignment: Qt.AlignTop  // ← Выравнивание по верхнему краю
-                Slider {//громкость
-                    id: volumeSlider
-                    Layout.fillWidth: true
-                    x: 1200
-                    from: 0
-                    to: 100
-                    onMoved: {
-                        viewModel.moveClip(0,0,value/10)
-                    }
-                }
-                Slider {//громкость
-                    id: volumeSlider2
-                    Layout.fillWidth: true
-                    x: 1500
-                    from: 0
-                    to: 100
-                    onMoved: {
-                        viewModel.setPlayheadPosition(value)
-                    }
-                }
+                // Центральная панель (каналы)
                 Rectangle {
-                    id: mainbuttons //все кнопки play,stop,record
-                    x: 638
-                    y: 0
-                    width: 192
-                    Layout.fillWidth: true
-                    height: 48
-                    color: "#4C566A"
-                    anchors.top:rectangle3.top
+                    id: channelRack
+                    SplitView.maximumWidth: 250
+                    SplitView.minimumWidth: 200
+                    SplitView.preferredWidth: 250
+                    color: "#2E3440"
 
-                    RowLayout{
+                    ColumnLayout {
                         anchors.fill: parent
-                        spacing: 5
-                    ToolButton {
-                       id:play
-                       text: viewModel.isPlaying ? "Pause" : "Play" // Текст кнопки зависит от состояния
-                       onClicked: viewModel.togglePlayback() 
-                           // contentItem: Text {
-                           // text: "▶️"
-                           // Layout.leftMargin: 15
-                           // font.pixelSize: 16
-                           // horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                           // verticalAlignment: Text.AlignVCenter
-                           // elide: Text.ElideNone
-                           // }
-                       background: Rectangle {
-                       color: parent.pressed ? "gray" : "#4C566A"
-                       }
-                    }
-                    ToolButton {
-                            id:record
-                            contentItem: Text {
-                            text: "⏺️"
-                            font.pixelSize: 16
-                            horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideNone
-                            }
-                             background: Rectangle {
-                             color: parent.pressed ? "gray" : "#4C566A"
+                        spacing: 0
+
+                        Label {
+                            text: "Треки"
+                            color: "white"
+                            font.bold: true
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.topMargin: 10
+                        }
+
+                        ScrollView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+
+                            GridView {
+                                id: channelsGrid
+                                anchors.fill: parent
+                                cellWidth: 180
+                                cellHeight: 100
+                                model: 16
+
+                                delegate: Rectangle {
+                                    width: channelsGrid.width
+                                    height: channelsGrid.cellHeight - 5
+                                    color: index % 2 ? "#3B4252" : "#4C566A"
+                                    radius: 5
+
+                                    Column {
+                                        anchors.centerIn: parent
+                                        spacing: 5
+
+                                        Label {
+                                            text: "Channel " + (index + 1)
+                                            color: "white"
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                        }
+
+                                        Row {
+                                            spacing: 10
+                                            anchors.horizontalCenter: parent.horizontalCenter
+
+                                            ToolButton {
+                                                text: "Mute"
+                                                implicitWidth: 60
+                                            }
+                                            ToolButton {
+                                                text: "Solo"
+                                                implicitWidth: 60
+                                            }
+                                        }
+                                    }
                                 }
-                    }
-                   ToolButton {
-                            id:pause
-                            contentItem: Text {
-                            text: "⏸️"
-                            font.pixelSize: 16
-                            horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideNone
                             }
-                             background: Rectangle {
-                             color: parent.pressed ? "gray" : "#4C566A"
-                                }
+                        }
                     }
                 }
 
-                }
+                // Правая панель (плейлист)
                 Rectangle {
-                    id: rectangle4
-                    x: 862
-                    y: 0
-                    width: 336
-                    Layout.fillWidth: true
-                    height: 48
-                    color: "black"
-                       Layout.topMargin: 10  // ← Если внутри Layout, используй margin
-                       Layout.alignment: Qt.AlignTop  // ← Выравнивание по верхнему краю
-                    Label {
-                            anchors.centerIn: parent
-                            text: "Main Content Area"
-                        }
-                }
-                Rectangle {
-                        id: checkbutton //все сохранения
-                        x: 1
-                        y: 0
-                        width: 192
-                        Layout.fillWidth: true
-                        height: 48
-                        color: "#4C566A"
-                        Layout.topMargin: 10  // ← Если внутри Layout, используй margin
-                        Layout.alignment: Qt.AlignTop  // ← Выравнивание по верхнему краю
-                        RowLayout{
+                    id: playlistPanel
+                    SplitView.fillWidth: true
+                    color: "#1E1E1E"
+
+                    ColumnLayout {
                         anchors.fill: parent
-                        //horizontalCenter:mainbuttons
-                        spacing: 5
-                        ToolButton {
-                                id: newfile
-                                contentItem: Text {
-                                text: "Создать новый"
-                                Layout.leftMargin: 15
-                                font.pixelSize: 16
-                                horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideNone
-                                }
-                                 background: Rectangle {
-                                 color: parent.pressed ? "gray" : "#4C566A"
+                        spacing: 0
+
+                        // Линейка времени
+                        Rectangle {
+                            id: timeRuler
+                            Layout.fillWidth: true
+                            height: 30
+                            color: "#1E1E1E"
+
+                            Row {
+                                anchors.fill: parent
+                                anchors.leftMargin: 100 // Ширина заголовков треков
+
+                                Repeater {
+                                    model: 32
+                                    Rectangle {
+                                        width: 40
+                                        height: parent.height
+                                        color: "transparent"
+                                        border.color: "#444"
+
+                                        Label {
+                                            anchors.centerIn: parent
+                                            text: index % 4 === 0 ? Math.floor(index/4) + 1 : ""
+                                            color: "#CCC"
+                                            font.pixelSize: 10
+                                        }
                                     }
+                                }
+                            }
                         }
-                        ToolButton {
-                                id:copy
-                                contentItem: Text {
-                                text: "Копировать"
-                                font.pixelSize: 16
-                                horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideNone
-                                }
-                                 background: Rectangle {
-                                 color: parent.pressed ? "gray" : "#4C566A"
+
+                        // Основная область плейлиста
+                        Flickable {
+                            id: playlistArea 
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            contentWidth: 32 * 40 + 100
+                            contentHeight: 4 * 30
+                            clip: true
+
+                            // Заголовки треков
+                            Column {
+                                id: trackHeaders
+                                width: 100
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+
+                                Repeater {
+                                    model: 4
+                                    Rectangle {
+                                        width: 100
+                                        height: 30
+                                        color: "#2D2D2D"
+                                        border.color: "#444"
+
+                                        Label {
+                                            anchors.centerIn: parent
+                                            text: "Track " + (index + 1)
+                                            color: "#CCC"
+                                            font.pixelSize: 12
+                                        }
                                     }
-                        }
-                       ToolButton {
-                                id:checkpoint
-                                contentItem: Text {
-                                text: "Сохранить"
-                                font.pixelSize: 16
-                                horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideNone
                                 }
-                                 background: Rectangle {
-                                 color: parent.pressed ? "gray" : "#4C566A"
+                            }
+
+                            // Сетка плейлиста
+                            Grid {
+                                columns: 32
+                                rows: 4
+                                anchors.left: trackHeaders.right
+                                anchors.top: parent.top
+
+                                Repeater {
+                                    model: 32 * 4
+                                    Rectangle {
+                                        width: 40
+                                        height: 30
+                                        color: "transparent"
+                                        border.color: "#444"
                                     }
+                                }
+                            }
+
+                            // Клипы
+                            Repeater {
+                                model: [
+                                    {track: 0, start: 0, length: 4, color: "#FF5722"},
+                                    {track: 1, start: 4, length: 8, color: "#4CAF50"},
+                                    {track: 2, start: 8, length: 4, color: "#2196F3"}
+                                ]
+
+                                Rectangle {
+                                    x: modelData.start * 40 + 100
+                                    y: modelData.track * 30
+                                    width: modelData.length * 40
+                                    height: 28
+                                    color: modelData.color
+                                    radius: 3
+                                    border.width: 1
+                                    border.color: Qt.darker(modelData.color, 1.2)
+                                    Label {
+                                        anchors.centerIn: parent
+                                        text: "Clip"
+                                        color: "white"
+                                        font.pixelSize: 10
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        drag.target: parent
+                                        drag.axis: Drag.XAxis
+                                        drag.minimumX: 0
+                                        drag.maximumX: playlistArea.contentWidth - parent.width
+                                    }
+                                }
+
+                            }
+
+                            // Зеленая линия воспроизведения
+                            Rectangle {
+                                id: greenline
+                                x: 100
+                                width: 2
+                                height: parent.height
+                                color: "green"
+
+                                PropertyAnimation on x {
+                                    duration: 50000  // 50 секунд
+                                    to: 1420
+                                    loops: Animation.Infinite   // бесконечная анимация
+                                }
                             }
                         }
                     }
+                }
             }
-
         }
     }
 }
