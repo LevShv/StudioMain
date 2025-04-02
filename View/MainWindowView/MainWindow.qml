@@ -265,6 +265,7 @@ Window {
                         ScrollView {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
+                            clip: true
 
                             GridView {
                                 id: channelsGrid

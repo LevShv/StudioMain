@@ -31,4 +31,5 @@ signals:
 
 private:
     QString m_currentFolder;
+    
 };

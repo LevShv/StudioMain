@@ -60,19 +60,23 @@ QString FileBrowser::parentFolder() const
 
 Q_INVOKABLE void FileBrowser::openFile(const QString& fileUrl)
 {
-    // Преобразуем URL в локальный путь
     QUrl url(fileUrl);
-    QString localPath = url.toLocalFile();
+    if (!url.isValid()) {
+        qWarning() << "Invalid URL:" << fileUrl;
+        emit errorOccurred(tr("Invalid file path"));
+        return;
+    }
+    
 
-    // Убедимся, что путь абсолютный
+    QString localPath = url.toLocalFile();
     QFileInfo fileInfo(localPath);
+
     if (!fileInfo.exists()) {
         qWarning() << "File does not exist:" << localPath;
         emit errorOccurred(tr("File does not exist: %1").arg(localPath));
         return;
     }
 
-    // Открываем файл с помощью стандартного приложения
     if (!QDesktopServices::openUrl(url)) {
         qWarning() << "Failed to open file:" << localPath;
         emit errorOccurred(tr("Failed to open file: %1").arg(localPath));
