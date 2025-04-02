@@ -2,12 +2,11 @@
 
 #include <QObject>
 #include <QString>
-#include <QStandardPaths>
-#include <QUrl>
-#include <QFileInfo>
 #include <QDir>
 #include <QDebug>
-#include <QDesktopServices>  // Добавьте эту строку в начале файла
+#include <QStandardPaths>
+#include <QUrl>
+#include <QDesktopServices>
 
 class FileBrowser : public QObject
 {
@@ -22,15 +21,14 @@ public:
     void setCurrentFolder(const QString& folder);
 
     QString homeFolder() const;
-
     Q_INVOKABLE QString parentFolder() const;
     Q_INVOKABLE void openFile(const QString& filePath);
     Q_INVOKABLE bool isDir(const QString& path) const;
 
 signals:
     void currentFolderChanged();
+    void errorOccurred(const QString& message);
 
 private:
     QString m_currentFolder;
 };
-

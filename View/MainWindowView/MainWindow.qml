@@ -31,7 +31,11 @@ Window {
             // Создаем экземпляр нашего C++ класса
             FileBrowser {
                 id: browser
-                onCurrentFolderChanged: folderModel.folder = browser.currentFolder
+                onCurrentFolderChanged: {
+                    console.log("QML: Folder changed to", browser.currentFolder);
+                    folderModel.folder = "file://" + browser.currentFolder;
+                    pathField.text = browser.currentFolder;
+                }
             }
 
             Column {
@@ -46,19 +50,30 @@ Window {
 
                     Button {
                         text: "←"
-                        onClicked: browser.setCurrentFolder(browser.parentFolder())
+                        onClicked: {
+                            var parentFolder = browser.parentFolder();
+                            console.log("Navigating to parent:", parentFolder);
+                            browser.setCurrentFolder(parentFolder);
+                        }
                     }
 
                     Button {
                         text: "⌂"
-                        onClicked: browser.setCurrentFolder(browser.homeFolder())
+                    
+                        onClicked: {
+                            console.log("Navigating home");
+                            browser.setCurrentFolder(browser.homeFolder());
+                        }
                     }
 
                     TextField {
                         id: pathField
                         width: parent.width - 100
                         text: browser.currentFolder
-                        onAccepted: browser.setCurrentFolder(text)
+                        onAccepted: {
+                            console.log("Manual path input:", text);
+                            browser.setCurrentFolder(text);
+                        }
                     }
                 }
 
@@ -94,10 +109,14 @@ Window {
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
+                                var fullPath = folderModel.folder + "/" + fileName;
+                                fullPath = fullPath.replace("file://", "");
+                                console.log("Clicked:", fullPath);
+                
                                 if (fileIsDir) {
-                                    browser.setCurrentFolder(Qt.resolvedUrl(folderModel.folder + "/" + fileName))
+                                    browser.setCurrentFolder(fullPath);
                                 } else {
-                                    browser.openFile(Qt.resolvedUrl(folderModel.folder + "/" + fileName))
+                                    browser.openFile(fullPath);
                                 }
                             }
                         }
@@ -107,10 +126,10 @@ Window {
 
             FolderListModel {
                 id: folderModel
-                folder: browser.currentFolder
+                folder: "file://" + browser.currentFolder
                 showDirsFirst: true
                 showDotAndDotDot: true
-                nameFilters: ["*"]  // Показывать все файлы
+                onFolderChanged: console.log("Model folder updated:", folder)
             }
         }
             // ChanelRack (редактирование самих треков)
