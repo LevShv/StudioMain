@@ -60,30 +60,60 @@ QString FileBrowser::parentFolder() const
 
 Q_INVOKABLE void FileBrowser::openFile(const QString& fileUrl)
 {
-    QUrl url(fileUrl);
+    QString cleanPath = fileUrl;
+
+    // Удаляем префикс qrc:/ если есть
+    cleanPath.remove("qrc:/");
+
+    // Если путь уже начинается с / или C:/, оставляем как есть
+    if (!cleanPath.startsWith("/") && !cleanPath.contains(":/")) {
+        // Добавляем / в начало для относительных путей
+        if (!cleanPath.startsWith("/")) {
+            cleanPath.prepend("/");
+        }
+    }
+
+    // Создаем URL - важно указать схему "file://"
+    QUrl url;
+    if (cleanPath.startsWith("/")) {
+        url = QUrl::fromLocalFile(cleanPath);
+    }
+    else {
+        url = QUrl(cleanPath);
+    }
+
     if (!url.isValid()) {
-        qWarning() << "Invalid URL:" << fileUrl;
-        emit errorOccurred(tr("Invalid file path"));
+        qWarning() << "Неверный URL:" << fileUrl;
+        emit errorOccurred(tr("Wrong way"));
         return;
     }
-    
 
     QString localPath = url.toLocalFile();
-    QFileInfo fileInfo(localPath);
+    if (localPath.isEmpty()) {
+        localPath = cleanPath; // Используем исходный путь как fallback
+    }
 
+    QFileInfo fileInfo(localPath);
     if (!fileInfo.exists()) {
-        qWarning() << "File does not exist:" << localPath;
-        emit errorOccurred(tr("File does not exist: %1").arg(localPath));
+        qWarning() << "Файл не существует:" << localPath;
+        emit errorOccurred(tr("Файл не существует: %1").arg(localPath));
         return;
     }
 
-    if (!QDesktopServices::openUrl(url)) {
-        qWarning() << "Failed to open file:" << localPath;
-        emit errorOccurred(tr("Failed to open file: %1").arg(localPath));
+    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(localPath))) {
+        qWarning() << "Не удалось открыть файл:" << localPath;
+        emit errorOccurred(tr("Не удалось открыть файл: %1").arg(localPath));
     }
 }
 
 bool FileBrowser::isDir(const QString& path) const
 {
     return QFileInfo(path).isDir();
+}
+
+QString FileBrowser::getFilePathForDrag(const QString& fileName) const
+{
+    // Используем currentFolder() вместо прямой работы с m_currentFolder
+    QString fullPath = QDir::cleanPath(currentFolder() + QDir::separator() + fileName);
+    return QUrl::fromLocalFile(fullPath).toString();
 }

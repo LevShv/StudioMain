@@ -8,12 +8,25 @@ import Qt.labs.folderlistmodel 2.15
 
 Window {
 
+    id: mainWindow
     visible: true
     width: 1500
     height: 1080
-    title: "StudioMain"
 
+    title: "StudioMain"
     color: "#2E3440"
+
+    property Item dragParent: contentItem
+    signal createClipRequested(int trackIndex, int position, string filePath)
+
+    function handleCreateClip(trackIndex, position, filePath) {
+        console.log("Creating clip:", trackIndex, position, filePath)
+        // Здесь реализуйте создание клипа в вашей модели данных
+    }
+
+    Component.onCompleted: {
+        createClipRequested.connect(handleCreateClip)
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -215,10 +228,10 @@ Window {
         
                                         // Для Windows: заменяем / на \, но не добавляем в начало
                                         fullPath = fullPath.replace(/\//g, "\\");
-                                        if (fullPath.startsWith("\\")) {  // Экранированный обратный слеш
+                                        if (fullPath.startsWith("\\")) { 
                                             fullPath = fullPath.substring(1);
                                         }
-        
+       
                                         console.log("Navigating to:", fullPath);
         
                                         if (fileIsDir) {
@@ -228,7 +241,58 @@ Window {
                                         }
                                     }
                                 }
-                            
+
+                                // Визуальный элемент для перетаскивания
+                                Rectangle {
+                                    id: dragItem
+                                    width: 100
+                                    height: 40
+                                    visible: false
+                                    color: "#4C566A"
+                                    radius: 5
+                                    opacity: 0.8
+
+                                    property string filePath: ""  // Добавляем кастомное свойство вместо source
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "Файл"
+                                        color: "white"
+                                    }
+
+                                    Drag.active: dragItem.visible
+                                    Drag.hotSpot.x: width / 2
+                                    Drag.hotSpot.y: height / 2
+                                    Drag.mimeData: {
+                                        "text/uri-list": "file://" + filePath,
+                                        "text/plain": filePath
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    enabled: !fileIsDir
+                                    drag.target: dragItem
+
+                                    onPressed: {
+                                        // ✅ Устанавливаем родителя (dragParent — это contentItem окна)
+                                        dragItem.parent = dragParent
+                                        dragItem.filePath = browser.getFilePathForDrag(fileName)
+                                        dragItem.x = mapToItem(dragParent, mouseX, mouseY).x
+                                        dragItem.y = mapToItem(dragParent, mouseX, mouseY).y
+                                        dragItem.visible = true
+                                    }
+
+                                    onPositionChanged: {
+                                        dragItem.x = mapToItem(dragParent, mouseX, mouseY).x
+                                        dragItem.y = mapToItem(dragParent, mouseX, mouseY).y
+                                    }
+
+                                    onReleased: {
+                                        dragItem.visible = false
+                                        dragItem.parent = parent // Возвращаем обратно в исходный parent
+                                    }
+                                }
                             }
                         }
                     }
@@ -316,58 +380,29 @@ Window {
                     SplitView.fillWidth: true
                     color: "#1E1E1E"
 
-                    ColumnLayout {
+                    RowLayout {
                         anchors.fill: parent
                         spacing: 0
 
-                        // Линейка времени
-                        Rectangle {
-                            id: timeRuler
-                            Layout.fillWidth: true
-                            height: 30
-                            color: "#1E1E1E"
-
-                            Row {
-                                anchors.fill: parent
-                                anchors.leftMargin: 100 // Ширина заголовков треков
-
-                                Repeater {
-                                    model: 32
-                                    Rectangle {
-                                        width: 40
-                                        height: parent.height
-                                        color: "transparent"
-                                        border.color: "#444"
-
-                                        Label {
-                                            anchors.centerIn: parent
-                                            text: index % 4 === 0 ? Math.floor(index/4) + 1 : ""
-                                            color: "#CCC"
-                                            font.pixelSize: 10
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Основная область плейлиста
-                        Flickable {
-                            id: playlistArea 
+                        // Основная область с вертикальным разделением
+                        RowLayout {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            contentWidth: 32 * 40 + 100
-                            contentHeight: 4 * 30
-                            clip: true
+                            spacing: 0
 
-                            // Заголовки треков
+                            // Фиксированные заголовки треков (левая колонка)
                             Column {
                                 id: trackHeaders
                                 width: 100
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
+                                Layout.fillHeight: true
+                                Rectangle {
+                                    width: 100
+                                    height: 30
+                                    color: "transparent"
+                                }
 
                                 Repeater {
-                                    model: 4
+                                    model: 10
                                     Rectangle {
                                         width: 100
                                         height: 30
@@ -384,70 +419,143 @@ Window {
                                 }
                             }
 
-                            // Сетка плейлиста
-                            Grid {
-                                columns: 32
-                                rows: 4
-                                anchors.left: trackHeaders.right
-                                anchors.top: parent.top
+                            // Прокручиваемая область (правая часть)
+                            Flickable {
+                                id: flickableArea
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                contentWidth: 32 * 40
+                                contentHeight: 11 * 30
+                                clip: true
+                                boundsBehavior: Flickable.StopAtBounds
+                                flickableDirection: Flickable.HorizontalFlick
 
-                                Repeater {
-                                    model: 32 * 4
-                                    Rectangle {
-                                        width: 40
-                                        height: 30
-                                        color: "transparent"
-                                        border.color: "#444"
-                                    }
-                                }
-                            }
-
-                            // Клипы
-                            Repeater {
-                                model: [
-                                    {track: 0, start: 0, length: 4, color: "#FF5722"},
-                                    {track: 1, start: 4, length: 8, color: "#4CAF50"},
-                                    {track: 2, start: 8, length: 4, color: "#2196F3"}
-                                ]
-
+                                // Линейка времени (прокручиваемая часть)
                                 Rectangle {
-                                    x: modelData.start * 40 + 100
-                                    y: modelData.track * 30
-                                    width: modelData.length * 40
-                                    height: 28
-                                    color: modelData.color
-                                    radius: 3
-                                    border.width: 1
-                                    border.color: Qt.darker(modelData.color, 1.2)
-                                    Label {
-                                        anchors.centerIn: parent
-                                        text: "Clip"
-                                        color: "white"
-                                        font.pixelSize: 10
-                                    }
-                                    MouseArea {
+                                    id: timeRuler
+                                    width: contentGrid.width
+                                    height: 30
+                                    color: "#1E1E1E"
+
+                                    Row {
                                         anchors.fill: parent
-                                        drag.target: parent
-                                        drag.axis: Drag.XAxis
-                                        drag.minimumX: 0
-                                        drag.maximumX: playlistArea.contentWidth - parent.width
+
+                                        Repeater {
+                                            model: 32
+                                            Rectangle {
+                                                width: 40
+                                                height: parent.height
+                                                color: "transparent"
+                                                border.color: "#444"
+
+                                                Label {
+                                                    anchors.centerIn: parent
+                                                    text: index % 4 === 0 ? Math.floor(index/4) + 1 : ""
+                                                    color: "#CCC"
+                                                    font.pixelSize: 10
+                                                }
+                                            }
+                                        }
                                     }
                                 }
 
-                            }
+                                // Прокручиваемая сетка
+                                Grid {
+                                    id: contentGrid
+                                    columns: 32
+                                    rows: 10
+                                    anchors.top: timeRuler.bottom
+                                    width: 32 * 40
 
-                            // Зеленая линия воспроизведения
-                            Rectangle {
-                                id: greenline
-                                x: 100
-                                width: 2
-                                height: parent.height
-                                color: "green"
+                                    Repeater {
+                                        model: 32 * 10
+                                        delegate: Rectangle {
+                                            width: 40
+                                            height: 30
+                                            color: "transparent"
+                                            border.color: "#444"
 
-                                PropertyAnimation on x {
-                                    duration: 50000  // 50 секунд
-                                    to: 1420
-                                    loops: Animation.Infinite   // бесконечная анимация
+                                            // Добавляем DropArea в каждый элемент сетки
+                                            DropArea {
+                                                anchors.fill: parent
+                                                keys: ["text/uri-list", "text/plain"]
+
+                                                onDropped: {
+                                                    console.log("Dropped file:", drop.getDataAsString("text/plain"))
+                                                    mainWindow.createClipRequested(index, drop.getDataAsString("text/plain"))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Клипы
+                                // В ScrollView, где находятся треки и клипы, обновляем Repeater:
+                                Repeater {
+                                    model: [
+                                        {track: 0, start: 0, length: 4, color: "#FF5722"},
+                                        {track: 1, start: 4, length: 8, color: "#4CAF50"},
+                                        {track: 2, start: 8, length: 4, color: "#2196F3"}
+                                    ]
+
+                                    delegate: Rectangle {
+                                        id: clipDelegate
+                                        x: modelData.start * 40
+                                        y: modelData.track * 30 + timeRuler.height
+                                        width: modelData.length * 40
+                                        height: 28
+                                        color: modelData.color
+                                        radius: 3
+                                        border.width: 1
+                                        border.color: Qt.darker(modelData.color, 1.2)
+
+                                        Label {
+                                            anchors.centerIn: parent
+                                            text: "Clip"
+                                            color: "white"
+                                            font.pixelSize: 10
+                                        }
+
+                                        // Удаляем старый MouseArea и заменяем на этот:
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            drag.target: parent
+                                            drag.axis: Drag.XAndYAxis
+                                            drag.minimumX: 0
+                                            drag.maximumX: contentGrid.width - parent.width
+                                            drag.minimumY: timeRuler.height
+                                            drag.maximumY: timeRuler.height + (contentGrid.rows-1) * 30
+
+                                            onPressed: {
+                                                // Поднимаем клип над другими элементами
+                                                clipDelegate.z = 1
+                                            }
+
+                                            onReleased: {
+                                                // Возвращаем z-index
+                                                clipDelegate.z = 0
+                
+                                                // Привязываем к сетке
+                                                parent.x = Math.round(parent.x / 40) * 40
+                                                parent.y = timeRuler.height + Math.round((parent.y - timeRuler.height) / 30) * 30
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Зеленая линия воспроизведения
+                                Rectangle {
+                                    id: greenline
+                                    width: 2
+                                    height: parent.height
+                                    color: "green"
+
+                                    PropertyAnimation on x {
+                                        duration: 50000
+                                        from: 0
+                                        to: contentGrid.width
+                                        loops: Animation.Infinite
+                                    }
                                 }
                             }
                         }

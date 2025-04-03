@@ -24,6 +24,7 @@ public:
     Q_INVOKABLE QString parentFolder() const;
     Q_INVOKABLE void openFile(const QString& filePath);
     Q_INVOKABLE bool isDir(const QString& path) const;
+    Q_INVOKABLE QString getFilePathForDrag(const QString& fileName) const;
 
 signals:
     void currentFolderChanged();
