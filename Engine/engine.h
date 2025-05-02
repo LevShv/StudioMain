@@ -56,11 +56,15 @@ public:
     bool IsPlaying();
     void SendMidiMessage(const juce::MidiMessage& message);
 
+    double& Position();
+
 private:
     class Core : public juce::AudioSource, private juce::MidiInputCallback {
     public:
         Core();
         ~Core();
+
+        double position = 0.0;
 
         std::unique_ptr<juce::MidiOutput> midiOutput;
         juce::CriticalSection lock;
@@ -99,7 +103,7 @@ private:
 
         juce::Array<ActiveClip> activeClips;
         double sampleRate = 44100.0;
-        double position = 0.0;
+        
         bool transportPlaying = false;
 
         void updateActiveClips();
@@ -112,4 +116,5 @@ private:
     juce::AudioSourcePlayer audioSourcePlayer;
 
     void configureMidiDevices();
+    
 };

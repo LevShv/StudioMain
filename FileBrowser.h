@@ -11,7 +11,7 @@
 class FileBrowser : public QObject
 {
     Q_OBJECT
-        Q_PROPERTY(QString currentFolder READ currentFolder WRITE setCurrentFolder NOTIFY currentFolderChanged)
+        Q_PROPERTY(QString currentFolder /* */ READ currentFolder WRITE setCurrentFolder NOTIFY currentFolderChanged)
         Q_PROPERTY(QString homeFolder READ homeFolder CONSTANT)
 
 public:

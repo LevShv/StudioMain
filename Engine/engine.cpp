@@ -442,3 +442,7 @@ void Engine::configureMidiDevices() {
         std::cerr << "Failed to open MIDI Output!\n";
     }
 }
+
+double& Engine::Position() {
+    return core.position;  
+}

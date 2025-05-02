@@ -28,6 +28,28 @@ Window {
         createClipRequested.connect(handleCreateClip)
     }
 
+    property var clipModel: [
+        {track: 0, start: 0, length: 4, color: "#FF5722", name: "Audio 1"},
+        {track: 1, start: 4, length: 8, color: "#4CAF50", name: "Audio 2"},
+        {track: 2, start: 8, length: 4, color: "#2196F3", name: "Audio 3"}
+    ]
+
+    Connections {
+    target: viewModel
+    function onIsPlayingChanged() {
+        if (viewModel.isPlaying) {
+            greenlineAnimator.start()
+        } else {
+            greenlineAnimator.stop()
+        }
+    }
+    
+    function onPlayheadPositionChanged(position) {
+        if (!greenlineMouseArea.drag.active) {
+            greenline.x = position * 40
+        }
+    }
+}
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -88,6 +110,15 @@ Window {
                             ToolButton {
                                 text: viewModel.isPlaying ? "⏸️" : "▶️"
                                 implicitWidth: 60
+        
+                                onClicked: {
+                                    viewModel.togglePlayback()
+                                    if (viewModel.isPlaying) {
+                                        greenlineAnimator.resume()
+                                    } else {
+                                        greenlineAnimator.pause()
+                                    }
+                                }
                             }
                             ToolButton {
                                 text: "⏺️"
@@ -397,7 +428,7 @@ Window {
                                 Layout.fillHeight: true
                                 Rectangle {
                                     width: 100
-                                    height: 30
+                                    height: 50  // Высота заголовка времени
                                     color: "transparent"
                                 }
 
@@ -405,7 +436,7 @@ Window {
                                     model: 10
                                     Rectangle {
                                         width: 100
-                                        height: 30
+                                        height: 50  // Фиксированная высота трека
                                         color: "#2D2D2D"
                                         border.color: "#444"
 
@@ -425,7 +456,7 @@ Window {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 contentWidth: 32 * 40
-                                contentHeight: 11 * 30
+                                contentHeight: 11 * 50  // 10 треков по 50px + заголовок 50px
                                 clip: true
                                 boundsBehavior: Flickable.StopAtBounds
                                 flickableDirection: Flickable.HorizontalFlick
@@ -434,7 +465,7 @@ Window {
                                 Rectangle {
                                     id: timeRuler
                                     width: contentGrid.width
-                                    height: 30
+                                    height: 50  // Высота заголовка времени
                                     color: "#1E1E1E"
 
                                     Row {
@@ -471,18 +502,19 @@ Window {
                                         model: 32 * 10
                                         delegate: Rectangle {
                                             width: 40
-                                            height: 30
+                                            height: 50  // Высота ячейки трека
                                             color: "transparent"
                                             border.color: "#444"
 
-                                            // Добавляем DropArea в каждый элемент сетки
                                             DropArea {
                                                 anchors.fill: parent
                                                 keys: ["text/uri-list", "text/plain"]
 
                                                 onDropped: {
-                                                    console.log("Dropped file:", drop.getDataAsString("text/plain"))
-                                                    mainWindow.createClipRequested(index, drop.getDataAsString("text/plain"))
+                                                    console.log("Dropped at track:", Math.floor(index/32), 
+                                                              "position:", index%32,
+                                                              "file:", drop.getDataAsString("text/plain"))
+                                                    mainWindow.createClipRequested(Math.floor(index/32), index%32, drop.getDataAsString("text/plain"))
                                                 }
                                             }
                                         }
@@ -490,33 +522,29 @@ Window {
                                 }
 
                                 // Клипы
-                                // В ScrollView, где находятся треки и клипы, обновляем Repeater:
                                 Repeater {
-                                    model: [
-                                        {track: 0, start: 0, length: 4, color: "#FF5722"},
-                                        {track: 1, start: 4, length: 8, color: "#4CAF50"},
-                                        {track: 2, start: 8, length: 4, color: "#2196F3"}
-                                    ]
+                                    model: mainWindow.clipModel
 
                                     delegate: Rectangle {
                                         id: clipDelegate
                                         x: modelData.start * 40
-                                        y: modelData.track * 30 + timeRuler.height
+                                        y: modelData.track * 50 + timeRuler.height  // 50px на трек
                                         width: modelData.length * 40
-                                        height: 28
+                                        height: 48  // 48px с небольшим отступом
                                         color: modelData.color
                                         radius: 3
                                         border.width: 1
                                         border.color: Qt.darker(modelData.color, 1.2)
 
                                         Label {
-                                            anchors.centerIn: parent
-                                            text: "Clip"
+                                            anchors.fill: parent
+                                            text: modelData.name || "Clip"
                                             color: "white"
                                             font.pixelSize: 10
+                                            padding: 5
+                                            elide: Text.ElideRight
                                         }
 
-                                        // Удаляем старый MouseArea и заменяем на этот:
                                         MouseArea {
                                             anchors.fill: parent
                                             drag.target: parent
@@ -524,39 +552,84 @@ Window {
                                             drag.minimumX: 0
                                             drag.maximumX: contentGrid.width - parent.width
                                             drag.minimumY: timeRuler.height
-                                            drag.maximumY: timeRuler.height + (contentGrid.rows-1) * 30
+                                            drag.maximumY: timeRuler.height + (contentGrid.rows-1) * 50  // 50px на трек
 
-                                            onPressed: {
-                                                // Поднимаем клип над другими элементами
-                                                clipDelegate.z = 1
-                                            }
-
+                                            onPressed: clipDelegate.z = 1
                                             onReleased: {
-                                                // Возвращаем z-index
                                                 clipDelegate.z = 0
-                
-                                                // Привязываем к сетке
+                                                // Привязка к сетке
                                                 parent.x = Math.round(parent.x / 40) * 40
-                                                parent.y = timeRuler.height + Math.round((parent.y - timeRuler.height) / 30) * 30
+                                                parent.y = timeRuler.height + Math.round((parent.y - timeRuler.height) / 50) * 50
+                                                // Обновляем модель
+                                                mainWindow.updateClipPosition(index, parent.x/40, (parent.y-timeRuler.height)/50)
                                             }
                                         }
                                     }
                                 }
 
                                 // Зеленая линия воспроизведения
+                                // Замените существующий Rectangle зеленой линии на этот код:
                                 Rectangle {
-                                    id: greenline
-                                    width: 2
-                                    height: parent.height
-                                    color: "green"
-
-                                    PropertyAnimation on x {
-                                        duration: 50000
-                                        from: 0
-                                        to: contentGrid.width
-                                        loops: Animation.Infinite
-                                    }
+                                        id: greenline
+                                        width: 2
+                                        height: parent.height
+                                        color: "green"
+                                        z: 10
+                                        x: viewModel.playheadPosition * 40 // Привязываем к позиции из ViewModel
+    
+                                        // Добавляем MouseArea для перемещения
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            drag {
+                                                target: greenline
+                                                axis: Drag.XAxis
+                                                minimumX: 0
+                                                maximumX: contentGrid.width
+                                            }
+        
+                                            onPressed: {
+                                                // Приостанавливаем анимацию при ручном перемещении
+                                                greenlineAnimator.pause()
+                                            }
+        
+                                            onPositionChanged: {
+                                                if (drag.active) {
+                                                    // Обновляем позицию в ViewModel
+                                                    var newPos = greenline.x / 40
+                                                    viewModel.setPlayheadPosition(newPos)
+                                                }
+                                            }
+        
+                                            onReleased: {
+                                                // Можно возобновить анимацию здесь, если нужно
+                                                // greenlineAnimator.resume()
+                                            }
+                                        }
+    
+                                        // Аниматор для автоматического движения
+                                        PropertyAnimation {
+                                            id: greenlineAnimator
+                                            target: greenline
+                                            property: "x"
+                                            from: 0
+                                            to: contentGrid.width
+                                            duration: 50000
+                                            loops: Animation.Infinite
+                                            running: viewModel.isPlaying
+                                        }
+    
+                                        // Связь с ViewModel
+                                        Connections {
+                                            target: viewModel
+                                            function onPlayheadPositionChanged() {
+                                                if (!greenlineMouseArea.drag.active) {
+                                                    greenline.x = viewModel.playheadPosition * 40
+                                                }
+                                            }
+                                        }
                                 }
+                                
                             }
                         }
                     }
