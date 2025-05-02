@@ -1,31 +1,32 @@
-﻿import QtQuick 2.15
+﻿// FileBrowser.qml
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import Qt.labs.folderlistmodel 2.15
-import FileBrowser 1.0
 
 Item {
+
     id: root
     
-    // Свойство для родительского элемента перетаскивания
+    // 1. Явно объявляем свойство, которое вызывает ошибку
     property Item dragParent: null
     
-    // Свойство для текущей папки
+    // 2. Другие важные свойства
     property alias currentFolder: browser.currentFolder
-    
-    // Явно задаем размеры по умолчанию
     width: 200
     height: 400
     
-    // Экземпляр C++ класса FileBrowser
+    // 3. Экземпляр C++ класса
     FileBrowser {
         id: browser
         onCurrentFolderChanged: {
-            console.log("QML: Folder changed to", browser.currentFolder)
-            folderModel.folder = "file://" + browser苗头
+            console.log("QML: Folder changed to", browser.currentFolder);
+            folderModel.folder = "file://" + browser.currentFolder
             pathField.text = browser.currentFolder
         }
     }
+
+
 
     Column {
         anchors.fill: parent
@@ -40,17 +41,17 @@ Item {
             Button {
                 text: "←"
                 onClicked: {
-                    var parentFolder = browser.parentFolder()
-                    console.log("Navigating to parent:", parentFolder)
-                    browser.setCurrentFolder(parentFolder)
+                    var parentFolder = browser.parentFolder();
+                    console.log("Navigating to parent:", parentFolder);
+                    browser.setCurrentFolder(parentFolder);
                 }
             }
 
             Button {
                 text: "⌂"
                 onClicked: {
-                    console.log("Navigating home")
-                    browser.setCurrentFolder(browser.homeFolder())
+                    console.log("Navigating home");
+                    browser.setCurrentFolder(browser.homeFolder());
                 }
             }
 
@@ -59,8 +60,8 @@ Item {
                 width: parent.width - 100
                 text: browser.currentFolder
                 onAccepted: {
-                    console.log("Manual path input:", text)
-                    browser.setCurrentFolder(text)
+                    console.log("Manual path input:", text);
+                    browser.setCurrentFolder(text);
                 }
             }
         }
@@ -73,7 +74,7 @@ Item {
             clip: true
 
             delegate: Rectangle {
-                width: parent.width
+                width: 200
                 height: 40
                 color: ListView.isCurrentItem ? "#4C566A" : "transparent"
 
@@ -98,23 +99,23 @@ Item {
                     anchors.fill: parent
                     onClicked: {
                         // Получаем текущую папку и очищаем от file://
-                        var currentFolder = folderModel.folder.toString()
-                        currentFolder = currentFolder.startsWith("file://") ? currentFolder.substring(7) : currentFolder
-                        currentFolder = currentFolder.replace("qrc:/", "")
+                        var currentFolder = folderModel.folder.toString();
+                        currentFolder = currentFolder.startsWith("file://") ? currentFolder.substring(7) : currentFolder;
+                        currentFolder = currentFolder.replace("qrc:/", "");
                         
                         // Формируем полный путь
-                        var fullPath = (currentFolder + "/" + fileName).replace(/\/+/g, "/")
-                        fullPath = fullPath.replace(/\//g, "\\")
+                        var fullPath = (currentFolder + "/" + fileName).replace(/\/+/g, "/");
+                        fullPath = fullPath.replace(/\//g, "\\");
                         if (fullPath.startsWith("\\")) { 
-                            fullPath = fullPath.substring(1)
+                            fullPath = fullPath.substring(1);
                         }
    
-                        console.log("Navigating to:", fullPath)
+                        console.log("Navigating to:", fullPath);
                         
                         if (fileIsDir) {
-                            browser.setCurrentFolder(fullPath)
+                            browser.setCurrentFolder(fullPath);
                         } else {
-                            browser.openFile(fullPath)
+                            browser.openFile(fullPath);
                         }
                     }
                 }

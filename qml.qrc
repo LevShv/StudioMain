@@ -4,6 +4,6 @@
     </qresource>
     <qresource prefix="/">
         <file>View/MainWindowView/MainWindow.qml</file>
-        <file>FileBrowser/FileBrowser.qml</file>
+        <file>FileBrowser/Browser.qml</file>
     </qresource>
 </RCC>
