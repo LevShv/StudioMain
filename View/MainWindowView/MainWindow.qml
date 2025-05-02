@@ -3,7 +3,7 @@ import QtQuick.Window 2.2
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 
 import QtQuick.Controls.Material
-import FileBrowser 1.0
+import "qrc:/FileBrowser"
 import Qt.labs.folderlistmodel 2.15
 
 Window {
@@ -165,11 +165,11 @@ Window {
                     SplitView.preferredWidth: 250
                     color: "transparent"  // Прозрачный фон
         
-                    FileBrowser {
-                    width: parent.width
-                    height: parent.height
-                    dragParent: mainWindow.contentItem
-                    onCurrentFolderChanged: console.log("Folder changed:", currentFolder)
+                    Browser {
+                        width: parent.width
+                        height: parent.height
+                        dragParent: mainWindow.contentItem
+                        onCurrentFolderChanged: console.log("Folder changed:", currentFolder)
                     }
                 }
 
