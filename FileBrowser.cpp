@@ -26,7 +26,9 @@ void FileBrowser::setCurrentFolder(const QString& folder)
 }
 QString FileBrowser::homeFolder() const
 {
-    return QStandardPaths::standardLocations(QStandardPaths::HomeLocation).first();
+    QString Homefolder = QStandardPaths::standardLocations(QStandardPaths::HomeLocation).first();
+    LOG_INFO("Home folder " + Homefolder.toStdString());
+    return Homefolder;
 }
 
 QString FileBrowser::parentFolder() const

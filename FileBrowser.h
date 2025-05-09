@@ -12,7 +12,7 @@ class FileBrowser : public QObject
 {
     Q_OBJECT
         Q_PROPERTY(QString currentFolder /* */ READ currentFolder WRITE setCurrentFolder NOTIFY currentFolderChanged)
-        Q_PROPERTY(QString homeFolder READ homeFolder CONSTANT)
+        //Q_PROPERTY(QString homeFolder READ homeFolder CONSTANT)
 
 public:
     explicit FileBrowser(QObject* parent = nullptr);
@@ -22,6 +22,7 @@ public:
 
     Q_INVOKABLE QString homeFolder() const;
     Q_INVOKABLE QString parentFolder() const;
+
     Q_INVOKABLE void openFile(const QString& filePath);
     Q_INVOKABLE bool isDir(const QString& path) const;
     Q_INVOKABLE QString getFilePathForDrag(const QString& fileName) const;

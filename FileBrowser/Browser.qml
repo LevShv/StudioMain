@@ -46,7 +46,8 @@ Item {
                 text: "⌂"
                 onClicked: {
                     console.log("Navigating home")
-                    browser.setCurrentFolder(browser.homeFolder())
+                    var homefolder = browser.homeFolder()
+                    browser.setCurrentFolder(homefolder)
                 }
             }
 
