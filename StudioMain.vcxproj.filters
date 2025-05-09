@@ -53,11 +53,11 @@
     <None Include="View\MainWindowView\MainWindow.qml">
       <Filter>MainWindowWiew</Filter>
     </None>
-    <None Include="FileBrowser.qml">
-      <Filter>FileBrowser</Filter>
-    </None>
     <None Include="old.qml">
       <Filter>Source Files</Filter>
+    </None>
+    <None Include="FileBrowser\Browser.qml">
+      <Filter>FileBrowser</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

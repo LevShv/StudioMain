@@ -6,23 +6,19 @@ import FileBrowser 1.0
 
 Item {
     id: root
-    
-    // Свойство для родительского элемента перетаскивания
+
     property Item dragParent: null
     
-    // Свойство для текущей папки
     property alias currentFolder: browser.currentFolder
     
-    // Явно задаем размеры по умолчанию
     width: 200
     height: 400
-    
-    // Экземпляр C++ класса FileBrowser
+
     FileBrowser {
         id: browser
         onCurrentFolderChanged: {
             console.log("QML: Folder changed to", browser.currentFolder)
-            folderModel.folder = "file://" + browser苗头
+            folderModel.folder = "file://" + browser.currentFolder
             pathField.text = browser.currentFolder
         }
     }
@@ -97,25 +93,8 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        // Получаем текущую папку и очищаем от file://
-                        var currentFolder = folderModel.folder.toString()
-                        currentFolder = currentFolder.startsWith("file://") ? currentFolder.substring(7) : currentFolder
-                        currentFolder = currentFolder.replace("qrc:/", "")
-                        
-                        // Формируем полный путь
-                        var fullPath = (currentFolder + "/" + fileName).replace(/\/+/g, "/")
-                        fullPath = fullPath.replace(/\//g, "\\")
-                        if (fullPath.startsWith("\\")) { 
-                            fullPath = fullPath.substring(1)
-                        }
-   
-                        console.log("Navigating to:", fullPath)
-                        
-                        if (fileIsDir) {
-                            browser.setCurrentFolder(fullPath)
-                        } else {
-                            browser.openFile(fullPath)
-                        }
+                        browser.viewClick(folderModel.folder.toString(), fileName)
+                    
                     }
                 }
 

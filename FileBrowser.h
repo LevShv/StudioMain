@@ -26,11 +26,16 @@ public:
     Q_INVOKABLE bool isDir(const QString& path) const;
     Q_INVOKABLE QString getFilePathForDrag(const QString& fileName) const;
 
+    Q_INVOKABLE void viewClick(QString currentPath, QString obj);
+
+private:
+    QString NormalizePath(QString path);
+    QString m_currentFolder;
+
 signals:
     void currentFolderChanged();
     void errorOccurred(const QString& message);
 
-private:
-    QString m_currentFolder;
+
     
 };

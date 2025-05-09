@@ -2,7 +2,7 @@
 #include <windows.h>
 #include <iostream>
 
-#define LOG(text) std::cout << text << std::endl;
+#define LOG(text)  do { std::cout << text << std::endl; } while (0)
 
 // Базовый макрос для цветного вывода
 #define LOG_COLOR(text, color_code) { \

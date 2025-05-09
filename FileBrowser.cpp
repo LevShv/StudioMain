@@ -1,4 +1,5 @@
 #include "filebrowser.h"
+#include "log.h"
 
 
 FileBrowser::FileBrowser(QObject* parent) : QObject(parent)
@@ -14,25 +15,7 @@ QString FileBrowser::currentFolder() const
 
 void FileBrowser::setCurrentFolder(const QString& folder)
 {
-    QString cleanPath = folder;
-
-    // Удаляем qrc:/ если есть
-    cleanPath = cleanPath.replace("qrc:/", "");
-
-    // Заменяем слеши на бэкслеши для Windows
-    cleanPath = QDir::toNativeSeparators(cleanPath);
-
-    // Исправляем путь к диску (C/ ? C:/)
-    if (cleanPath.length() >= 2 && cleanPath[1] != ':') {
-        cleanPath = QString(cleanPath[0]) + ":" + cleanPath.mid(1); // Явное преобразование QChar в QString
-    }
-
-    QDir dir(cleanPath);
-    if (!dir.exists()) {
-        qWarning() << "Directory does not exist:" << cleanPath;
-        emit errorOccurred(tr("Directory does not exist: %1").arg(cleanPath));
-        return;
-    }
+    QDir dir(NormalizePath(folder));
 
     QString canonicalPath = dir.canonicalPath();
     if (m_currentFolder != canonicalPath) {
@@ -116,4 +99,46 @@ QString FileBrowser::getFilePathForDrag(const QString& fileName) const
     // Используем currentFolder() вместо прямой работы с m_currentFolder
     QString fullPath = QDir::cleanPath(currentFolder() + QDir::separator() + fileName);
     return QUrl::fromLocalFile(fullPath).toString();
+}
+
+Q_INVOKABLE void FileBrowser::viewClick(QString currentPath, QString obj)
+{
+    LOG_INFO("Current path: " + currentPath.toStdString() + "  " + obj.toStdString());
+    currentPath = NormalizePath(currentPath);
+
+    QString fullPath = currentPath + "/" + obj;
+    LOG_INFO("Go to: " + fullPath.toStdString());
+
+    if (isDir(fullPath)) {
+        setCurrentFolder(fullPath);
+    }
+    else {
+        openFile(fullPath);
+    }
+}
+
+QString FileBrowser::NormalizePath(QString path)
+{
+    QString cleanPath = path;
+
+    cleanPath = cleanPath.replace("qrc:/", "").replace("file://", "");
+
+    if (cleanPath.startsWith('/')) cleanPath.remove(0,1);
+
+    cleanPath[0].toUpper();
+
+    if (cleanPath[1] != ':') cleanPath.insert(1, ':');
+
+    // Заменяем слеши на бэкслеши для Windows
+    cleanPath = QDir::toNativeSeparators(cleanPath);
+
+   
+    QDir dir(cleanPath);
+    if (!dir.exists()) {
+        qWarning() << "Directory does not exist:" << cleanPath;
+        emit errorOccurred(tr("Directory does not exist: %1").arg(cleanPath));
+    }
+
+    LOG_INFO("Dir after normalize: " + cleanPath.toStdString());
+    return cleanPath;
 }
