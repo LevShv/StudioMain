@@ -10,6 +10,8 @@ Item {
     property Item dragParent: null
     
     property alias currentFolder: browser.currentFolder
+    property string selectedItem: ""  // Хранит путь выбранного элемента
+    property int selectedIndex: -2    // Хранит индекс выбранного элемента
     
     width: 200
     height: 400
@@ -70,82 +72,120 @@ Item {
             clip: true
 
             delegate: Rectangle {
+                id: delegateItem
                 width: parent.width
                 height: 40
-                color: ListView.isCurrentItem ? "#4C566A" : "transparent"
-
-                Row {
-                    spacing: 10
+    
+                // Цвет фона в зависимости от состояния
+                color: {
+                    if (ListView.isCurrentItem) "#4C566A"           // Активный элемент
+                    else if (root.selectedIndex === index) "#3B4252" // Выбранный элемент
+                    else "transparent"                              // Обычное состояние
+                }
+    
+                // Иконка (папка/файл)
+                Text {
+                    id: icon
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
                     anchors.verticalCenter: parent.verticalCenter
-                    leftPadding: 10
-
-                    Text {
-                        text: fileIsDir ? "📁" : "📄"
-                        font.pixelSize: 16
-                    }
-
-                    Text {
-                        text: fileName
-                        color: "white"
-                        font.pixelSize: 14
-                    }
+                    text: fileIsDir ? "📁" : "📄"
+                    font.pixelSize: 16
                 }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        browser.viewClick(folderModel.folder.toString(), fileName)
-                    
+    
+                // Имя файла/папки
+                Text {
+                    id: nameText
+                    anchors {
+                        left: icon.right
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                        margins: 10
                     }
+                    text: fileName
+                    color: (ListView.isCurrentItem || root.selectedIndex === index) ? "white" : "#D8DEE9"
+                    font.pixelSize: 14
+                    elide: Text.ElideRight
                 }
-
-                // Визуальный элемент для перетаскивания
+    
+                // Элемент для перетаскивания (видим только при перетаскивании)
                 Rectangle {
                     id: dragItem
-                    width: 100
+                    width: 120
                     height: 40
                     visible: false
                     color: "#4C566A"
-                    radius: 5
-                    opacity: 0.8
-                    property string filePath: ""
-
+                    radius: 4
+                    opacity: 0.9
+        
                     Text {
                         anchors.centerIn: parent
-                        text: "Файл"
+                        text: fileName
                         color: "white"
+                        font.pixelSize: 12
+                        elide: Text.ElideRight
+                        width: parent.width - 10
                     }
-
-                    Drag.active: dragItem.visible
+        
+                    Drag.active: dragArea.drag.active
                     Drag.hotSpot.x: width / 2
                     Drag.hotSpot.y: height / 2
-                    Drag.mimeData: {
-                        "text/uri-list": "file://" + filePath,
-                        "text/plain": filePath
-                    }
                 }
-
+    
+                // Основная MouseArea
                 MouseArea {
+                    id: dragArea
                     anchors.fill: parent
-                    enabled: !fileIsDir
-                    drag.target: dragItem
-
+                    hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton
+                    drag.target: !fileIsDir ? dragItem : null  // Перетаскивание только для файлов
+                    drag.threshold: 10
+        
+                    // При нажатии запоминаем позицию
                     onPressed: {
-                        dragItem.parent = root.dragParent
-                        dragItem.filePath = browser.getFilePathForDrag(fileName)
-                        dragItem.x = mapToItem(root.dragParent, mouseX, mouseY).x
-                        dragItem.y = mapToItem(root.dragParent, mouseX, mouseY).y
-                        dragItem.visible = true
+                        root.selectedIndex = index
+                        root.selectedItem = filePath
                     }
-
+        
+                    // При движении начинаем перетаскивание
                     onPositionChanged: {
-                        dragItem.x = mapToItem(root.dragParent, mouseX, mouseY).x
-                        dragItem.y = mapToItem(root.dragParent, mouseX, mouseY).y
+                        if (!fileIsDir && drag.active) {
+                            dragItem.x = mapToItem(root.dragParent, mouseX, mouseY).x - dragItem.width/2
+                            dragItem.y = mapToItem(root.dragParent, mouseX, mouseY).y - dragItem.height/2
+                            dragItem.visible = true
+                        }
                     }
-
+        
+                    // При отпускании кнопки
                     onReleased: {
                         dragItem.visible = false
-                        dragItem.parent = parent
+                        dragItem.parent = delegateItem
+                    }
+        
+                    // Обработка клика
+                    onClicked: {
+                        if (fileIsDir) {
+                            browser.setCurrentFolder(folderModel.folder + "/" + fileName)
+                        } else {
+                            browser.viewClick(folderModel.folder.toString(), fileName)
+                        }
+                    }
+        
+                    // Обработка двойного клика
+                    onDoubleClicked: {
+                        if (fileIsDir) {
+                            browser.setCurrentFolder(folderModel.folder + "/" + fileName)
+                        }
+                    }
+                }
+    
+                // Состояние при наведении
+                states: State {
+                    name: "hovered"
+                    when: dragArea.containsMouse && !ListView.isCurrentItem && root.selectedIndex !== index
+                    PropertyChanges {
+                        target: delegateItem
+                        color: "#434C5E"
                     }
                 }
             }

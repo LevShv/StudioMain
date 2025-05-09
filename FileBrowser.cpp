@@ -24,6 +24,7 @@ void FileBrowser::setCurrentFolder(const QString& folder)
         emit currentFolderChanged();
     }
 }
+
 QString FileBrowser::homeFolder() const
 {
     QString Homefolder = QStandardPaths::standardLocations(QStandardPaths::HomeLocation).first();
@@ -43,20 +44,9 @@ QString FileBrowser::parentFolder() const
     return m_currentFolder;
 }
 
-Q_INVOKABLE void FileBrowser::openFile(const QString& fileUrl)
+Q_INVOKABLE void FileBrowser::openFile(const QString& filepath)
 {
-    QString cleanPath = fileUrl;
-
-    // Удаляем префикс qrc:/ если есть
-    cleanPath.remove("qrc:/");
-
-    // Если путь уже начинается с / или C:/, оставляем как есть
-    if (!cleanPath.startsWith("/") && !cleanPath.contains(":/")) {
-        // Добавляем / в начало для относительных путей
-        if (!cleanPath.startsWith("/")) {
-            cleanPath.prepend("/");
-        }
-    }
+    QString cleanPath = NormalizePath(filepath);
 
     // Создаем URL - важно указать схему "file://"
     QUrl url;
@@ -68,7 +58,7 @@ Q_INVOKABLE void FileBrowser::openFile(const QString& fileUrl)
     }
 
     if (!url.isValid()) {
-        qWarning() << "Неверный URL:" << fileUrl;
+        qWarning() << "Неверный URL:" << cleanPath;
         emit errorOccurred(tr("Wrong way"));
         return;
     }
@@ -79,6 +69,7 @@ Q_INVOKABLE void FileBrowser::openFile(const QString& fileUrl)
     }
 
     QFileInfo fileInfo(localPath);
+
     if (!fileInfo.exists()) {
         qWarning() << "Файл не существует:" << localPath;
         emit errorOccurred(tr("Файл не существует: %1").arg(localPath));
