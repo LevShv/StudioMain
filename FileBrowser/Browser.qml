@@ -6,8 +6,7 @@ import FileBrowser 1.0
 
 Item {
     id: root
-
-    property Item dragParent: null
+    property Item dragParent: root // Явно укажите родительский элемент
     
     property alias currentFolder: browser.currentFolder
     property string selectedItem: ""  // Хранит путь выбранного элемента
@@ -75,6 +74,7 @@ Item {
                 id: delegateItem
                 width: parent.width
                 height: 40
+
     
                 // Цвет фона в зависимости от состояния
                 color: {
@@ -117,6 +117,7 @@ Item {
                     color: "#4C566A"
                     radius: 4
                     opacity: 0.9
+                    z: 9999 
         
                     Text {
                         anchors.centerIn: parent
@@ -129,7 +130,7 @@ Item {
         
                     Drag.active: dragArea.drag.active
                     Drag.hotSpot.x: width / 2
-                    Drag.hotSpot.y: height / 2
+                    Drag.hotSpot.y: height / 2  
                 }
     
                 // Основная MouseArea
@@ -145,13 +146,20 @@ Item {
                     onPressed: {
                         root.selectedIndex = index
                         root.selectedItem = filePath
+
+                        dragItem.parent = root.dragParent
+                        var pos = mapToItem(root.dragParent, mouseX, mouseY)
+                        dragItem.x = pos.x - dragItem.Drag.hotSpot.x
+                        dragItem.y = pos.y - dragItem.Drag.hotSpot.y
+    
                     }
         
                     // При движении начинаем перетаскивание
                     onPositionChanged: {
                         if (!fileIsDir && drag.active) {
-                            dragItem.x = mapToItem(root.dragParent, mouseX, mouseY).x - dragItem.width/2
-                            dragItem.y = mapToItem(root.dragParent, mouseX, mouseY).y - dragItem.height/2
+                            var pos = mapToItem(root.dragParent, mouseX, mouseY)
+                            dragItem.x = pos.x - dragItem.Drag.hotSpot.x
+                            dragItem.y = pos.y - dragItem.Drag.hotSpot.y
                             dragItem.visible = true
                         }
                     }
