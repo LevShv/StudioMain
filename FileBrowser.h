@@ -29,8 +29,10 @@ public:
 
     Q_INVOKABLE void viewClick(QString currentPath, QString obj);
 
+    Q_INVOKABLE QString NormalizePath(QString path);
+
 private:
-    QString NormalizePath(QString path);
+    
     QString m_currentFolder;
 
 signals:

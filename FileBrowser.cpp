@@ -110,7 +110,7 @@ Q_INVOKABLE void FileBrowser::viewClick(QString currentPath, QString obj)
     }
 }
 
-QString FileBrowser::NormalizePath(QString path)
+Q_INVOKABLE QString FileBrowser::NormalizePath(QString path)
 {
     QString cleanPath = path;
 

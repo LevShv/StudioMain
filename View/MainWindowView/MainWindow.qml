@@ -1,10 +1,11 @@
-﻿import QtQuick 2.9
+﻿import QtQuick 2.15
 import QtQuick.Window 2.2
 import QtQuick.Layouts 1.15
-import QtQuick.Controls 
+import QtQuick.Controls 2.15
 import QtQuick.Controls.Material
 import "qrc:/FileBrowser"
 import Qt.labs.folderlistmodel 2.15
+
 
 Window {
 
@@ -338,20 +339,50 @@ Window {
                                         model: 32 * 10
                                         delegate: Rectangle {
                                             width: 40
-                                            height: 50  // Высота ячейки трека
+                                            height: 50
                                             color: "transparent"
                                             border.color: "#444"
 
                                             DropArea {
                                                 anchors.fill: parent
-                                                keys: ["text/uri-list", "text/plain"]
+                                                keys: ["text/plain"] // Только один ключ
+    
+                                                onEntered: {
 
-                                                onDropped: {
-                                                    console.log("Dropped at track:", Math.floor(index/32), 
-                                                              "position:", index%32,
-                                                              "file:", drop.getDataAsString("text/plain"))
-                                                    mainWindow.createClipRequested(Math.floor(index/32), index%32, drop.getDataAsString("text/plain"))
+                                                    console.log("Available formats:", drag.formats)
+                                                    console.log("MIME data:", JSON.stringify(drag.mimeData))
+        
+                                                    if (drag.hasText) {
+                                                        console.log("Text content:", drag.text)
+                                                        drag.accepted = true
+                                                    } else {
+                                                        console.warn("No text data available!")
+                                                    }
                                                 }
+    
+                                                onDropped: {
+
+                                                    Console.log("onDropped")
+                                                    if (drop.hasText) {
+                                                        var filePath = drop.text
+                                                        console.log("Dropped file path:", filePath)
+            
+                                                        // Обработка пути (для Windows)
+                                                        filePath = filePath.replace(/\//g, '\\')
+            
+                                                        // Вычисляем позицию
+                                                        var trackIndex = Math.floor((drop.y - timeRuler.height) / 50)
+                                                        var position = Math.floor(drop.x / 40)
+            
+                                                        mainWindow.createClipRequested(trackIndex, position, filePath)
+                                                    }
+                                                }
+                                            }
+
+
+                                            function handleDroppedFile(path) {
+                                                console.log("Processing file:", path)
+                                                // Реальная обработка файла
                                             }
                                         }
                                     }
@@ -406,66 +437,65 @@ Window {
                                 // Зеленая линия воспроизведения
                                 // Замените существующий Rectangle зеленой линии на этот код:
                                 Rectangle {
-                                        id: greenline
-                                        width: 2
-                                        height: parent.height
-                                        color: "green"
-                                        z: 10
-                                        x: viewModel.playheadPosition * 40 // Привязываем к позиции из ViewModel
+                                    id: greenline
+                                    width: 2
+                                    height: parent.height
+                                    color: "green"
+                                    z: 10
+                                    x: viewModel.playheadPosition * 40 // Привязываем к позиции из ViewModel
     
-                                        // Добавляем MouseArea для перемещения
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            drag {
-                                                target: greenline
-                                                axis: Drag.XAxis
-                                                minimumX: 0
-                                                maximumX: contentGrid.width
-                                            }
-        
-                                            onPressed: {
-                                                // Приостанавливаем анимацию при ручном перемещении
-                                                greenlineAnimator.pause()
-                                            }
-        
-                                            onPositionChanged: {
-                                                if (drag.active) {
-                                                    // Обновляем позицию в ViewModel
-                                                    var newPos = greenline.x / 40
-                                                    viewModel.setPlayheadPosition(newPos)
-                                                }
-                                            }
-        
-                                            onReleased: {
-                                                // Можно возобновить анимацию здесь, если нужно
-                                                // greenlineAnimator.resume()
-                                            }
-                                        }
-    
-                                        // Аниматор для автоматического движения
-                                        PropertyAnimation {
-                                            id: greenlineAnimator
+                                    // Добавляем MouseArea для перемещения
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        drag {
                                             target: greenline
-                                            property: "x"
-                                            from: 0
-                                            to: contentGrid.width
-                                            duration: 50000
-                                            loops: Animation.Infinite
-                                            running: viewModel.isPlaying
+                                            axis: Drag.XAxis
+                                            minimumX: 0
+                                            maximumX: contentGrid.width
                                         }
-    
-                                        // Связь с ViewModel
-                                        Connections {
-                                            target: viewModel
-                                            function onPlayheadPositionChanged() {
-                                                if (!greenlineMouseArea.drag.active) {
-                                                    greenline.x = viewModel.playheadPosition * 40
-                                                }
+        
+                                        onPressed: {
+                                            // Приостанавливаем анимацию при ручном перемещении
+                                            greenlineAnimator.pause()
+                                        }
+        
+                                        onPositionChanged: {
+                                            if (drag.active) {
+                                                // Обновляем позицию в ViewModel
+                                                var newPos = greenline.x / 40
+                                                viewModel.setPlayheadPosition(newPos)
                                             }
                                         }
-                                }
-                                
+        
+                                        onReleased: {
+                                            // Можно возобновить анимацию здесь, если нужно
+                                            // greenlineAnimator.resume()
+                                        }
+                                    }
+    
+                                    // Аниматор для автоматического движения
+                                    PropertyAnimation {
+                                        id: greenlineAnimator
+                                        target: greenline
+                                        property: "x"
+                                        from: 0
+                                        to: contentGrid.width
+                                        duration: 50000
+                                        loops: Animation.Infinite
+                                        running: viewModel.isPlaying
+                                    }
+    
+                                    // Связь с ViewModel
+                                    Connections {
+                                        target: viewModel
+                                        function onPlayheadPositionChanged() {
+                                            if (!greenlineMouseArea.drag.active) {
+                                                greenline.x = viewModel.playheadPosition * 40
+                                            }
+                                        }
+                                    }
+                                } 
                             }
                         }
                     }
