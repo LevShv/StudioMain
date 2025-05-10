@@ -4,18 +4,20 @@ import QtQuick.Layouts 1.15
 import Qt.labs.folderlistmodel 2.15
 import FileBrowser 1.0
 
-
 Item {
     id: root
-    property Item dragParent: root // Явно укажите родительский элемент
-    
+    property Item dragParent: parent
     property alias currentFolder: browser.currentFolder
-    property string selectedItem: ""  // Хранит путь выбранного элемента
-    property int selectedIndex: -2    // Хранит индекс выбранного элемента
+    property string selectedItem: ""
+    property int selectedIndex: -2
     property string dragFilePath: ""
-    
+
     width: 200
     height: 400
+
+    Component.onCompleted: {
+        console.log("Browser dragParent:", dragParent)
+    }
 
     FileBrowser {
         id: browser
@@ -30,7 +32,6 @@ Item {
         anchors.fill: parent
         spacing: 10
 
-        // Панель навигации
         Row {
             width: parent.width
             padding: 5
@@ -65,147 +66,143 @@ Item {
             }
         }
 
-        // Список файлов
         ListView {
             width: parent.width
             height: parent.height - 50
             model: folderModel
             clip: true
 
-    delegate: Rectangle {
-    id: delegateItem
-    width: parent.width
-    height: 40
-
-    color: {
-        if (ListView.isCurrentItem) "#4C566A"
-        else if (root.selectedIndex === index) "#3B4252"
-        else "transparent"
-    }
-
-    Text {
-        id: icon
-        anchors.left: parent.left
-        anchors.leftMargin: 10
-        anchors.verticalCenter: parent.verticalCenter
-        text: fileIsDir ? "📁" : "📄"
-        font.pixelSize: 16
-    }
-
-    Text {
-        id: nameText
-        anchors {
-            left: icon.right
-            right: parent.right
-            verticalCenter: parent.verticalCenter
-            margins: 10
-        }
-        text: fileName
-        color: (ListView.isCurrentItem || root.selectedIndex === index) ? "white" : "#D8DEE9"
-        font.pixelSize: 14
-        elide: Text.ElideRight
-    }
-
-    Rectangle {
-        id: dragItem
-        width: 120
-        height: 40
-        visible: false
-        color: "#4C566A"
-        radius: 4
-        opacity: 0.9
-        z: 9999
-
-        Text {
-            anchors.centerIn: parent
-            text: fileName
-            color: "white"
-            font.pixelSize: 12
-            elide: Text.ElideRight
-            width: parent.width - 10
-        }
-
-        Drag.active: dragArea.drag.active
-        Drag.hotSpot.x: width / 2
-        Drag.hotSpot.y: height / 2
-        Drag.supportedActions: Qt.CopyAction
-    }
-
-    MouseArea {
-        id: dragArea
-        anchors.fill: parent
-        hoverEnabled: true
-        acceptedButtons: Qt.LeftButton
-        drag.target: !fileIsDir ? dragItem : null
-        drag.threshold: 10
-
-
-        // В MouseArea внутри delegate в Browser.qml
-        onPressed: {
-            if (!fileIsDir) {
-                root.dragFilePath = browser.NormalizePath(filePath)
-                console.log("Preparing drag with:", root.dragFilePath)
-            
-                // ТОЛЬКО текст с путем
-                dragItem.Drag.mimeData = {
-                    "text/plain": root.dragFilePath
+            delegate: Rectangle {
+                id: delegateItem
+                width: parent.width
+                height: 40
+                color: {
+                    if (ListView.isCurrentItem) "#4C566A"
+                    else if (root.selectedIndex === index) "#3B4252"
+                    else "transparent"
                 }
-            
-                // ТОЛЬКО один ключ
-                dragItem.Drag.keys = ["text/plain"]
-                dragItem.Drag.supportedActions = Qt.CopyAction
-            
-                dragItem.Drag.active = true
-                dragItem.parent = root.dragParent
-                dragItem.x = mapToItem(root.dragParent, mouseX, mouseY).x - dragItem.width/2
-                dragItem.y = mapToItem(root.dragParent, mouseX, mouseY).y - dragItem.height/2
-                dragItem.visible = true
-            }
-        }
 
-        onPositionChanged: {
-            if (!fileIsDir && dragArea.drag.active) {
-                var pos = mapToItem(root.dragParent, mouseX, mouseY)
-                dragItem.x = pos.x - dragItem.Drag.hotSpot.x
-                dragItem.y = pos.y - dragItem.Drag.hotSpot.y
-                dragItem.visible = true
-            }
-        }
+                Text {
+                    id: icon
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: fileIsDir ? "📁" : "📄"
+                    font.pixelSize: 16
+                }
 
-        onReleased: {
-            if (!fileIsDir) {
-                console.log("Drag released")
-                dragItem.Drag.active = false
-                dragItem.visible = false
-                dragItem.parent = delegateItem
-                dragItem.Drag.drop() // Завершаем перетаскивание
-            }
-        }
+                Text {
+                    id: nameText
+                    anchors {
+                        left: icon.right
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                        margins: 10
+                    }
+                    text: fileName
+                    color: (ListView.isCurrentItem || root.selectedIndex === index) ? "white" : "#D8DEE9"
+                    font.pixelSize: 14
+                    elide: Text.ElideRight
+                }
 
-        onClicked: {
-            if (fileIsDir) {
-                browser.setCurrentFolder(folderModel.folder + "/" + fileName)
-            } else {
-                browser.viewClick(folderModel.folder.toString(), fileName)
-            }
-        }
+                Rectangle {
+                    id: dragItem
+                    width: 120
+                    height: 40
+                    visible: false
+                    color: "#4C566A"
+                    radius: 4
+                    opacity: 0.9
+                    z: 9999
 
-        onDoubleClicked: {
-            if (fileIsDir) {
-                browser.setCurrentFolder(folderModel.folder + "/" + fileName)
-            }
-        }
-    }
+                    Text {
+                        anchors.centerIn: parent
+                        text: fileName
+                        color: "white"
+                        font.pixelSize: 12
+                        elide: Text.ElideRight
+                        width: parent.width - 10
+                    }
 
-    states: State {
-        name: "hovered"
-        when: dragArea.containsMouse && !ListView.isCurrentItem && root.selectedIndex !== index
-        PropertyChanges {
-            target: delegateItem
-            color: "#434C5E"
-        }
-    }
-}
+                    Drag.active: dragArea.drag.active
+                    Drag.hotSpot.x: width / 2
+                    Drag.hotSpot.y: height / 2
+                    Drag.supportedActions: Qt.CopyAction
+                }
+
+                MouseArea {
+                    id: dragArea
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    drag.target: !fileIsDir ? dragItem : null
+                    drag.threshold: 10
+
+                    onPressed: {
+                        if (!fileIsDir) {
+                            root.dragFilePath = browser.NormalizePath(filePath)
+                            console.log("Preparing drag with path:", root.dragFilePath)
+
+                            // Устанавливаем MIME-данные
+                            dragItem.Drag.mimeData = { "text/plain": root.dragFilePath }
+                            dragItem.Drag.keys = ["text/plain"]
+                            dragItem.Drag.supportedActions = Qt.CopyAction
+
+                            // Дополнительно логируем MIME-данные
+                            console.log("MIME data set:", JSON.stringify(dragItem.Drag.mimeData))
+
+                            // Перемещаем dragItem в dragParent
+                            dragItem.parent = root.dragParent
+                            var pos = mapToItem(root.dragParent, mouseX, mouseY)
+                            dragItem.x = pos.x - dragItem.width / 2
+                            dragItem.y = pos.y - dragItem.height / 2
+                            dragItem.visible = true
+
+                            // Запускаем перетаскивание
+                            dragItem.Drag.start()
+                        }
+                    }
+
+                    onPositionChanged: {
+                        if (!fileIsDir && dragArea.drag.active) {
+                            var pos = mapToItem(root.dragParent, mouseX, mouseY)
+                            dragItem.x = pos.x - dragItem.Drag.hotSpot.x
+                            dragItem.y = pos.y - dragItem.Drag.hotSpot.y
+                        }
+                    }
+
+                    onReleased: {
+                        if (!fileIsDir) {
+                            console.log("Drag released")
+                            dragItem.Drag.drop()
+                            dragItem.visible = false
+                            dragItem.parent = delegateItem
+                        }
+                    }
+
+                    onClicked: {
+                        if (fileIsDir) {
+                            browser.setCurrentFolder(folderModel.folder + "/" + fileName)
+                        } else {
+                            browser.viewClick(folderModel.folder.toString(), fileName)
+                        }
+                    }
+
+                    onDoubleClicked: {
+                        if (fileIsDir) {
+                            browser.setCurrentFolder(folderModel.folder + "/" + fileName)
+                        }
+                    }
+                }
+
+                states: State {
+                    name: "hovered"
+                    when: dragArea.containsMouse && !ListView.isCurrentItem && root.selectedIndex !== index
+                    PropertyChanges {
+                        target: delegateItem
+                        color: "#434C5E"
+                    }
+                }
+            }
         }
     }
 

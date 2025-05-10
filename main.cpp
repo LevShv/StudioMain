@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 	if (freopen_s(&fDummy, "CONOUT$", "w", stderr) != 0) {
 		std::cerr << "Ошибка перенаправления stderr!" << std::endl;
 	}
-
+	qDebug() << "Compile-time version:" << QT_VERSION_STR;
     QGuiApplication app(argc, argv);
 
 	qmlRegisterType<FileBrowser>("FileBrowser", 1, 0, "FileBrowser");

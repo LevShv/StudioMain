@@ -27,7 +27,9 @@ Window {
 
     Component.onCompleted: {
         createClipRequested.connect(handleCreateClip)
+        console.log("MainWindow dragParent:", dragParent)
     }
+
 
     property var clipModel: [
         {track: 0, start: 0, length: 4, color: "#FF5722", name: "Audio 1"},
@@ -169,7 +171,8 @@ Window {
                     Browser {
                         width: parent.width
                         height: parent.height
-                        dragParent: mainWindow.contentItem
+                        //dragParent: mainWindow.contentItem
+                        dragParent: mainWindow.dragParent
                         onCurrentFolderChanged: console.log("Folder changed:", currentFolder)
                     }
                 }
@@ -345,39 +348,35 @@ Window {
 
                                             DropArea {
                                                 anchors.fill: parent
-                                                keys: ["text/plain"] // Только один ключ
-    
-                                                onEntered: {
+                                                keys: ["text/plain"]
 
-                                                    console.log("Available formats:", drag.formats)
-                                                    console.log("MIME data:", JSON.stringify(drag.mimeData))
-        
+                                                onEntered: (drag) => {
+                                                    console.log("Drop entered")
+                                                    console.log("Drag keys:", drag.keys)
+                                                    console.log("Drag formats:", drag.formats)
+                                                    console.log("Drag MIME data:", JSON.stringify(drag.mimeData))
+                                                    console.log("Drag has text:", drag.hasText)
                                                     if (drag.hasText) {
                                                         console.log("Text content:", drag.text)
                                                         drag.accepted = true
                                                     } else {
                                                         console.warn("No text data available!")
+                                                        drag.accepted = false
                                                     }
                                                 }
-    
-                                                onDropped: {
 
-                                                    Console.log("onDropped")
+                                                onDropped: (drop) => {
+                                                    console.log("Drop occurred")
                                                     if (drop.hasText) {
                                                         var filePath = drop.text
                                                         console.log("Dropped file path:", filePath)
-            
-                                                        // Обработка пути (для Windows)
-                                                        filePath = filePath.replace(/\//g, '\\')
-            
-                                                        // Вычисляем позицию
-                                                        var trackIndex = Math.floor((drop.y - timeRuler.height) / 50)
-                                                        var position = Math.floor(drop.x / 40)
-            
                                                         mainWindow.createClipRequested(trackIndex, position, filePath)
+                                                    } else {
+                                                        console.warn("No text data in drop!")
                                                     }
                                                 }
                                             }
+
 
 
                                             function handleDroppedFile(path) {
