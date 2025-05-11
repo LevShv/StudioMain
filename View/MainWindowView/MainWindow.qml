@@ -1,10 +1,10 @@
-﻿import QtQuick 2.15
-import QtQuick.Window 2.2
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+﻿import QtQuick 
+import QtQuick.Window 
+import QtQuick.Layouts 
+import QtQuick.Controls 
 import QtQuick.Controls.Material
 import "qrc:/FileBrowser"
-import Qt.labs.folderlistmodel 2.15
+import Qt.labs.folderlistmodel 
 
 
 Window {
@@ -18,11 +18,20 @@ Window {
     color: "#2E3440"
 
     property Item dragParent: contentItem
+
     signal createClipRequested(int trackIndex, int position, string filePath)
 
     function handleCreateClip(trackIndex, position, filePath) {
         console.log("Creating clip:", trackIndex, position, filePath)
-        // Здесь реализуйте создание клипа в вашей модели данных
+        clipModel.push({
+            track: trackIndex,
+            start: position,
+            length: 4,
+            color: "#FF5722",
+            name: filePath.split("/").pop()
+        })
+        console.log("clipModel updated:", JSON.stringify(clipModel))
+        clipModel = clipModel
     }
 
     Component.onCompleted: {
@@ -171,9 +180,28 @@ Window {
                     Browser {
                         width: parent.width
                         height: parent.height
-                        //dragParent: mainWindow.contentItem
                         dragParent: mainWindow.dragParent
                         onCurrentFolderChanged: console.log("Folder changed:", currentFolder)
+                        onFileDropped: (filePath, globalX, globalY) => {
+                            console.log("Received fileDropped, path:", filePath, "global coords:", globalX, globalY)
+                            var localPos = contentGrid.mapFromItem(mainWindow.dragParent, globalX, globalY)
+                            console.log("Local coords in contentGrid:", localPos.x, localPos.y)
+                            console.log("contentGrid bounds: x:", contentGrid.x, "y:", contentGrid.y, "width:", contentGrid.width, "height:", contentGrid.height)
+                            if (localPos.x >= 0 && localPos.x <= contentGrid.width &&
+                                localPos.y >= 0 && localPos.y <= contentGrid.height) {
+                                var trackIndex = Math.floor((localPos.y - timeRuler.height) / 50)
+                                var position = Math.floor(localPos.x / 40)
+                                console.log("Calculated trackIndex:", trackIndex, "position:", position)
+                                if (trackIndex >= 0 && trackIndex < 10 && position >= 0) {
+                                    console.log("File dropped in playlist: track", trackIndex, "position", position, "path", filePath)
+                                    mainWindow.createClipRequested(trackIndex, position, filePath)
+                                } else {
+                                    console.log("Invalid track or position: trackIndex", trackIndex, "position", position)
+                                }
+                            } else {
+                                console.log("File dropped outside contentGrid: localPos.x", localPos.x, "localPos.y", localPos.y)
+                            }
+                        }
                     }
                 }
 
@@ -338,6 +366,10 @@ Window {
                                     anchors.top: timeRuler.bottom
                                     width: 32 * 40
 
+                                    Component.onCompleted: {
+                                        console.log("contentGrid global pos:", mapToItem(mainWindow.dragParent, 0, 0))
+                                    }
+
                                     Repeater {
                                         model: 32 * 10
                                         delegate: Rectangle {
@@ -345,44 +377,6 @@ Window {
                                             height: 50
                                             color: "transparent"
                                             border.color: "#444"
-
-                                            DropArea {
-                                                anchors.fill: parent
-                                                keys: ["text/plain"]
-
-                                                onEntered: (drag) => {
-                                                    console.log("Drop entered")
-                                                    console.log("Drag keys:", drag.keys)
-                                                    console.log("Drag formats:", drag.formats)
-                                                    console.log("Drag MIME data:", JSON.stringify(drag.mimeData))
-                                                    console.log("Drag has text:", drag.hasText)
-                                                    if (drag.hasText) {
-                                                        console.log("Text content:", drag.text)
-                                                        drag.accepted = true
-                                                    } else {
-                                                        console.warn("No text data available!")
-                                                        drag.accepted = false
-                                                    }
-                                                }
-
-                                                onDropped: (drop) => {
-                                                    console.log("Drop occurred")
-                                                    if (drop.hasText) {
-                                                        var filePath = drop.text
-                                                        console.log("Dropped file path:", filePath)
-                                                        mainWindow.createClipRequested(trackIndex, position, filePath)
-                                                    } else {
-                                                        console.warn("No text data in drop!")
-                                                    }
-                                                }
-                                            }
-
-
-
-                                            function handleDroppedFile(path) {
-                                                console.log("Processing file:", path)
-                                                // Реальная обработка файла
-                                            }
                                         }
                                     }
                                 }
@@ -446,33 +440,21 @@ Window {
                                     // Добавляем MouseArea для перемещения
                                     MouseArea {
                                         anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        drag {
-                                            target: greenline
-                                            axis: Drag.XAxis
-                                            minimumX: 0
-                                            maximumX: contentGrid.width
-                                        }
-        
-                                        onPressed: {
-                                            // Приостанавливаем анимацию при ручном перемещении
-                                            greenlineAnimator.pause()
-                                        }
-        
-                                        onPositionChanged: {
-                                            if (drag.active) {
-                                                // Обновляем позицию в ViewModel
-                                                var newPos = greenline.x / 40
-                                                viewModel.setPlayheadPosition(newPos)
-                                            }
-                                        }
-        
+                                        drag.target: parent
+                                        drag.axis: Drag.XAndYAxis
+                                        drag.minimumX: 0
+                                        drag.maximumX: contentGrid.width - parent.width
+                                        drag.minimumY: timeRuler.height
+                                        drag.maximumY: timeRuler.height + (contentGrid.rows-1) * 50
+
+                                        onPressed: clipDelegate.z = 1
                                         onReleased: {
-                                            // Можно возобновить анимацию здесь, если нужно
-                                            // greenlineAnimator.resume()
+                                            clipDelegate.z = 0
+                                            parent.x = Math.round(parent.x / 40) * 40
+                                            parent.y = timeRuler.height + Math.round((parent.y - timeRuler.height) / 50) * 50
+                                            mainWindow.updateClipPosition(index, parent.x/40, (parent.y-timeRuler.height)/50)
                                         }
                                     }
-    
                                     // Аниматор для автоматического движения
                                     PropertyAnimation {
                                         id: greenlineAnimator

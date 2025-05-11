@@ -1,8 +1,8 @@
-﻿import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import Qt.labs.folderlistmodel 2.15
-import FileBrowser 1.0
+﻿import QtQuick 
+import QtQuick.Controls 
+import QtQuick.Layouts 
+import Qt.labs.folderlistmodel 
+import FileBrowser 
 
 Item {
     id: root
@@ -10,7 +10,10 @@ Item {
     property alias currentFolder: browser.currentFolder
     property string selectedItem: ""
     property int selectedIndex: -2
-    property string dragFilePath: ""
+    property string dragFilePath
+
+    // Сигнал для передачи пути к файлу и координат отпускания
+    signal fileDropped(string filePath, real globalX, real globalY)
 
     width: 200
     height: 400
@@ -105,94 +108,83 @@ Item {
                     elide: Text.ElideRight
                 }
 
-                Rectangle {
-                    id: dragItem
-                    width: 120
-                    height: 40
-                    visible: false
-                    color: "#4C566A"
-                    radius: 4
-                    opacity: 0.9
-                    z: 9999
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: fileName
-                        color: "white"
-                        font.pixelSize: 12
-                        elide: Text.ElideRight
-                        width: parent.width - 10
-                    }
+               
 
-                    Drag.active: dragArea.drag.active
-                    Drag.hotSpot.x: width / 2
-                    Drag.hotSpot.y: height / 2
-                    Drag.supportedActions: Qt.CopyAction
-                }
+                    Rectangle {
+                        id: dragItem
+                        width: 120
+                        height: 40
+                        visible: false
+                        color: "#4C566A"
+                        radius: 4
+                        opacity: 0.9
+                        z: 9999
 
-                MouseArea {
-                    id: dragArea
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    drag.target: !fileIsDir ? dragItem : null
-                    drag.threshold: 10
-
-                    onPressed: {
-                        if (!fileIsDir) {
-                            root.dragFilePath = browser.NormalizePath(filePath)
-                            console.log("Preparing drag with path:", root.dragFilePath)
-
-                            // Устанавливаем MIME-данные
-                            dragItem.Drag.mimeData = { "text/plain": root.dragFilePath }
-                            dragItem.Drag.keys = ["text/plain"]
-                            dragItem.Drag.supportedActions = Qt.CopyAction
-
-                            // Дополнительно логируем MIME-данные
-                            console.log("MIME data set:", JSON.stringify(dragItem.Drag.mimeData))
-
-                            // Перемещаем dragItem в dragParent
-                            dragItem.parent = root.dragParent
-                            var pos = mapToItem(root.dragParent, mouseX, mouseY)
-                            dragItem.x = pos.x - dragItem.width / 2
-                            dragItem.y = pos.y - dragItem.height / 2
-                            dragItem.visible = true
-
-                            // Запускаем перетаскивание
-                            dragItem.Drag.start()
+                        Text {
+                            anchors.centerIn: parent
+                            text: fileName
+                            color: "white"
+                            font.pixelSize: 12
+                            elide: Text.ElideRight
+                            width: parent.width - 10
                         }
                     }
 
-                    onPositionChanged: {
-                        if (!fileIsDir && dragArea.drag.active) {
-                            var pos = mapToItem(root.dragParent, mouseX, mouseY)
-                            dragItem.x = pos.x - dragItem.Drag.hotSpot.x
-                            dragItem.y = pos.y - dragItem.Drag.hotSpot.y
-                        }
-                    }
+                    MouseArea {
+    id: dragArea
+    anchors.fill: parent
+    acceptedButtons: Qt.LeftButton
+    hoverEnabled: true
 
-                    onReleased: {
-                        if (!fileIsDir) {
-                            console.log("Drag released")
-                            dragItem.Drag.drop()
-                            dragItem.visible = false
-                            dragItem.parent = delegateItem
-                        }
-                    }
+    onPressed: (mouse) => {
+        if (!fileIsDir) {
+            root.dragFilePath = browser.NormalizePath(filePath)
+            console.log("Preparing drag with path:", root.dragFilePath)
+            dragItem.parent = root.dragParent
+            var pos = mapToItem(root.dragParent, mouse.x, mouse.y)
+            dragItem.x = pos.x - dragItem.width / 2
+            dragItem.y = pos.y - dragItem.height / 2
+            dragItem.visible = true
+            console.log("Drag item positioned at:", dragItem.x, dragItem.y)
+        }
+    }
 
-                    onClicked: {
-                        if (fileIsDir) {
-                            browser.setCurrentFolder(folderModel.folder + "/" + fileName)
-                        } else {
-                            browser.viewClick(folderModel.folder.toString(), fileName)
-                        }
-                    }
+    onPositionChanged: (mouse) => {
+        if (!fileIsDir) {
+            var pos = mapToItem(root.dragParent, mouse.x, mouse.y)
+            dragItem.x = pos.x - dragItem.width / 2
+            dragItem.y = pos.y - dragItem.height / 2
+            console.log("Dragging at:", dragItem.x, dragItem.y)
+        }
+    }
 
-                    onDoubleClicked: {
-                        if (fileIsDir) {
-                            browser.setCurrentFolder(folderModel.folder + "/" + fileName)
-                        }
-                    }
-                }
+    onReleased: (mouse) => {
+        if (!fileIsDir) {
+            console.log("Drag released")
+            var globalPos = mapToItem(root.dragParent, mouse.x, mouse.y)
+            console.log("Emitting fileDropped with path:", root.dragFilePath, "at:", globalPos.x, globalPos.y)
+            root.fileDropped(root.dragFilePath, globalPos.x, globalPos.y)
+            dragItem.visible = false
+            dragItem.parent = delegateItem
+        }
+    }
+
+    onClicked: {
+        if (fileIsDir) {
+            browser.setCurrentFolder(folderModel.folder + "/" + fileName)
+        } else {
+            browser.viewClick(folderModel.folder.toString(), fileName)
+        }
+    }
+
+    onDoubleClicked: {
+        if (fileIsDir) {
+            browser.setCurrentFolder(folderModel.folder + "/" + fileName)
+        }
+    }
+}
+                
 
                 states: State {
                     name: "hovered"
