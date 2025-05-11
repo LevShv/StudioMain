@@ -26,7 +26,7 @@ Window {
         clipModel.push({
             track: trackIndex,
             start: position,
-            length: 4,
+            length: 8,
             color: "#FF5722",
             name: filePath.split("/").pop()
         })
