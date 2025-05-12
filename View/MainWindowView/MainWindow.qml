@@ -1,560 +1,487 @@
-﻿import QtQuick 2.9
-import QtQuick.Window 2.2
-import QtQuick.Layouts 1.15
+﻿import QtQuick 
+import QtQuick.Window 
+import QtQuick.Layouts 
 import QtQuick.Controls 
 import QtQuick.Controls.Material
+import "qrc:/FileBrowser"
+import Qt.labs.folderlistmodel 
+
 
 Window {
-    Component.onCompleted: {
-        Application.style = "Material" // Или "Material", "Universal", "Basic"
-    }
+
+    id: mainWindow
     visible: true
     width: 1500
     height: 1080
+
     title: "StudioMain"
-    
-        SplitView {
-        anchors.fill: parent
-        anchors.topMargin: 102
-        orientation: Qt.Horizontal
+    color: "#2E3440"
 
-           // Левая панель (список треков)
-           Rectangle {
-               id: browser
-               color: "#2E3440"
-               Layout.minimumWidth: 150
-               Layout.preferredWidth: 200
-               SplitView.preferredWidth: 200
+    property Item dragParent: contentItem
 
-               ColumnLayout {
-                   anchors.fill: parent
-                   spacing: 10
-                    RowLayout{
-                        Label {
-                            text: "ALL"
-                            color: "white"
-                            font.bold: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: 10
-                        }
-                        Label {
-                            text: "PROJECT"
-                            color: "white"
-                            font.bold: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: 10
-                        }
-                        Label {
-                            text: "PLUGINS"
-                            color: "white"
-                            font.bold: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: 10
-                        }
-                        Label {
-                            text: "LIBRARY"
-                            color: "white"
-                            font.bold: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: 10
-                        }
-                    }
-                   ListView {
-                       id: trackList
-                       Layout.fillWidth: true
-                       Layout.fillHeight: true
-                       model: ["📁", "📁", "📁", "📁"]
-                       delegate: ItemDelegate {
-                           text: modelData
-                           width: parent.width
-                           height: 40
-                           background: Rectangle {
-                               color: "#4C566A"
-                           }
-                           contentItem: Text {
-                               text: parent.text
-                               color: "white"
-                               verticalAlignment: Text.AlignVCenter
+    signal createClipRequested(int trackIndex, int position, string filePath)
 
-                           }
-                       }
-                   }
-               }
-           }
-           // ChanelRack (редактирование самих треков)
-           Rectangle {
-               id: chanelrack
-               color: "#2E3440"
-               Layout.minimumWidth: 150
-               Layout.preferredWidth: 200
-               SplitView.preferredWidth: 200
-
-               ColumnLayout {
-                   anchors.fill: parent
-                   spacing: 10
-
-                   Label {
-                       text: "Треки"
-                       color: "white"
-                       font.bold: true
-                       Layout.alignment: Qt.AlignHCenter
-                       Layout.topMargin: 10
-                   }
-
-                   ScrollView {
-                           Layout.fillWidth: true  // ← Заменяем anchors.fill
-                           Layout.fillHeight: true
-                           clip: true
-
-                           GridView {
-                               id: channelRack
-                               anchors.fill: parent
-                               cellWidth: 200 // Ширина одного канала
-                               cellHeight: 100 // Высота одного канала
-                               model: 16 // Количество каналов
-
-                               delegate: Rectangle {
-                                   width: channelRack.cellWidth - 5
-                                   height: channelRack.cellHeight - 5
-                                   color: index % 2 === 0 ? "#2E3440" : "#3B4252" // Чередование цветов
-                                   border.color: "gray"
-                                   radius: 5
-
-                                   ColumnLayout {
-                                       anchors.fill: parent
-                                       spacing: 5
-                                       anchors.margins: 5
-
-                                       // Название канала
-                                       Label {
-                                           text: "Channel " + (index + 1)
-                                           font.pixelSize: 14
-                                           color: "white"
-                                           Layout.alignment: Qt.AlignHCenter
-                                       }
-
-                                       // Кнопка Mute
-                                       ToolButton {
-                                           text: "Mute"
-                                           Layout.alignment: Qt.AlignHCenter
-
-                                       }
-
-                                       // Кнопка Solo
-                                       ToolButton {
-                                           text: "Solo"
-                                           Layout.alignment: Qt.AlignHCenter
-
-                                           }
-                                       }
-                                   }
-                               }
-                           }
-
-               }
-           }
-           //звуковые дорожки
-           Rectangle {
-                id: playlistRoot
-                property color backgroundColor: "#1E1E1E"
-                property color trackColor: "#2D2D2D"
-                property color textColor: "#CCCCCC"
-                property color highlightColor: "#3A3A3A"
-                property color borderColor: "#444444"
-                property int trackHeight: 30
-                property int timeRulerHeight: 25
-                property int trackHeaderWidth: 100
-                property int beatWidth: 40
-                property int beatsPerMeasure: 4
-                property int totalMeasures: 16
-
-                // Playlist data model would go here in a real implementation
-                property var tracks: [
-                    {name: "Track 1", clips: [{start: 0, length: 4, color: "#FF5722"}]},
-                    {name: "Track 2", clips: [{start: 4, length: 8, color: "#4CAF50"}]},
-                    {name: "Track 3", clips: [{start: 8, length: 4, color: "#2196F3"}]}
-                ]
-
-
-                Rectangle {
-                    id: playlistContainer
-                    anchors.fill: parent
-                    anchors.leftMargin: 0
-                    anchors.topMargin: 0
-                    color: playlistRoot.backgroundColor
-                    border.color: playlistRoot.borderColor
-                    border.width: 1
-
-
-                    // Time ruler (top header)
-                    Rectangle {
-                        id: timeRuler
-                        width: parent.width - playlistRoot.trackHeaderWidth
-                        height: playlistRoot.timeRulerHeight
-                        color: playlistRoot.backgroundColor
-                        anchors.top: parent.top
-                        anchors.left: trackHeaders.right
-
-                        Row {
-                            spacing: 0
-                            anchors.fill: parent
-
-                            Repeater {
-                                model: playlistRoot.totalMeasures * playlistRoot.beatsPerMeasure
-
-                                Rectangle {
-                                    width: playlistRoot.beatWidth
-                                    height: parent.height
-                                    color: "transparent"
-                                    border.color: index % playlistRoot.beatsPerMeasure === 0 ? Qt.darker(playlistRoot.borderColor, 1.3) : playlistRoot.borderColor
-                                    border.width: 1
-
-                                    Text {
-                                        text: index % playlistRoot.beatsPerMeasure === 0 ? Math.floor(index/playlistRoot.beatsPerMeasure) + 1 : ""
-                                        color: playlistRoot.textColor
-                                        font.pixelSize: 10
-                                        anchors.centerIn: parent
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Track headers (left side)
-                    Column {
-                        id: trackHeaders
-                        width: playlistRoot.trackHeaderWidth
-                        anchors.top: timeRuler.bottom
-                        anchors.bottom: parent.bottom
-                        spacing: 0
-
-                        Repeater {
-                            model: playlistRoot.tracks
-
-                            Rectangle {
-                                width: parent.width
-                                height: playlistRoot.trackHeight
-                                color: playlistRoot.trackColor
-                                border.color: playlistRoot.borderColor
-                                border.width: 1
-
-                                Text {
-                                    text: modelData.name
-                                    color: playlistRoot.textColor
-                                    font.pixelSize: 12
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 5
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-
-                                }
-                            }
-                        }
-                    }
-
-                    // Main playlist area (clips grid)
-                    Flickable {
-                        id: playlistArea
-                        anchors.top: timeRuler.bottom
-                        anchors.left: trackHeaders.right
-                        anchors.bottom: parent.bottom
-                        anchors.right: parent.right
-                        clip: true
-                        contentWidth: playlistRoot.totalMeasures * playlistRoot.beatsPerMeasure * playlistRoot.beatWidth
-                        contentHeight: playlistRoot.tracks.length * playlistRoot.trackHeight
-
-
-                            Rectangle {
-                                x: 10
-                                width: 2
-                                height: 900
-                                color: "green"
-
-                                PropertyAnimation on x {
-                                    duration: 50000  // 50 секунд
-                                    to: 1420         // пока x не будет равно 250
-                                    loops: Animation.Infinite   // бесконечная анимация
-                                }
-                            }
-
-
-                        // Grid background
-                        Grid {
-                            columns: playlistRoot.totalMeasures * playlistRoot.beatsPerMeasure
-                            rows: playlistRoot.tracks.length
-                            spacing: 0
-
-                            Repeater {
-                                model: playlistRoot.totalMeasures * playlistRoot.beatsPerMeasure * playlistRoot.tracks.length
-
-                                Rectangle {
-                                    width: playlistRoot.beatWidth
-                                    height: playlistRoot.trackHeight
-
-                                    border.color: playlistRoot.borderColor
-                                    border.width: 1
-                                }
-                            }
-                        }
-
-                        // Audio/MIDI clips
-                        Repeater {
-                            model: playlistRoot.tracks
-
-                            Repeater {
-                                model: modelData.clips
-
-                                Rectangle {
-                                    x: modelData.start * playlistRoot.beatWidth
-                                    y: index * playlistRoot.trackHeight
-                                    width: modelData.length * playlistRoot.beatWidth
-                                    height: playlistRoot.trackHeight - 2
-                                    color: modelData.color
-                                    radius: 2
-                                    border.color: Qt.darker(modelData.color, 1.3)
-                                    border.width: 1
-
-                                    Text {
-                                        text: "Clip " + (index + 1)
-                                        color: "white"
-                                        font.pixelSize: 10
-                                        anchors.centerIn: parent
-                                        visible: width > 50
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        drag.target: parent
-                                        drag.axis: Drag.XAxis
-                                        drag.minimumX: 0
-                                        drag.maximumX: playlistArea.contentWidth - parent.width
-
-
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Scroll bars
-                    ScrollBar {
-                        id: verticalScroll
-                        width: 12
-                        anchors.top: timeRuler.bottom
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        policy: ScrollBar.AlwaysOn
-                        orientation: Qt.Vertical
-                        contentItem: Rectangle {
-                            color: "#aa0000"
-                            radius: width / 2
-                        }
-                    }
-
-                    ScrollBar {
-                        id: horizontalScroll
-                        height: 12
-                        anchors.left: trackHeaders.right
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        policy: ScrollBar.AlwaysOn
-                        orientation: Qt.Horizontal
-                        contentItem: Rectangle {
-                            color: "#ff0000"
-                            radius: height / 2
-                        }
-                    }
-                }
-            }
+    function handleCreateClip(trackIndex, position, filePath) {
+        console.log("Creating clip:", trackIndex, position, filePath)
+        clipModel.push({
+            track: trackIndex,
+            start: position,
+            length: 8,
+            color: "#FF5722",
+            name: filePath.split("/").pop()
+        })
+        console.log("clipModel updated:", JSON.stringify(clipModel))
+        clipModel = clipModel
     }
 
-    Rectangle {
-        id: rectangle1//Верхнее меню (Tool bar)
-        x: 0
-        y: 0
-        width: 1920
-        height: 102
-        color: "#2E3440"
-        border.color: "#ffffff"
-        ColumnLayout {
-            width: parent.width  // ← Можно так, или просто убрать anchors
-            height: parent.height
-            spacing: 1
-            Rectangle {
-                id: rectangle2
-                Layout.fillWidth: true
-                Layout.preferredHeight: 48  // Фиксированная высота
-                color: "#4C566A"
+    Component.onCompleted: {
+        createClipRequested.connect(handleCreateClip)
+        console.log("MainWindow dragParent:", dragParent)
+    }
 
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: 10
-                    anchors.leftMargin: 10
-                }
-            }
-            Rectangle {
-                id: rectangle3
-                x: 0
-                y: 0
-                Layout.fillWidth: true
-                height: 48
-                color: "#4C566A"
-                Layout.topMargin: 10  // ← Если внутри Layout, используй margin
-                Layout.alignment: Qt.AlignTop  // ← Выравнивание по верхнему краю
-                Slider {//громкость
-                    id: volumeSlider
-                    Layout.fillWidth: true
-                    x: 1200
-                    from: 0
-                    to: 100
-                    onMoved: {
-                        viewModel.moveClip(0,0,value/10)
-                    }
-                }
-                Slider {//громкость
-                    id: volumeSlider2
-                    Layout.fillWidth: true
-                    x: 1500
-                    from: 0
-                    to: 100
-                    onMoved: {
-                        viewModel.setPlayheadPosition(value)
-                    }
-                }
+
+    property var clipModel: [
+        {track: 0, start: 0, length: 4, color: "#FF5722", name: "Audio 1"},
+        {track: 1, start: 4, length: 8, color: "#4CAF50", name: "Audio 2"},
+        {track: 2, start: 8, length: 4, color: "#2196F3", name: "Audio 3"}
+    ]
+
+    Connections {
+    target: viewModel
+    function onIsPlayingChanged() {
+        if (viewModel.isPlaying) {
+            greenlineAnimator.start()
+        } else {
+            greenlineAnimator.stop()
+        }
+    }
+    
+    function onPlayheadPositionChanged(position) {
+        if (!greenlineMouseArea.drag.active) {
+            greenline.x = position * 40
+        }
+    }
+}
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
+
+        // Верхняя панель инструментов
+        Rectangle {
+            id: toolbar
+            Layout.fillWidth: true
+            Layout.preferredHeight: 102
+            color: "#2E3440"
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 0
+
+                // Верхняя секция (пустая)
                 Rectangle {
-                    id: mainbuttons //все кнопки play,stop,record
-                    x: 638
-                    y: 0
-                    width: 192
                     Layout.fillWidth: true
                     height: 48
                     color: "#4C566A"
-                    anchors.top:rectangle3.top
-
-                    RowLayout{
-                        anchors.fill: parent
-                        spacing: 5
-                    ToolButton {
-                       id:play
-                       text: viewModel.isPlaying ? "Pause" : "Play" // Текст кнопки зависит от состояния
-                       onClicked: viewModel.togglePlayback() 
-                           // contentItem: Text {
-                           // text: "▶️"
-                           // Layout.leftMargin: 15
-                           // font.pixelSize: 16
-                           // horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                           // verticalAlignment: Text.AlignVCenter
-                           // elide: Text.ElideNone
-                           // }
-                       background: Rectangle {
-                       color: parent.pressed ? "gray" : "#4C566A"
-                       }
-                    }
-                    ToolButton {
-                            id:record
-                            contentItem: Text {
-                            text: "⏺️"
-                            font.pixelSize: 16
-                            horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideNone
-                            }
-                             background: Rectangle {
-                             color: parent.pressed ? "gray" : "#4C566A"
-                                }
-                    }
-                   ToolButton {
-                            id:pause
-                            contentItem: Text {
-                            text: "⏸️"
-                            font.pixelSize: 16
-                            horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideNone
-                            }
-                             background: Rectangle {
-                             color: parent.pressed ? "gray" : "#4C566A"
-                                }
-                    }
                 }
 
-                }
+                // Нижняя секция с элементами управления
                 Rectangle {
-                    id: rectangle4
-                    x: 862
-                    y: 0
-                    width: 336
                     Layout.fillWidth: true
                     height: 48
-                    color: "black"
-                       Layout.topMargin: 10  // ← Если внутри Layout, используй margin
-                       Layout.alignment: Qt.AlignTop  // ← Выравнивание по верхнему краю
-                    Label {
-                            anchors.centerIn: parent
-                            text: "Main Content Area"
-                        }
-                }
-                Rectangle {
-                        id: checkbutton //все сохранения
-                        x: 1
-                        y: 0
-                        width: 192
-                        Layout.fillWidth: true
-                        height: 48
-                        color: "#4C566A"
-                        Layout.topMargin: 10  // ← Если внутри Layout, используй margin
-                        Layout.alignment: Qt.AlignTop  // ← Выравнивание по верхнему краю
-                        RowLayout{
+                    color: "#4C566A"
+
+                    RowLayout {
                         anchors.fill: parent
-                        //horizontalCenter:mainbuttons
-                        spacing: 5
-                        ToolButton {
-                                id: newfile
-                                contentItem: Text {
-                                text: "Создать новый"
-                                Layout.leftMargin: 15
-                                font.pixelSize: 16
-                                horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideNone
-                                }
-                                 background: Rectangle {
-                                 color: parent.pressed ? "gray" : "#4C566A"
-                                    }
-                        }
-                        ToolButton {
-                                id:copy
-                                contentItem: Text {
+                        spacing: 10
+
+                        // Левая группа кнопок
+                        Row {
+                            Layout.alignment: Qt.AlignLeft
+                            spacing: 5
+
+
+                            ToolButton {
+                                text: "Создать"
+                                implicitWidth: 100
+                            }
+                            ToolButton {
                                 text: "Копировать"
-                                font.pixelSize: 16
-                                horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideNone
-                                }
-                                 background: Rectangle {
-                                 color: parent.pressed ? "gray" : "#4C566A"
-                                    }
-                        }
-                       ToolButton {
-                                id:checkpoint
-                                contentItem: Text {
+                                implicitWidth: 100
+                            }
+                            ToolButton {
                                 text: "Сохранить"
-                                font.pixelSize: 16
-                                horizontalAlignment: Text.AlignHCenter // Выравнивание текста по центру
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideNone
-                                }
-                                 background: Rectangle {
-                                 color: parent.pressed ? "gray" : "#4C566A"
+                                implicitWidth: 100
+                            }
+                        }
+
+                        // Центральная группа кнопок
+                        Row {
+                            Layout.alignment: Qt.AlignHCenter
+                            spacing: 5
+
+                            ToolButton {
+                                text: viewModel.isPlaying ? "⏸️" : "▶️"
+                                implicitWidth: 60
+        
+                                onClicked: {
+                                    viewModel.togglePlayback()
+                                    if (viewModel.isPlaying) {
+                                        greenlineAnimator.resume()
+                                    } else {
+                                        greenlineAnimator.pause()
                                     }
+                                }
+                            }
+                            ToolButton {
+                                text: "⏺️"
+                                implicitWidth: 60
+                            }
+                        }
+
+                        // Правая группа элементов
+                        Row {
+                            Layout.alignment: Qt.AlignRight
+                            spacing: 10
+
+
+                            Slider {
+                                width: 150
+                                from: 0
+                                to: 100
+                            }
+                            Slider {
+                                width: 150
+                                from: 0
+                                to: 100
                             }
                         }
                     }
+                }
             }
+        }
 
+        // Основная рабочая область
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: "transparent"
+
+            SplitView {
+                anchors.fill: parent
+                orientation: Qt.Horizontal
+
+                // Левая панель (200px фиксированная, но адаптивная)
+                Rectangle {  // Добавляем контейнерный Rectangle
+                    id: fileBrowserContainer
+                    SplitView.minimumWidth: 200
+                    SplitView.preferredWidth: 250
+                    color: "transparent"  // Прозрачный фон
+        
+                    Browser {
+                        width: parent.width
+                        height: parent.height
+                        dragParent: mainWindow.dragParent
+                        onCurrentFolderChanged: console.log("Folder changed:", currentFolder)
+                        onFileDropped: (filePath, globalX, globalY) => {
+                            console.log("Received fileDropped, path:", filePath, "global coords:", globalX, globalY)
+                            var localPos = contentGrid.mapFromItem(mainWindow.dragParent, globalX, globalY)
+                            console.log("Local coords in contentGrid:", localPos.x, localPos.y)
+                            console.log("contentGrid bounds: x:", contentGrid.x, "y:", contentGrid.y, "width:", contentGrid.width, "height:", contentGrid.height)
+                            if (localPos.x >= 0 && localPos.x <= contentGrid.width &&
+                                localPos.y >= 0 && localPos.y <= contentGrid.height) {
+                                var trackIndex = Math.floor((localPos.y - timeRuler.height) / 50)
+                                var position = Math.floor(localPos.x / 40)
+                                console.log("Calculated trackIndex:", trackIndex, "position:", position)
+                                if (trackIndex >= 0 && trackIndex < 10 && position >= 0) {
+                                    console.log("File dropped in playlist: track", trackIndex, "position", position, "path", filePath)
+                                    mainWindow.createClipRequested(trackIndex, position, filePath)
+                                } else {
+                                    console.log("Invalid track or position: trackIndex", trackIndex, "position", position)
+                                }
+                            } else {
+                                console.log("File dropped outside contentGrid: localPos.x", localPos.x, "localPos.y", localPos.y)
+                            }
+                        }
+                    }
+                }
+
+                // Центральная панель (каналы)
+                Rectangle {
+                    id: channelRack
+                    SplitView.maximumWidth: 250
+                    SplitView.minimumWidth: 200
+                    SplitView.preferredWidth: 250
+                    color: "#2E3440"
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 0
+
+                        Label {
+                            text: "Треки"
+                            color: "white"
+                            font.bold: true
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.topMargin: 10
+                        }
+
+                        ScrollView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+
+                            GridView {
+                                id: channelsGrid
+                                anchors.fill: parent
+                                cellWidth: 180
+                                cellHeight: 100
+                                model: 16
+
+                                delegate: Rectangle {
+                                    width: channelsGrid.width
+                                    height: channelsGrid.cellHeight - 5
+                                    color: index % 2 ? "#3B4252" : "#4C566A"
+                                    radius: 5
+
+                                    Column {
+                                        anchors.centerIn: parent
+                                        spacing: 5
+
+                                        Label {
+                                            text: "Channel " + (index + 1)
+                                            color: "white"
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                        }
+
+                                        Row {
+                                            spacing: 10
+                                            anchors.horizontalCenter: parent.horizontalCenter
+
+                                            ToolButton {
+                                                text: "Mute"
+                                                implicitWidth: 60
+                                            }
+                                            ToolButton {
+                                                text: "Solo"
+                                                implicitWidth: 60
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Правая панель (плейлист)
+                Rectangle {
+                    id: playlistPanel
+                    SplitView.fillWidth: true
+                    color: "#1E1E1E"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: 0
+
+                        // Основная область с вертикальным разделением
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            spacing: 0
+
+                            // Фиксированные заголовки треков (левая колонка)
+                            Column {
+                                id: trackHeaders
+                                width: 100
+                                Layout.fillHeight: true
+                                Rectangle {
+                                    width: 100
+                                    height: 50  // Высота заголовка времени
+                                    color: "transparent"
+                                }
+
+                                Repeater {
+                                    model: 10
+                                    Rectangle {
+                                        width: 100
+                                        height: 50  // Фиксированная высота трека
+                                        color: "#2D2D2D"
+                                        border.color: "#444"
+
+                                        Label {
+                                            anchors.centerIn: parent
+                                            text: "Track " + (index + 1)
+                                            color: "#CCC"
+                                            font.pixelSize: 12
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Прокручиваемая область (правая часть)
+                            Flickable {
+                                id: flickableArea
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                contentWidth: 32 * 40
+                                contentHeight: 11 * 50  // 10 треков по 50px + заголовок 50px
+                                clip: true
+                                boundsBehavior: Flickable.StopAtBounds
+                                flickableDirection: Flickable.HorizontalFlick
+
+                                // Линейка времени (прокручиваемая часть)
+                                Rectangle {
+                                    id: timeRuler
+                                    width: contentGrid.width
+                                    height: 50  // Высота заголовка времени
+                                    color: "#1E1E1E"
+
+                                    Row {
+                                        anchors.fill: parent
+
+                                        Repeater {
+                                            model: 32
+                                            Rectangle {
+                                                width: 40
+                                                height: parent.height
+                                                color: "transparent"
+                                                border.color: "#444"
+
+                                                Label {
+                                                    anchors.centerIn: parent
+                                                    text: index % 4 === 0 ? Math.floor(index/4) + 1 : ""
+                                                    color: "#CCC"
+                                                    font.pixelSize: 10
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Прокручиваемая сетка
+                                Grid {
+                                    id: contentGrid
+                                    columns: 32
+                                    rows: 10
+                                    anchors.top: timeRuler.bottom
+                                    width: 32 * 40
+
+                                    Component.onCompleted: {
+                                        console.log("contentGrid global pos:", mapToItem(mainWindow.dragParent, 0, 0))
+                                    }
+
+                                    Repeater {
+                                        model: 32 * 10
+                                        delegate: Rectangle {
+                                            width: 40
+                                            height: 50
+                                            color: "transparent"
+                                            border.color: "#444"
+                                        }
+                                    }
+                                }
+
+                                // Клипы
+                                Repeater {
+                                    model: mainWindow.clipModel
+
+                                    delegate: Rectangle {
+                                        id: clipDelegate
+                                        x: modelData.start * 40
+                                        y: modelData.track * 50 + timeRuler.height  // 50px на трек
+                                        width: modelData.length * 40
+                                        height: 48  // 48px с небольшим отступом
+                                        color: modelData.color
+                                        radius: 3
+                                        border.width: 1
+                                        border.color: Qt.darker(modelData.color, 1.2)
+
+                                        Label {
+                                            anchors.fill: parent
+                                            text: modelData.name || "Clip"
+                                            color: "white"
+                                            font.pixelSize: 10
+                                            padding: 5
+                                            elide: Text.ElideRight
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            drag.target: parent
+                                            drag.axis: Drag.XAndYAxis
+                                            drag.minimumX: 0
+                                            drag.maximumX: contentGrid.width - parent.width
+                                            drag.minimumY: timeRuler.height
+                                            drag.maximumY: timeRuler.height + (contentGrid.rows-1) * 50  // 50px на трек
+
+                                            onPressed: clipDelegate.z = 1
+                                            onReleased: {
+                                                clipDelegate.z = 0
+                                                // Привязка к сетке
+                                                parent.x = Math.round(parent.x / 40) * 40
+                                                parent.y = timeRuler.height + Math.round((parent.y - timeRuler.height) / 50) * 50
+                                                // Обновляем модель
+                                                mainWindow.updateClipPosition(index, parent.x/40, (parent.y-timeRuler.height)/50)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Зеленая линия воспроизведения
+                                // Замените существующий Rectangle зеленой линии на этот код:
+                                Rectangle {
+                                    id: greenline
+                                    width: 2
+                                    height: parent.height
+                                    color: "green"
+                                    z: 10
+                                    x: viewModel.playheadPosition * 40 // Привязываем к позиции из ViewModel
+    
+                                    // Добавляем MouseArea для перемещения
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        drag.target: parent
+                                        drag.axis: Drag.XAndYAxis
+                                        drag.minimumX: 0
+                                        drag.maximumX: contentGrid.width - parent.width
+                                        drag.minimumY: timeRuler.height
+                                        drag.maximumY: timeRuler.height + (contentGrid.rows-1) * 50
+
+                                        onPressed: clipDelegate.z = 1
+                                        onReleased: {
+                                            clipDelegate.z = 0
+                                            parent.x = Math.round(parent.x / 40) * 40
+                                            parent.y = timeRuler.height + Math.round((parent.y - timeRuler.height) / 50) * 50
+                                            mainWindow.updateClipPosition(index, parent.x/40, (parent.y-timeRuler.height)/50)
+                                        }
+                                    }
+                                    // Аниматор для автоматического движения
+                                    PropertyAnimation {
+                                        id: greenlineAnimator
+                                        target: greenline
+                                        property: "x"
+                                        from: 0
+                                        to: contentGrid.width
+                                        duration: 50000
+                                        loops: Animation.Infinite
+                                        running: viewModel.isPlaying
+                                    }
+    
+                                    // Связь с ViewModel
+                                    Connections {
+                                        target: viewModel
+                                        function onPlayheadPositionChanged() {
+                                            if (!greenlineMouseArea.drag.active) {
+                                                greenline.x = viewModel.playheadPosition * 40
+                                            }
+                                        }
+                                    }
+                                } 
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

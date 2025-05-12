@@ -4,6 +4,7 @@
 
 #include <MainWindowView.h>
 #include <ViewModel.h>
+#include "filebrowser.h"
 
 #include <iostream>
 #include <windows.h>
@@ -28,8 +29,10 @@ int main(int argc, char *argv[])
 	if (freopen_s(&fDummy, "CONOUT$", "w", stderr) != 0) {
 		std::cerr << "Ошибка перенаправления stderr!" << std::endl;
 	}
-
+	qDebug() << "Compile-time version:" << QT_VERSION_STR;
     QGuiApplication app(argc, argv);
+
+	qmlRegisterType<FileBrowser>("FileBrowser", 1, 0, "FileBrowser");
 
     QQmlApplicationEngine engine;
 
@@ -37,6 +40,9 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("viewModel", &viewModel);
 
     engine.load(QUrl(QStringLiteral("qrc:/View/MainWindowView/MainWindow.qml")));
+
+	qDebug() << "Root objects:" << engine.rootObjects();
+
     if (engine.rootObjects().isEmpty())
         return -1;
 

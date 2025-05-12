@@ -8,20 +8,20 @@
 ViewModel::ViewModel(QObject* parent) : QObject(parent)
 {
 
-    juce::MidiMessageSequence sequence;
+    //juce::MidiMessageSequence sequence;
 
-    sequence.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);   // Нота C4
-    sequence.addEvent(juce::MidiMessage::noteOff(1, 60), 0.5);                   // Выключение C4 через 0.5 сек
+    //sequence.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8)100), 0.0);   // Нота C4
+    //sequence.addEvent(juce::MidiMessage::noteOff(1, 60), 0.5);                   // Выключение C4 через 0.5 сек
 
-    sequence.addEvent(juce::MidiMessage::noteOn(1, 64, (juce::uint8)100), 1.0);   // Нота E4
-    sequence.addEvent(juce::MidiMessage::noteOff(1, 64), 1.5);
+    //sequence.addEvent(juce::MidiMessage::noteOn(1, 64, (juce::uint8)100), 1.0);   // Нота E4
+    //sequence.addEvent(juce::MidiMessage::noteOff(1, 64), 1.5);
 
-    sequence.addEvent(juce::MidiMessage::noteOn(1, 67, (juce::uint8)100), 2.0);   // Нота G4
-    sequence.addEvent(juce::MidiMessage::noteOff(1, 67), 2.5);
+    //sequence.addEvent(juce::MidiMessage::noteOn(1, 67, (juce::uint8)100), 2.0);   // Нота G4
+    //sequence.addEvent(juce::MidiMessage::noteOff(1, 67), 2.5);
 
-    engine.AddAudioClip(0, "Misc/Happy.wav", 0.0, false);
-    engine.AddAudioClip(1, "Misc/Step5.wav", 1, true);
-	engine.AddMidiClip(2, sequence, 0.0);
+    engine.AddAudioClip(0, "Misc/Village_party.wav", 0.0, false);
+  // engine.AddAudioClip(1, "Misc/Step5.wav", 1, true);
+	//engine.AddMidiClip(2, sequence, 0.0);
 }
 
 Q_INVOKABLE void ViewModel::togglePlayback()
@@ -37,11 +37,6 @@ Q_INVOKABLE void ViewModel::togglePlayback()
     emit isPlayingChanged();
 
     qDebug() << (m_isPlaying ? "Track is playing" : "Track is stopped");
-}
-
-Q_INVOKABLE void ViewModel::setPlayheadPosition(double position)
-{
-    engine.SetPlayheadPosition(position);
 }
 
 Q_INVOKABLE void ViewModel::moveClip(size_t trackIdx, size_t clipIdx, double newStartTime)
@@ -66,5 +61,13 @@ void ViewModel::setVolume(int volume)
         // Здесь можно добавить установку громкости в engine
         emit volumeChanged();
         qDebug() << "Volume changed to:" << m_volume;
+    }
+}
+Q_INVOKABLE void ViewModel::setPlayheadPosition(double position) {
+    if (position != m_playheadPosition) {
+        m_playheadPosition = position;
+        engine.SetPlayheadPosition(position);
+        emit playheadPositionChanged(position);
+        qDebug() << "Playhead position changed to:" << position;
     }
 }

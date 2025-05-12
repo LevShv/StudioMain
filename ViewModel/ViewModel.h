@@ -9,6 +9,7 @@ class ViewModel : public QObject {
         Q_PROPERTY(bool isPlaying READ isPlaying NOTIFY isPlayingChanged)
         Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged)
 
+
 public:
     explicit ViewModel(QObject* parent = nullptr);
 
@@ -23,9 +24,11 @@ public:
 signals:
     void isPlayingChanged();
     void volumeChanged();
+    void playheadPositionChanged(double position);
 
 private:
     Engine engine;
+    double m_playheadPosition = engine.Position();
     bool m_isPlaying = false;
     int m_volume = 50;
 };
