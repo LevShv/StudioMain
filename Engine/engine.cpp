@@ -1,6 +1,10 @@
 
 #include "engine.h"
 
+// Core implementation
+
+#pragma region Core
+
 Engine::Core::Core() {
     formatManager.registerBasicFormats();
 
@@ -10,7 +14,7 @@ Engine::Core::Core() {
     }
 
     // Создаем треки с корректной семантикой перемещения
-    tracks.reserve(10);
+    tracks.reserve(100);
     for (int i = 0; i < 10; i++) {
         Track track;
         track.isMidiTrack = (i >= 5);
@@ -18,7 +22,11 @@ Engine::Core::Core() {
     }
 
     audioSourcePlayer.setSource(this);
+
 }
+
+
+
 
 Engine::Core::~Core() {
     stop();
@@ -57,7 +65,6 @@ void Engine::Core::prepareToPlay(int samplesPerBlock, double newSampleRate) {
 void Engine::Core::releaseResources() {
     activeClips.clear();
 }
-
 
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const juce::ScopedLock sl(lock);
@@ -282,7 +289,11 @@ void Engine::Core::loadClipToRAM(AudioClip& clip) {
     }
 }
 
+#pragma endregion
+
 // Engine implementation
+
+#pragma region Engine
 
 Engine::Engine() {
 
@@ -368,7 +379,6 @@ Engine::~Engine() {
     audioSourcePlayer.setSource(nullptr);
 }
 
-
 void Engine::AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM) {
     juce::File audioFile(juce::String(path).replace("\\", "/").replace("//", "/"));
 
@@ -400,6 +410,12 @@ void Engine::SendMidiMessage(const juce::MidiMessage& message) {
     if (core.midiOutput) {
         core.midiOutput->sendMessageNow(message);
     }
+}
+
+const std::vector<Engine::Track>& Engine::GetdataBase() const
+{
+    juce::ScopedLock lock(core.lock); // Защита от гонок
+    return core.tracks;
 }
 
 void Engine::configureMidiDevices() {
@@ -446,3 +462,5 @@ void Engine::configureMidiDevices() {
 double& Engine::Position() {
     return core.position;  
 }
+
+#pragma endregion

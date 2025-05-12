@@ -22,6 +22,19 @@ ViewModel::ViewModel(QObject* parent) : QObject(parent)
     engine.AddAudioClip(0, "Misc/Village_party.wav", 0.0, false);
   // engine.AddAudioClip(1, "Misc/Step5.wav", 1, true);
 	//engine.AddMidiClip(2, sequence, 0.0);
+
+
+    //###################
+    // int startCountOftracks = 4
+    // 
+    //for(int i = 0; i < 2; i++) {
+    // 
+    // 
+    //     
+    //     engine.tracks.pushback 
+    //
+    //}
+    //
 }
 
 Q_INVOKABLE void ViewModel::togglePlayback()

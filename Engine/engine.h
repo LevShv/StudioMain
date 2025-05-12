@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 
 class Engine {
-public:
+private:
 
     struct ClipBase {
         double startTime = 0.0;
@@ -44,21 +44,6 @@ public:
         Track& operator=(Track&&) noexcept = default;
     };
 
-    Engine();
-    ~Engine();
-
-    void AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM);
-    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startTime);
-    void StopMix();
-    void PlayMix();
-    void MoveClip(int trackIndex, int clipIndex, double newStartTime);
-    void SetPlayheadPosition(double position);
-    bool IsPlaying();
-    void SendMidiMessage(const juce::MidiMessage& message);
-
-    double& Position();
-
-private:
     class Core : public juce::AudioSource, private juce::MidiInputCallback {
     public:
         Core();
@@ -68,6 +53,7 @@ private:
 
         std::unique_ptr<juce::MidiOutput> midiOutput;
         juce::CriticalSection lock;
+        std::vector<Track> tracks;
 
         void startAudio(juce::AudioDeviceManager& deviceManager);
         void stopAudio(juce::AudioDeviceManager& deviceManager);
@@ -97,9 +83,7 @@ private:
         };
 
         juce::AudioFormatManager formatManager;
-        std::vector<Track> tracks;
         juce::AudioSourcePlayer audioSourcePlayer;
-
 
         juce::Array<ActiveClip> activeClips;
         double sampleRate = 44100.0;
@@ -117,4 +101,22 @@ private:
 
     void configureMidiDevices();
     
+public:
+
+    Engine();
+    ~Engine();
+
+    void AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM);
+    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startTime);
+    void StopMix();
+    void PlayMix();
+    void MoveClip(int trackIndex, int clipIndex, double newStartTime);
+    void SetPlayheadPosition(double position);
+    bool IsPlaying();
+    void SendMidiMessage(const juce::MidiMessage& message);
+
+    //AddTrack();
+    const std::vector<Engine::Track>& GetdataBase() const;
+
+    double& Position();
 };
