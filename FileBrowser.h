@@ -38,7 +38,5 @@ private:
 signals:
     void currentFolderChanged();
     void errorOccurred(const QString& message);
-
-
     
 };
