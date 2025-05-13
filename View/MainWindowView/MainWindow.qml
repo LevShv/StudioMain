@@ -56,6 +56,47 @@ Window {
                     Layout.fillWidth: true
                     height: 48
                     color: "#4C566A"
+
+                    Rectangle {
+                        id: logo
+                        width: 80   // уменьшено с 100 до 80
+                        height: 40  // уменьшено с 50 до 40
+                        anchors.left: parent.left
+                        anchors.leftMargin: 20   // отступ слева
+                        anchors.verticalCenter: parent.verticalCenter   // по вертикали по центру
+                        color: "#222"   // темный фон (можно выбрать другой темный цвет)
+                        radius: 8      // скругление углов
+                        border.color: "black"
+                        border.width: 2
+
+                        // Контейнер для текста, центрированный внутри logo
+                        Item {
+                            anchors.fill: parent
+
+                            // Тень (золотой цвет)
+                            Text {
+                                text: "𝓛𝓮𝓣𝓸"
+                                font.pixelSize: Math.min(parent.width, parent.height) * 0.6   // чуть больше размера шрифта
+                                font.bold: true
+                                color: "gold"   // золотой цвет для тени
+                                anchors.centerIn: parent
+                                x: 3  // смещение для тени
+                                y: 3
+                            }
+
+                            // Основной текст поверх тени, черный или светлый для контраста
+                            Text {
+                                text: "𝓛𝓮𝓣𝓸"
+                                font.pixelSize: Math.min(parent.width, parent.height) * 0.6
+                                font.bold: true
+                                color: "#ffd700"   // белый цвет текста для хорошего контраста на темном фоне
+                                anchors.centerIn: parent
+                            }
+                        }
+                    }
+                    radius: 8
+                    border.color: "white"
+                    border.width: 1
                 }
 
                 Rectangle {
@@ -125,6 +166,11 @@ Window {
                             }
                         }
                     }
+
+                    
+                    radius: 8
+                    border.color: "white"
+                    border.width: 1
                 }
             }
         }
@@ -354,8 +400,15 @@ Repeater {
     model: viewModel.trackModel
     delegate: Item {
         property int trackIndex: model.trackIndex || 0 // Значение по умолчанию, если trackIndex undefined
+
+        Component.onCompleted: {
+            if (!model || !model.data || !model.data.clips) {
+                console.warn("Отсутствуют данные в модели трека:", trackIndex)
+                return
+            }
+        }
         Repeater {
-            model: model.data ? model.data.clips : [] // Проверяем, существует ли data, иначе пустой массив
+            model: (model && model.data && model.data.clips) ? model.data.clips : []// Проверяем, существует ли data, иначе пустой массив
             delegate: Rectangle {
                 id: clipDelegate
                 x: model.startTime * 40
