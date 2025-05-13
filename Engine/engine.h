@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 
 class Engine {
-private:
+public:
 
     struct ClipBase {
         double startTime = 0.0;
@@ -17,6 +17,7 @@ private:
         }
     };
 
+
     struct AudioClip : public ClipBase {
         juce::File file;
         juce::AudioBuffer<float> buffer;
@@ -27,6 +28,7 @@ private:
         juce::MidiMessageSequence midiSequence;
     };
 
+   
     struct Track {
         std::vector<std::unique_ptr<ClipBase>> clips;
         float gain = 1.0f;
@@ -43,6 +45,25 @@ private:
         Track(Track&&) noexcept = default;
         Track& operator=(Track&&) noexcept = default;
     };
+
+    Engine();
+    ~Engine();
+
+    void AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM);
+    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startTime);
+    void StopMix();
+    void PlayMix();
+    void MoveClip(int trackIndex, int clipIndex, double newStartTime);
+    void SetPlayheadPosition(double position);
+    bool IsPlaying();
+    void SendMidiMessage(const juce::MidiMessage& message);
+
+    //AddTrack();
+    const std::vector<Engine::Track>& GetdataBase() const;
+
+    double& Position();
+
+private:
 
     class Core : public juce::AudioSource, private juce::MidiInputCallback {
     public:
@@ -101,22 +122,5 @@ private:
 
     void configureMidiDevices();
     
-public:
 
-    Engine();
-    ~Engine();
-
-    void AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM);
-    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startTime);
-    void StopMix();
-    void PlayMix();
-    void MoveClip(int trackIndex, int clipIndex, double newStartTime);
-    void SetPlayheadPosition(double position);
-    bool IsPlaying();
-    void SendMidiMessage(const juce::MidiMessage& message);
-
-    //AddTrack();
-    const std::vector<Engine::Track>& GetdataBase() const;
-
-    double& Position();
 };

@@ -112,11 +112,16 @@ Q_INVOKABLE void FileBrowser::viewClick(QString currentPath, QString obj)
 
 Q_INVOKABLE QString FileBrowser::NormalizePath(QString path)
 {
+    // Проверяем, соответствует ли путь уже ожидаемому формату
+    if (IsPathNormalized(path)) {
+        return path;
+    }
+
     QString cleanPath = path;
 
     cleanPath = cleanPath.replace("qrc:/", "").replace("file://", "");
 
-    if (cleanPath.startsWith('/')) cleanPath.remove(0,1);
+    if (cleanPath.startsWith('/')) cleanPath.remove(0, 1);
 
     cleanPath[0].toUpper();
 
@@ -125,7 +130,6 @@ Q_INVOKABLE QString FileBrowser::NormalizePath(QString path)
     // Заменяем слеши на бэкслеши для Windows
     cleanPath = QDir::toNativeSeparators(cleanPath);
 
-   
     QDir dir(cleanPath);
     if (!dir.exists()) {
         qWarning() << "Directory does not exist:" << cleanPath;
@@ -134,4 +138,31 @@ Q_INVOKABLE QString FileBrowser::NormalizePath(QString path)
 
     LOG_INFO("Dir after normalize: " + cleanPath.toStdString());
     return cleanPath;
+}
+
+bool FileBrowser::IsPathNormalized(const QString& path)
+{
+    // Проверяем, что путь уже в нормализованном формате:
+    // 1. Не содержит qrc:/ или file://
+    // 2. Начинается с буквы диска (например, "C:")
+    // 3. Использует правильные разделители для текущей ОС
+
+    if (path.contains("qrc:/") || path.contains("file://")) {
+        return false;
+    }
+
+    // Проверка формата буква диска + двоеточие
+    if (path.length() < 2 || !path[0].isLetter() || path[1] != ':' ) {
+        return false;
+    }
+
+    // Проверка разделителей
+    QString nativeSeparator = QDir::separator();
+    QString oppositeSeparator = (nativeSeparator == "/") ? "\\" : "/";
+
+    if (path.contains(oppositeSeparator)) {
+        return false;
+    }
+
+    return true;
 }

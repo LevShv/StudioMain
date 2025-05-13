@@ -28,6 +28,9 @@
     <Filter Include="FileBrowser">
       <UniqueIdentifier>{057a07f6-2fc5-4dae-b6ed-8afcbc2255e6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="TrackModel">
+      <UniqueIdentifier>{65d07f7d-47c1-455a-94c4-71520dd340e3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -47,6 +50,9 @@
     </ClCompile>
     <ClCompile Include="FileBrowser.cpp">
       <Filter>FileBrowser</Filter>
+    </ClCompile>
+    <ClCompile Include="TrackModel\TrackModel.cpp">
+      <Filter>TrackModel</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -77,6 +83,9 @@
     </QtMoc>
     <QtMoc Include="FileBrowser.h">
       <Filter>FileBrowser</Filter>
+    </QtMoc>
+    <QtMoc Include="TrackModel\TrackModel.h">
+      <Filter>TrackModel</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>

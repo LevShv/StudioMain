@@ -25,9 +25,6 @@ Engine::Core::Core() {
 
 }
 
-
-
-
 Engine::Core::~Core() {
     stop();
     audioSourcePlayer.setSource(nullptr);
