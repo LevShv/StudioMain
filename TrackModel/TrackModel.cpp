@@ -37,8 +37,12 @@ QVariant TrackModel::data(const QModelIndex& index, int role) const {
     qDebug() << "Processing track" << trackIndex << "for role" << role;
 
     switch (role) {
+    case CountOfTracks:
+        return tracks.size();
+
     case TrackIndexRole:
         return trackIndex;
+
     case ClipsRole: {
         QVariantList clips;
         const auto& trackClips = tracks[trackIndex].clips;

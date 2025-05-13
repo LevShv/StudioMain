@@ -339,20 +339,23 @@ Flickable {
     Layout.fillWidth: true
     Layout.fillHeight: true
     contentWidth: 32 * 40
-    contentHeight: 11 * 50
+    contentHeight: timeRuler.height + contentGrid.height
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.HorizontalFlick
 
-    // Линейка времени
+    // Временная линейка
     Rectangle {
         id: timeRuler
-        width: contentGrid.width
+        width: 32 * 40
         height: 50
         color: "#1E1E1E"
+        z: 2
 
         Row {
             anchors.fill: parent
+            spacing: 0
+
             Repeater {
                 model: 32
                 Rectangle {
@@ -372,103 +375,89 @@ Flickable {
         }
     }
 
-    // Сетка
-    Grid {
+    // Сетка треков
+    Item {
         id: contentGrid
-        columns: 32
-        rows: 10
         anchors.top: timeRuler.bottom
         width: 32 * 40
         height: 10 * 50
 
-        Component.onCompleted: {
-            console.log("contentGrid global pos:", mapToItem(mainWindow.dragParent, 0, 0))
-        }
+        // Вертикальные линии
+        Row {
+            anchors.fill: parent
+            spacing: 0
 
-        Repeater {
-            model: 32 * 10
-            delegate: Rectangle {
-                width: 40
-                height: 50
-                color: "transparent"
-                border.color: "#444"
+            Repeater {
+                model: 32
+                Rectangle {
+                    width: 40
+                    height: parent.height
+                    color: "transparent"
+                    border.width: 1
+                    border.color: index === 0 ? "transparent" : "#444" // Прозрачная левая граница для первого элемента
+                }
             }
         }
-    }
 
-    // Клипы как блоки в сетке
-    Item {
-        id: clipsContainer
-        anchors.top: timeRuler.bottom
-        anchors.left: contentGrid.left
-        width: contentGrid.width
-        height: contentGrid.height
-        z: 1
+        // Клипы
+        Item {
+            id: clipsContainer
+            anchors.fill: parent
+            z: 1
 
-        Repeater {
-            model: viewModel.trackModel
-            delegate: Item {
-                property int trackIndex: model.trackIndex || 0
-                property var clips: model && model.data && model.data.clips ? model.data.clips : []
+            Repeater {
+                model: viewModel.trackModel
+                delegate: Item {
+                    property int trackIndex: model.trackIndex || 0
+                    property var clips: model.data ? model.data.clips : []
 
-                Component.onCompleted: {
-                    console.log("Track:", trackIndex, "Clips:", JSON.stringify(clips))
-                }
+                    Repeater {
+                        model: clips
+                        delegate: Rectangle {
+                            x: (model.startTime || 0) * 40
+                            y: trackIndex * 50
+                            width: (model.duration || 1) * 40
+                            height: 48
+                            color: model.type === "audio" ? "#FF5722" : "#4CAF50"
+                            radius: 3
+                            border.width: 1
+                            border.color: Qt.darker(color, 1.2)
+                            z: 1
 
-                Repeater {
-                    model: clips
-                    delegate: Rectangle {
-                        id: clipDelegate
-                        x: (model.startTime || 0) * 40
-                        y: trackIndex * 50
-                        width: (model.duration || 1) * 40
-                        height: 48
-                        color: model.type === "audio" ? "#FF5722" : "#4CAF50"
-                        radius: 3
-                        border.width: 1
-                        border.color: Qt.darker(color, 1.2)
-                        visible: true
-                        z: 1
+                            Label {
+                                anchors.fill: parent
+                                text: model.file ? model.file.split("/").pop() : "MIDI Clip"
+                                color: "white"
+                                font.pixelSize: 10
+                                padding: 5
+                                elide: Text.ElideRight
+                                verticalAlignment: Text.AlignVCenter
+                            }
 
-                        Component.onCompleted: {
-                            console.log("Clip rendered: track:", trackIndex, "startTime:", model.startTime, 
-                                       "duration:", model.duration, "file:", model.file || "MIDI")
-                        }
+                            MouseArea {
+                                anchors.fill: parent
+                                drag.target: parent
+                                drag.axis: Drag.XAndYAxis
+                                drag.minimumX: 0
+                                drag.maximumX: contentGrid.width - parent.width
+                                drag.minimumY: 0
+                                drag.maximumY: contentGrid.height - parent.height
 
-                        Label {
-                            anchors.fill: parent
-                            text: model.file ? model.file.split("/").pop() : "MIDI Clip"
-                            color: "white"
-                            font.pixelSize: 10
-                            padding: 5
-                            elide: Text.ElideRight
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                                onPressed: parent.z = 2
+                                onReleased: {
+                                    parent.z = 1
+                                    let newX = Math.round(parent.x / 40) * 40
+                                    let newY = Math.round(parent.y / 50) * 50
+                                    parent.x = newX
+                                    parent.y = newY
 
-                        MouseArea {
-                            anchors.fill: parent
-                            drag.target: parent
-                            drag.axis: Drag.XAndYAxis
-                            drag.minimumX: 0
-                            drag.maximumX: contentGrid.width - parent.width
-                            drag.minimumY: 0
-                            drag.maximumY: contentGrid.height - parent.height
-
-                            onPressed: clipDelegate.z = 2
-                            onReleased: {
-                                clipDelegate.z = 1
-                                let newX = Math.round(parent.x / 40) * 40
-                                let newY = Math.round(parent.y / 50) * 50
-                                parent.x = newX
-                                parent.y = newY
-
-                                let newTrackIndex = Math.floor(newY / 50)
-                                let newStartTime = newX / 40
-                                console.log("Clip moved to track:", newTrackIndex, "position:", newStartTime)
-                                if (newTrackIndex === trackIndex) {
-                                    viewModel.moveClip(trackIndex, model.index, newStartTime)
-                                } else {
-                                    viewModel.moveClipToTrack(trackIndex, model.index, newTrackIndex, newStartTime)
+                                    let newTrackIndex = Math.floor(newY / 50)
+                                    let newStartTime = newX / 40
+                                    if (newTrackIndex === trackIndex) {
+                                        viewModel.moveClip(trackIndex, model.index, newStartTime)
+                                    } else {
+                                        viewModel.moveClipToTrack(trackIndex, model.index, newTrackIndex, newStartTime)
+                                    }
                                 }
                             }
                         }
@@ -478,14 +467,15 @@ Flickable {
         }
     }
 
-    // Зеленая линия воспроизведения
+    // Линия воспроизведения
     Rectangle {
         id: greenline
         width: 2
-        height: parent.height
+        height: contentGrid.height
         color: "green"
         z: 10
         x: viewModel.playheadPosition * 40
+        anchors.top: contentGrid.top
 
         MouseArea {
             id: greenlineMouseArea

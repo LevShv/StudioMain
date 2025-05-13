@@ -10,7 +10,8 @@ public:
 
     enum Roles {
         TrackIndexRole = Qt::UserRole + 1,
-        ClipsRole
+        ClipsRole,
+        CountOfTracks
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
