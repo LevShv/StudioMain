@@ -31,9 +31,12 @@ public:
 
     Q_INVOKABLE QString NormalizePath(QString path);
 
+ 
+
 private:
     
     QString m_currentFolder;
+    bool IsPathNormalized(const QString& path);
 
 signals:
     void currentFolderChanged();

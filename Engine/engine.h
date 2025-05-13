@@ -17,6 +17,7 @@ public:
         }
     };
 
+
     struct AudioClip : public ClipBase {
         juce::File file;
         juce::AudioBuffer<float> buffer;
@@ -27,6 +28,7 @@ public:
         juce::MidiMessageSequence midiSequence;
     };
 
+   
     struct Track {
         std::vector<std::unique_ptr<ClipBase>> clips;
         float gain = 1.0f;
@@ -56,9 +58,13 @@ public:
     bool IsPlaying();
     void SendMidiMessage(const juce::MidiMessage& message);
 
+    //AddTrack();
+    const std::vector<Engine::Track>& GetdataBase() const;
+
     double& Position();
 
 private:
+
     class Core : public juce::AudioSource, private juce::MidiInputCallback {
     public:
         Core();
@@ -68,6 +74,7 @@ private:
 
         std::unique_ptr<juce::MidiOutput> midiOutput;
         juce::CriticalSection lock;
+        std::vector<Track> tracks;
 
         void startAudio(juce::AudioDeviceManager& deviceManager);
         void stopAudio(juce::AudioDeviceManager& deviceManager);
@@ -97,9 +104,7 @@ private:
         };
 
         juce::AudioFormatManager formatManager;
-        std::vector<Track> tracks;
         juce::AudioSourcePlayer audioSourcePlayer;
-
 
         juce::Array<ActiveClip> activeClips;
         double sampleRate = 44100.0;
@@ -117,4 +122,5 @@ private:
 
     void configureMidiDevices();
     
+
 };

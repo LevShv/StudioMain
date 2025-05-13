@@ -139,7 +139,10 @@ Item {
                 onPressed: (mouse) => {
                     if (!fileIsDir) {
                         if (!dragItem.visible) {
-                            root.dragFilePath = browser.NormalizePath(filePath)
+                            console.log("Raw filePath:",fileUrl)
+
+                            root.dragFilePath = browser.NormalizePath(folderModel.folder + "/" + fileName) //
+
                             console.log("Preparing drag with path:", root.dragFilePath)
                             listView.interactive = false; 
                             dragItem.parent = root.dragParent
@@ -173,7 +176,7 @@ Item {
                         dragItem.parent = delegateItem
                         dragItem.x = 0
                         dragItem.y = 0
-                         listView.interactive = true;
+                        listView.interactive = true;
                         console.log("Drag item reset: visible:", dragItem.visible, "parent:", dragItem.parent)
                     }
                 }

@@ -1,67 +1,42 @@
-﻿import QtQuick 
-import QtQuick.Window 
-import QtQuick.Layouts 
-import QtQuick.Controls 
+﻿import QtQuick
+import QtQuick.Window
+import QtQuick.Layouts
+import QtQuick.Controls
 import QtQuick.Controls.Material
 import "qrc:/FileBrowser"
-import Qt.labs.folderlistmodel 
-
+import Qt.labs.folderlistmodel
 
 Window {
-
     id: mainWindow
     visible: true
     width: 1500
     height: 1080
-
     title: "StudioMain"
     color: "#2E3440"
 
     property Item dragParent: contentItem
 
-    signal createClipRequested(int trackIndex, int position, string filePath)
-
-    function handleCreateClip(trackIndex, position, filePath) {
-        console.log("Creating clip:", trackIndex, position, filePath)
-        clipModel.push({
-            track: trackIndex,
-            start: position,
-            length: 8,
-            color: "#FF5722",
-            name: filePath.split("/").pop()
-        })
-        console.log("clipModel updated:", JSON.stringify(clipModel))
-        clipModel = clipModel
-    }
-
     Component.onCompleted: {
-        createClipRequested.connect(handleCreateClip)
         console.log("MainWindow dragParent:", dragParent)
     }
 
-
-    property var clipModel: [
-        {track: 0, start: 0, length: 4, color: "#FF5722", name: "Audio 1"},
-        {track: 1, start: 4, length: 8, color: "#4CAF50", name: "Audio 2"},
-        {track: 2, start: 8, length: 4, color: "#2196F3", name: "Audio 3"}
-    ]
-
     Connections {
-    target: viewModel
-    function onIsPlayingChanged() {
-        if (viewModel.isPlaying) {
-            greenlineAnimator.start()
-        } else {
-            greenlineAnimator.stop()
+        target: viewModel
+        function onIsPlayingChanged() {
+            if (viewModel.isPlaying) {
+                greenlineAnimator.start()
+            } else {
+                greenlineAnimator.stop()
+            }
+        }
+
+        function onPlayheadPositionChanged(position) {
+            if (!greenlineMouseArea.drag.active) {
+                greenline.x = position * 40
+            }
         }
     }
-    
-    function onPlayheadPositionChanged(position) {
-        if (!greenlineMouseArea.drag.active) {
-            greenline.x = position * 40
-        }
-    }
-}
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -77,14 +52,53 @@ Window {
                 anchors.fill: parent
                 spacing: 0
 
-                // Верхняя секция (пустая)
                 Rectangle {
                     Layout.fillWidth: true
                     height: 48
                     color: "#4C566A"
+
+                    Rectangle {
+                        id: logo
+                        width: 80   // уменьшено с 100 до 80
+                        height: 40  // уменьшено с 50 до 40
+                        anchors.left: parent.left
+                        anchors.leftMargin: 20   // отступ слева
+                        anchors.verticalCenter: parent.verticalCenter   // по вертикали по центру
+                        color: "#222"   // темный фон (можно выбрать другой темный цвет)
+                        radius: 8      // скругление углов
+                        border.color: "black"
+                        border.width: 2
+
+                        // Контейнер для текста, центрированный внутри logo
+                        Item {
+                            anchors.fill: parent
+
+                            // Тень (золотой цвет)
+                            Text {
+                                text: "𝓛𝓮𝓣𝓸"
+                                font.pixelSize: Math.min(parent.width, parent.height) * 0.6   // чуть больше размера шрифта
+                                font.bold: true
+                                color: "gold"   // золотой цвет для тени
+                                anchors.centerIn: parent
+                                x: 3  // смещение для тени
+                                y: 3
+                            }
+
+                            // Основной текст поверх тени, черный или светлый для контраста
+                            Text {
+                                text: "𝓛𝓮𝓣𝓸"
+                                font.pixelSize: Math.min(parent.width, parent.height) * 0.6
+                                font.bold: true
+                                color: "#ffd700"   // белый цвет текста для хорошего контраста на темном фоне
+                                anchors.centerIn: parent
+                            }
+                        }
+                    }
+                    radius: 8
+                    border.color: "white"
+                    border.width: 1
                 }
 
-                // Нижняя секция с элементами управления
                 Rectangle {
                     Layout.fillWidth: true
                     height: 48
@@ -94,11 +108,9 @@ Window {
                         anchors.fill: parent
                         spacing: 10
 
-                        // Левая группа кнопок
                         Row {
                             Layout.alignment: Qt.AlignLeft
                             spacing: 5
-
 
                             ToolButton {
                                 text: "Создать"
@@ -114,7 +126,6 @@ Window {
                             }
                         }
 
-                        // Центральная группа кнопок
                         Row {
                             Layout.alignment: Qt.AlignHCenter
                             spacing: 5
@@ -122,7 +133,6 @@ Window {
                             ToolButton {
                                 text: viewModel.isPlaying ? "⏸️" : "▶️"
                                 implicitWidth: 60
-        
                                 onClicked: {
                                     viewModel.togglePlayback()
                                     if (viewModel.isPlaying) {
@@ -138,16 +148,16 @@ Window {
                             }
                         }
 
-                        // Правая группа элементов
                         Row {
                             Layout.alignment: Qt.AlignRight
                             spacing: 10
-
 
                             Slider {
                                 width: 150
                                 from: 0
                                 to: 100
+                                value: viewModel.volume
+                                onValueChanged: viewModel.setVolume(value)
                             }
                             Slider {
                                 width: 150
@@ -156,6 +166,11 @@ Window {
                             }
                         }
                     }
+
+                    
+                    radius: 8
+                    border.color: "white"
+                    border.width: 1
                 }
             }
         }
@@ -170,31 +185,36 @@ Window {
                 anchors.fill: parent
                 orientation: Qt.Horizontal
 
-                // Левая панель (200px фиксированная, но адаптивная)
-                Rectangle {  // Добавляем контейнерный Rectangle
+                // Левая панель (FileBrowser)
+                Rectangle {
                     id: fileBrowserContainer
                     SplitView.minimumWidth: 200
                     SplitView.preferredWidth: 250
-                    color: "transparent"  // Прозрачный фон
-        
+                    color: "transparent"
+
                     Browser {
                         width: parent.width
                         height: parent.height
                         dragParent: mainWindow.dragParent
                         onCurrentFolderChanged: console.log("Folder changed:", currentFolder)
+
                         onFileDropped: (filePath, globalX, globalY) => {
                             console.log("Received fileDropped, path:", filePath, "global coords:", globalX, globalY)
                             var localPos = contentGrid.mapFromItem(mainWindow.dragParent, globalX, globalY)
                             console.log("Local coords in contentGrid:", localPos.x, localPos.y)
-                            console.log("contentGrid bounds: x:", contentGrid.x, "y:", contentGrid.y, "width:", contentGrid.width, "height:", contentGrid.height)
                             if (localPos.x >= 0 && localPos.x <= contentGrid.width &&
                                 localPos.y >= 0 && localPos.y <= contentGrid.height) {
                                 var trackIndex = Math.floor((localPos.y - timeRuler.height) / 50)
                                 var position = Math.floor(localPos.x / 40)
                                 console.log("Calculated trackIndex:", trackIndex, "position:", position)
                                 if (trackIndex >= 0 && trackIndex < 10 && position >= 0) {
-                                    console.log("File dropped in playlist: track", trackIndex, "position", position, "path", filePath)
-                                    mainWindow.createClipRequested(trackIndex, position, filePath)
+                                    var fileExt = filePath.toLowerCase().split('.').pop();
+                                    if (["mp3", "wav", "aiff", "flac"].indexOf(fileExt) !== -1) {
+                                        console.log("File dropped in playlist: track", trackIndex, "position", position, "path", filePath)
+                                        viewModel.addAudioClip(trackIndex, filePath, position)
+                                    } else {
+                                        console.log("Invalid file type:", filePath, "Supported types: mp3, wav, aiff, flac")
+                                    }
                                 } else {
                                     console.log("Invalid track or position: trackIndex", trackIndex, "position", position)
                                 }
@@ -283,200 +303,205 @@ Window {
                         anchors.fill: parent
                         spacing: 0
 
-                        // Основная область с вертикальным разделением
-                        RowLayout {
-                            Layout.fillWidth: true
+                        // Фиксированные заголовки треков
+                        Column {
+                            id: trackHeaders
+                            width: 100
                             Layout.fillHeight: true
-                            spacing: 0
-
-                            // Фиксированные заголовки треков (левая колонка)
-                            Column {
-                                id: trackHeaders
+                            Rectangle {
                                 width: 100
-                                Layout.fillHeight: true
+                                height: 50
+                                color: "transparent"
+                            }
+
+                            Repeater {
+                                model: 10
                                 Rectangle {
                                     width: 100
-                                    height: 50  // Высота заголовка времени
-                                    color: "transparent"
+                                    height: 50
+                                    color: "#2D2D2D"
+                                    border.color: "#444"
+
+                                    Label {
+                                        anchors.centerIn: parent
+                                        text: "Track " + (index + 1)
+                                        color: "#CCC"
+                                        font.pixelSize: 12
+                                    }
                                 }
+                            }
+                        }
 
-                                Repeater {
-                                    model: 10
-                                    Rectangle {
-                                        width: 100
-                                        height: 50  // Фиксированная высота трека
-                                        color: "#2D2D2D"
-                                        border.color: "#444"
+                        // Прокручиваемая область
+                        Flickable {
+                            id: flickableArea
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            contentWidth: 32 * 40
+                            contentHeight: 11 * 50
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+                            flickableDirection: Flickable.HorizontalFlick
 
-                                        Label {
-                                            anchors.centerIn: parent
-                                            text: "Track " + (index + 1)
-                                            color: "#CCC"
-                                            font.pixelSize: 12
+                            // Линейка времени
+                            Rectangle {
+                                id: timeRuler
+                                width: contentGrid.width
+                                height: 50
+                                color: "#1E1E1E"
+
+                                Row {
+                                    anchors.fill: parent
+                                    Repeater {
+                                        model: 32
+                                        Rectangle {
+                                            width: 40
+                                            height: parent.height
+                                            color: "transparent"
+                                            border.color: "#444"
+
+                                            Label {
+                                                anchors.centerIn: parent
+                                                text: index % 4 === 0 ? Math.floor(index/4) + 1 : ""
+                                                color: "#CCC"
+                                                font.pixelSize: 10
+                                            }
                                         }
                                     }
                                 }
                             }
 
-                            // Прокручиваемая область (правая часть)
-                            Flickable {
-                                id: flickableArea
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                contentWidth: 32 * 40
-                                contentHeight: 11 * 50  // 10 треков по 50px + заголовок 50px
-                                clip: true
-                                boundsBehavior: Flickable.StopAtBounds
-                                flickableDirection: Flickable.HorizontalFlick
+                            // Сетка
+                            Grid {
+                                id: contentGrid
+                                columns: 32
+                                rows: 10
+                                anchors.top: timeRuler.bottom
+                                width: 32 * 40
 
-                                // Линейка времени (прокручиваемая часть)
-                                Rectangle {
-                                    id: timeRuler
-                                    width: contentGrid.width
-                                    height: 50  // Высота заголовка времени
-                                    color: "#1E1E1E"
-
-                                    Row {
-                                        anchors.fill: parent
-
-                                        Repeater {
-                                            model: 32
-                                            Rectangle {
-                                                width: 40
-                                                height: parent.height
-                                                color: "transparent"
-                                                border.color: "#444"
-
-                                                Label {
-                                                    anchors.centerIn: parent
-                                                    text: index % 4 === 0 ? Math.floor(index/4) + 1 : ""
-                                                    color: "#CCC"
-                                                    font.pixelSize: 10
-                                                }
-                                            }
-                                        }
-                                    }
+                                Component.onCompleted: {
+                                    console.log("contentGrid global pos:", mapToItem(mainWindow.dragParent, 0, 0))
                                 }
 
-                                // Прокручиваемая сетка
-                                Grid {
-                                    id: contentGrid
-                                    columns: 32
-                                    rows: 10
-                                    anchors.top: timeRuler.bottom
-                                    width: 32 * 40
-
-                                    Component.onCompleted: {
-                                        console.log("contentGrid global pos:", mapToItem(mainWindow.dragParent, 0, 0))
-                                    }
-
-                                    Repeater {
-                                        model: 32 * 10
-                                        delegate: Rectangle {
-                                            width: 40
-                                            height: 50
-                                            color: "transparent"
-                                            border.color: "#444"
-                                        }
-                                    }
-                                }
-
-                                // Клипы
                                 Repeater {
-                                    model: mainWindow.clipModel
-
+                                    model: 32 * 10
                                     delegate: Rectangle {
-                                        id: clipDelegate
-                                        x: modelData.start * 40
-                                        y: modelData.track * 50 + timeRuler.height  // 50px на трек
-                                        width: modelData.length * 40
-                                        height: 48  // 48px с небольшим отступом
-                                        color: modelData.color
-                                        radius: 3
-                                        border.width: 1
-                                        border.color: Qt.darker(modelData.color, 1.2)
+                                        width: 40
+                                        height: 50
+                                        color: "transparent"
+                                        border.color: "#444"
+                                    }
+                                }
+                            }
 
-                                        Label {
-                                            anchors.fill: parent
-                                            text: modelData.name || "Clip"
-                                            color: "white"
-                                            font.pixelSize: 10
-                                            padding: 5
-                                            elide: Text.ElideRight
-                                        }
+                            // Клипы из TrackModel
+                            // Замените блок Repeater для клипов
+Repeater {
+    model: viewModel.trackModel
+    delegate: Item {
+        property int trackIndex: model.trackIndex || 0 // Значение по умолчанию, если trackIndex undefined
 
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            drag.target: parent
-                                            drag.axis: Drag.XAndYAxis
-                                            drag.minimumX: 0
-                                            drag.maximumX: contentGrid.width - parent.width
-                                            drag.minimumY: timeRuler.height
-                                            drag.maximumY: timeRuler.height + (contentGrid.rows-1) * 50  // 50px на трек
+        Component.onCompleted: {
+            if (!model || !model.data || !model.data.clips) {
+                console.warn("Отсутствуют данные в модели трека:", trackIndex)
+                return
+            }
+        }
+        Repeater {
+            model: (model && model.data && model.data.clips) ? model.data.clips : []// Проверяем, существует ли data, иначе пустой массив
+            delegate: Rectangle {
+                id: clipDelegate
+                x: model.startTime * 40
+                y: trackIndex * 50 + timeRuler.height
+                width: model.duration * 40
+                height: 48
+                color: model.type === "audio" ? "#FF5722" : "#4CAF50"
+                radius: 3
+                border.width: 1
+                border.color: Qt.darker(color, 1.2)
 
-                                            onPressed: clipDelegate.z = 1
-                                            onReleased: {
-                                                clipDelegate.z = 0
-                                                // Привязка к сетке
-                                                parent.x = Math.round(parent.x / 40) * 40
-                                                parent.y = timeRuler.height + Math.round((parent.y - timeRuler.height) / 50) * 50
-                                                // Обновляем модель
-                                                mainWindow.updateClipPosition(index, parent.x/40, (parent.y-timeRuler.height)/50)
-                                            }
-                                        }
+                Label {
+                    anchors.fill: parent
+                    text: model.file ? model.file.split("/").pop() : "MIDI Clip"
+                    color: "white"
+                    font.pixelSize: 10
+                    padding: 5
+                    elide: Text.ElideRight
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    drag.target: parent
+                    drag.axis: Drag.XAndYAxis
+                    drag.minimumX: 0
+                    drag.maximumX: contentGrid.width - parent.width
+                    drag.minimumY: timeRuler.height
+                    drag.maximumY: timeRuler.height + (contentGrid.rows-1) * 50
+
+                    onPressed: clipDelegate.z = 1
+                    onReleased: {
+                        clipDelegate.z = 0
+                        let newX = Math.round(parent.x / 40) * 40
+                        let newY = Math.round((parent.y - timeRuler.height) / 50) * 50 + timeRuler.height
+                        parent.x = newX
+                        parent.y = newY
+
+                        let newTrackIndex = Math.floor((newY - timeRuler.height) / 50)
+                        let newStartTime = newX / 40
+                        if (newTrackIndex === trackIndex) {
+                            viewModel.moveClip(trackIndex, model.index, newStartTime)
+                        } else {
+                            console.log("Перемещение между треками не реализовано")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+                            // Зеленая линия воспроизведения
+                            Rectangle {
+                                id: greenline
+                                width: 2
+                                height: parent.height
+                                color: "green"
+                                z: 10
+                                x: viewModel.playheadPosition * 40
+
+                                MouseArea {
+                                    id: greenlineMouseArea
+                                    anchors.fill: parent
+                                    drag.target: parent
+                                    drag.axis: Drag.XAxis
+                                    drag.minimumX: 0
+                                    drag.maximumX: contentGrid.width - parent.width
+
+                                    onReleased: {
+                                        parent.x = Math.round(parent.x / 40) * 40
+                                        viewModel.setPlayheadPosition(parent.x / 40)
                                     }
                                 }
 
-                                // Зеленая линия воспроизведения
-                                // Замените существующий Rectangle зеленой линии на этот код:
-                                Rectangle {
-                                    id: greenline
-                                    width: 2
-                                    height: parent.height
-                                    color: "green"
-                                    z: 10
-                                    x: viewModel.playheadPosition * 40 // Привязываем к позиции из ViewModel
-    
-                                    // Добавляем MouseArea для перемещения
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        drag.target: parent
-                                        drag.axis: Drag.XAndYAxis
-                                        drag.minimumX: 0
-                                        drag.maximumX: contentGrid.width - parent.width
-                                        drag.minimumY: timeRuler.height
-                                        drag.maximumY: timeRuler.height + (contentGrid.rows-1) * 50
+                                PropertyAnimation {
+                                    id: greenlineAnimator
+                                    target: greenline
+                                    property: "x"
+                                    from: 0
+                                    to: contentGrid.width
+                                    duration: 50000
+                                    loops: Animation.Infinite
+                                    running: viewModel.isPlaying
+                                }
 
-                                        onPressed: clipDelegate.z = 1
-                                        onReleased: {
-                                            clipDelegate.z = 0
-                                            parent.x = Math.round(parent.x / 40) * 40
-                                            parent.y = timeRuler.height + Math.round((parent.y - timeRuler.height) / 50) * 50
-                                            mainWindow.updateClipPosition(index, parent.x/40, (parent.y-timeRuler.height)/50)
+                                Connections {
+                                    target: viewModel
+                                    function onPlayheadPositionChanged(position) {
+                                        if (!greenlineMouseArea.drag.active) {
+                                            greenline.x = position * 40
                                         }
                                     }
-                                    // Аниматор для автоматического движения
-                                    PropertyAnimation {
-                                        id: greenlineAnimator
-                                        target: greenline
-                                        property: "x"
-                                        from: 0
-                                        to: contentGrid.width
-                                        duration: 50000
-                                        loops: Animation.Infinite
-                                        running: viewModel.isPlaying
-                                    }
-    
-                                    // Связь с ViewModel
-                                    Connections {
-                                        target: viewModel
-                                        function onPlayheadPositionChanged() {
-                                            if (!greenlineMouseArea.drag.active) {
-                                                greenline.x = viewModel.playheadPosition * 40
-                                            }
-                                        }
-                                    }
-                                } 
+                                }
                             }
                         }
                     }
