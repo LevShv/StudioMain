@@ -15,9 +15,9 @@ Engine::Core::Core() {
 
     // Создаем треки с корректной семантикой перемещения
     tracks.reserve(100);
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 4; i++) {
         Track track;
-        track.isMidiTrack = (i >= 5);
+        track.isMidiTrack = (i >= 2);
         tracks.emplace_back(std::move(track));
     }
 
