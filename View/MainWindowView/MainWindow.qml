@@ -15,6 +15,7 @@ Window {
     color: "#2E3440"
 
     property Item dragParent: contentItem
+    property int countOfTracks: viewModel.trackModel.countOfTracks
 
     Component.onCompleted: {
         console.log("MainWindow dragParent:", dragParent)
@@ -299,8 +300,6 @@ Window {
                     SplitView.fillWidth: true
                     color: "#1E1E1E"
 
-
-
                     RowLayout {
                         anchors.fill: parent
                         spacing: 0
@@ -317,7 +316,7 @@ Window {
                             }
 
                             Repeater {
-                                model: viewModel.trackModel.rowCount()
+                                model: countOfTracks
                                 Rectangle {
                                     width: 100
                                     height: 50
@@ -384,55 +383,61 @@ Window {
                                 width: 32 * 40
                                 height: 15 * 50
 
-                                // Вертикальные линии
-                                Row {
-                                    anchors.fill: parent
-                                    spacing: 0
-
-                                    Repeater {
-                                        model: 32
-                                        Rectangle {
-                                            width: 40
-                                            height: parent.height
-                                            color: "transparent"
-                                            border.width: 1
-                                           // border.color: index === 0 ? "transparent" : "#444" // Прозрачная левая граница для первого элемента
-                                           border.color:"#444"  
-                                        }
-                                    }  
-                                }
-
-                                Repeater {
-                                    model: viewModel.trackModel.rowCount() // Количество треков
-                                    delegate: Rectangle {
-                                        y: index * 50  // Позиционирование по вертикали
-                                        width: parent.width
-                                        height: 50  // Высота трека
-                                        color: "transparent"
-                                        border {
-                                            width: 1  // Только нижняя граница
-                                            color: "#444"
-                                        } 
-                                    }
-                                }
-
-                                // Клипы
+                                // Клипы и фоновые области треков
                                 Item {
-                                    id: clipsContainer
+                                    id: tracksAndClipsContainer
                                     anchors.fill: parent
-                                    z: 1
+                                    z: 0
+
+                                    Row { // вертикальные полосы
+                                        anchors.fill: parent
+                                        spacing: 0
+                                        z: 100
+
+                                        Repeater {
+                                            model: 32
+                                            Rectangle {
+                                                width: 40
+                                                height: parent.height
+                                                color: "transparent"
+                                                border.width: 1
+                                                // border.color: index === 0 ? "transparent" : "#444" // Прозрачная левая граница для первого элемента
+                                                border.color:"#444"  
+                                                
+                                            }
+                                        }  
+                                    }
 
                                     Repeater {
                                         model: viewModel.trackModel
                                         delegate: Item {
+                                            // Свойства для доступа к данным трека
                                             property int trackIndex: model.trackIndex || 0
                                             property var clips: model.data ? model.data.clips : []
 
+                                            // Размеры и позиция для области трека
+                                            width: contentGrid.width
+                                            height: 50 // Высота трека
+                                            y: trackIndex * 50 // Позиционирование по вертикали
+
+                                            // Фоновая область трека
+                                            Rectangle {
+                                                z: 0
+                                                anchors.fill: parent
+                                               // color: "transparent" 
+                                                 color: "#2D2D2D" // Или задайте цвет, например, "#2D2D2D"
+                                                border {
+                                                    width: 1
+                                                    color: "#444"
+                                                }
+                                            }
+
+                                            // Клипы внутри трека
                                             Repeater {
                                                 model: clips
                                                 delegate: Rectangle {
                                                     x: (model.startTime || 0) * 40
-                                                    y: trackIndex * 50
+                                                    y: 0 // Клипы внутри трека, y=0 относительно Item
                                                     width: (model.duration || 1) * 40
                                                     height: 48
                                                     color: model.type === "audio" ? "#FF5722" : "#4CAF50"

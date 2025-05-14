@@ -18,8 +18,6 @@ int TrackModel::rowCount(const QModelIndex& parent) const {
     return m_engine.GetdataBase().size();
 }
 
-// TrackModel.cpp
-// TrackModel.cpp
 QVariant TrackModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid()) {
         qDebug() << "Invalid index in TrackModel::data";
@@ -78,8 +76,13 @@ QHash<int, QByteArray> TrackModel::roleNames() const {
     return roles;
 }
 
-
 void TrackModel::update() {
+    int oldCount = rowCount();
+
     beginResetModel();
     endResetModel();
+
+    if (rowCount() != oldCount) {
+        emit countChanged();
+    }
 }

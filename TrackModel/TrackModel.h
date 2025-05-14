@@ -4,7 +4,10 @@
 #include "engine.h"
 
 class TrackModel : public QAbstractListModel {
+
     Q_OBJECT
+    Q_PROPERTY(int countOfTracks READ rowCount NOTIFY countChanged)
+
 public:
     explicit TrackModel(Engine& engine, QObject* parent = nullptr);
 
@@ -19,6 +22,9 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     Q_INVOKABLE void update(); // Для принудительного обновления модели
+
+signals:
+    void countChanged();  // Должен вызываться при изменении количества треков
 
 private:
     Engine& m_engine;
