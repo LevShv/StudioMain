@@ -11,10 +11,17 @@ public:
         float gain = 1.0f;
         bool muted = false;
 
+
+        double startBeats = 0.0; // Время в ударах
+        double durationBeats = 0.0; // Длительность в ударах
+
         virtual ~ClipBase() = default;
         virtual bool isActive(double time) const {
             return time >= startTime && time < startTime + duration;
         }
+        //virtual bool isActive(double position) const {
+        //    return position >= startTime && position < startTime + duration;
+        //}
     };
 
 
@@ -71,10 +78,23 @@ private:
         ~Core();
 
         double position = 0.0;
+        double positionInBeats = 0.0; // Позиция в ударах
+        double bpm = 120.0; // Значение по умолчанию: 120 BPM
+        int timeSignatureNumerator = 4; // Числитель метра (4 в 4/4)
+        int timeSignatureDenominator = 4; // Знаменатель метра (4 в 4/4)
 
         std::unique_ptr<juce::MidiOutput> midiOutput;
         juce::CriticalSection lock;
         std::vector<Track> tracks;
+
+        void setBPM(double newBPM);
+        double getBPM() const { return bpm; }
+        void setTimeSignature(int numerator, int denominator);
+        std::pair<int, int> getTimeSignature() const { return { timeSignatureNumerator, timeSignatureDenominator }; }
+        double secondsToBeats(double seconds) const;
+        double beatsToSeconds(double beats) const;
+        double secondsToMeasures(double seconds) const;
+        double measuresToSeconds(double measures) const;
 
         void startAudio(juce::AudioDeviceManager& deviceManager);
         void stopAudio(juce::AudioDeviceManager& deviceManager);

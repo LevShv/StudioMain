@@ -75,20 +75,27 @@ void Engine::Core::releaseResources() {
 
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const juce::ScopedLock sl(lock);
-   /* LOG("Position: " << position << ", Playing: " << transportPlaying << ", Active clips: " << activeClips.size());*/
-
+  
     if (!transportPlaying) {
         info.clearActiveBufferRegion();
-       /* LOG("Transport not playing. Clearing buffer.");*/
         return;
     }
+
+    const double blockDuration = info.numSamples / sampleRate;
+    const double startTime = position;
+    const double endTime = startTime + blockDuration;
+
+    // Время в ударах
+    const double startBeats = positionInBeats;
+    const double blockDurationBeats = secondsToBeats(blockDuration);
+    const double endBeats = startBeats + blockDurationBeats;
 
     // Очистка буфера ПЕРЕД заполнением
     info.clearActiveBufferRegion();
 
-    const double startTime = position;
+    /*const double startTime = position;
     const double blockDuration = info.numSamples / sampleRate;
-    const double endTime = startTime + blockDuration;
+    const double endTime = startTime + blockDuration;*/
 
     // Обработка аудио клипов
     for (auto& active : activeClips) {
@@ -131,6 +138,7 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     updateActiveClips();
 
     position += blockDuration; // Обновляем ПОСЛЕ
+    positionInBeats += blockDurationBeats;
  
 }
 
@@ -169,15 +177,14 @@ void Engine::Core::processMidiBlocks(const juce::AudioSourceChannelInfo& info,
 void Engine::Core::play() {
     const juce::ScopedLock sl(lock);
     transportPlaying = true;
-    // Не сбрасываем позицию - продолжение с текущего места
-    LOG("Playback STARTED (or CONTINUED)");
+    LOG("Playback STARTED at position: " << position << " seconds (" << positionInBeats << " beats)");
     updateActiveClips();
 }
 
 void Engine::Core::stop() {
+
     const juce::ScopedLock sl(lock);
     transportPlaying = false;
-    // Не очищаем позицию - запоминаем, где остановились
     activeClips.clear();
 
     if (midiOutput) {
@@ -185,11 +192,14 @@ void Engine::Core::stop() {
             midiOutput->sendMessageNow(juce::MidiMessage::allNotesOff(channel));
         }
     }
+    LOG("Playback STOPPED at position: " << position << " seconds (" << positionInBeats << " beats)");
+
 }
 
 void Engine::Core::setPosition(double newPosition) {
     const juce::ScopedLock sl(lock);
     position = newPosition;
+    positionInBeats = secondsToBeats(newPosition);
     updateActiveClips();
 }
 
@@ -203,10 +213,12 @@ void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file,
     auto newClip = std::make_unique<AudioClip>();
     newClip->file = file;
     newClip->startTime = startTime;
+    newClip->startBeats = secondsToBeats(startTime); //// начало бит
     newClip->useRAM = loadToRAM;
 
     if (auto reader = formatManager.createReaderFor(file)) {
         newClip->duration = reader->lengthInSamples / reader->sampleRate;
+        newClip->durationBeats = secondsToBeats(newClip->duration); /// задали длину в битах
 
         if (loadToRAM) {
             newClip->buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
@@ -237,6 +249,7 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
     auto newClip = std::make_unique<MidiClip>();
     newClip->midiSequence = sequence;
     newClip->startTime = startTime;
+    newClip->startBeats = secondsToBeats(startTime); ///
 
     double endTime = 0;
     for (int i = 0; i < sequence.getNumEvents(); i++) {
@@ -244,6 +257,7 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
         endTime = juce::jmax(endTime, event->message.getTimeStamp());
     }
     newClip->duration = endTime + 0.1;
+    newClip->durationBeats = secondsToBeats(newClip->duration); ///
 
     tracks.at(trackIndex).clips.push_back(std::move(newClip));
 }
@@ -253,6 +267,7 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double newStartTime) 
         clipIndex >= 0 && clipIndex < tracks.at(trackIndex).clips.size()) {
         const juce::ScopedLock sl(lock);
         tracks.at(trackIndex).clips[clipIndex]->startTime = newStartTime;
+        tracks.at(trackIndex).clips[clipIndex]->startBeats = secondsToBeats(newStartTime);
         updateActiveClips();
     }
 }
@@ -260,7 +275,7 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double newStartTime) 
 void Engine::Core::updateActiveClips() {
     activeClips.clear();
 
-	LOG(position);
+	//LOG(position);
 
     for (auto& track : tracks) {
         if (track.muted) continue;
@@ -287,6 +302,7 @@ void Engine::Core::updateActiveClips() {
             }
         }
     }
+    LOG("Active clips updated at position: " << position << " seconds (" << positionInBeats << " beats)");
 }
 
 void Engine::Core::loadClipToRAM(AudioClip& clip) {
@@ -294,6 +310,47 @@ void Engine::Core::loadClipToRAM(AudioClip& clip) {
         clip.buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
         reader->read(&clip.buffer, 0, (int)reader->lengthInSamples, 0, true, true);
     }
+}
+
+void Engine::Core::setBPM(double newBPM) {
+    if (newBPM > 0.0) {
+        bpm = newBPM;
+        LOG("BPM updated to: " << bpm);
+        updateActiveClips(); // Пересчитываем активные клипы, если нужно
+    }
+    else {
+        LOG_ERROR("Invalid BPM value: " << newBPM);
+    }
+}
+
+void Engine::Core::setTimeSignature(int numerator, int denominator) {
+    if (numerator > 0 && denominator > 0 && (denominator & (denominator - 1)) == 0) { // Проверка, что знаменатель - степень двойки
+        timeSignatureNumerator = numerator;
+        timeSignatureDenominator = denominator;
+        LOG("Time signature updated to: " << numerator << "/" << denominator);
+        updateActiveClips(); // Пересчитываем активные клипы, если нужно
+    }
+    else {
+        LOG_ERROR("Invalid time signature: " << numerator << "/" << denominator);
+    }
+}
+
+double Engine::Core::secondsToBeats(double seconds) const {
+    return seconds * (bpm / 60.0);
+}
+
+double Engine::Core::beatsToSeconds(double beats) const {
+    return beats * (60.0 / bpm);
+}
+
+double Engine::Core::secondsToMeasures(double seconds) const {
+    double beats = secondsToBeats(seconds);
+    return beats / timeSignatureNumerator;
+}
+
+double Engine::Core::measuresToSeconds(double measures) const {
+    double beats = measures * timeSignatureNumerator;
+    return beatsToSeconds(beats);
 }
 
 #pragma endregion
