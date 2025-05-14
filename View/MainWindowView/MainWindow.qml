@@ -378,104 +378,104 @@ Window {
 
                             // Сетка треков
                             Item {
-    id: contentGrid
-    anchors.top: timeRuler.bottom
-    width: 32 * 40
-    height: 15 * 50
+                                id: contentGrid
+                                anchors.top: timeRuler.bottom
+                                width: 32 * 40
+                                height: 15 * 50
 
-    // Клипы и фоновые области треков
-    Item {
-        id: tracksAndClipsContainer
-        anchors.fill: parent
+                                // Клипы и фоновые области треков
+                                Item {
+                                    id: tracksAndClipsContainer
+                                    anchors.fill: parent
     
-        // 1. Фоновые прямоугольники треков (самый нижний слой)
-        Repeater {
-            model: viewModel.trackModel
-            delegate: Rectangle {
-                property int trackIndex: model.trackIndex || 0
-                width: contentGrid.width
-                height: 50
-                y: trackIndex * 50
-                z: 0  // Самый нижний слой
-                color: "#2D2D2D"
-                border {
-                    width: 1
-                    color: "#444"
-                }
-            }
-        }
+                                    // 1. Фоновые прямоугольники треков (самый нижний слой)
+                                    Repeater {
+                                        model: viewModel.trackModel
+                                        delegate: Rectangle {
+                                            property int trackIndex: model.trackIndex || 0
+                                            width: contentGrid.width
+                                            height: 50
+                                            y: trackIndex * 50
+                                            z: 0  // Самый нижний слой
+                                            color: "#2D2D2D"
+                                            border {
+                                                width: 1
+                                                color: "#444"
+                                            }
+                                        }
+                                    }
 
-        // 2. Вертикальные полосы (промежуточный слой)
-        Row {
-            anchors.fill: parent
-            spacing: 0
-            z: 1  // Выше фона, но ниже клипов
+                                    // 2. Вертикальные полосы (промежуточный слой)
+                                    Row {
+                                        anchors.fill: parent
+                                        spacing: 0
+                                        z: 1  // Выше фона, но ниже клипов
 
-            Repeater {
-                model: 32
-                Rectangle {
-                    width: 40
-                    height: parent.height
-                    color: "transparent"
-                    border.width: 1
-                    border.color: "#444"  
-                }
-            }  
-        }
+                                        Repeater {
+                                            model: 32
+                                            Rectangle {
+                                                width: 40
+                                                height: parent.height
+                                                color: "transparent"
+                                                border.width: 1
+                                                border.color: "#444"  
+                                            }
+                                        }  
+                                    }
 
-        // 3. Клипы (верхний слой)
-        Repeater {
-            model: viewModel.trackModel
-            delegate: Item {
-                property int trackIndex: model.trackIndex || 0
-                property var clips: model.data ? model.data.clips : []
+                                    // 3. Клипы (верхний слой)
+                                    Repeater {
+                                        model: viewModel.trackModel
+                                        delegate: Item {
+                                            property int trackIndex: model.trackIndex || 0
+                                            property var clips: model.data ? model.data.clips : []
                 
-                width: contentGrid.width
-                height: 50
-                y: trackIndex * 50
-                z: 2  // Самый верхний слой
+                                            width: contentGrid.width
+                                            height: 50
+                                            y: trackIndex * 50
+                                            z: 2  // Самый верхний слой
 
-                Repeater {
-                    model: clips
-                    delegate: Rectangle {
-                        z: 2  // Все клипы на одном уровне
-                        x: (model.startTime || 0) * 40
-                        y: 0
-                        width: (model.duration || 1) * 40
-                        height: 48
-                        color: model.type === "audio" ? "#FF5722" : "#4CAF50"
-                        radius: 3
-                        border.width: 1
-                        border.color: Qt.darker(color, 1.2)
+                                            Repeater {
+                                                model: clips
+                                                delegate: Rectangle {
+                                                    z: 2  // Все клипы на одном уровне
+                                                    x: (model.startTime || 0) * 40
+                                                    y: 0
+                                                    width: (model.duration || 1) * 40
+                                                    height: 48
+                                                    color: model.type === "audio" ? "#FF5722" : "#4CAF50"
+                                                    radius: 3
+                                                    border.width: 1
+                                                    border.color: Qt.darker(color, 1.2)
 
-                        Label {
-                            anchors.fill: parent
-                            text: model.file ? model.file.split("/").pop() : "MIDI Clip"
-                            color: "white"
-                            font.pixelSize: 10
-                            padding: 5
-                            elide: Text.ElideRight
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                                                    Label {
+                                                        anchors.fill: parent
+                                                        text: model.file ? model.file.split("/").pop() : "MIDI Clip"
+                                                        color: "white"
+                                                        font.pixelSize: 10
+                                                        padding: 5
+                                                        elide: Text.ElideRight
+                                                        verticalAlignment: Text.AlignVCenter
+                                                    }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            drag.target: parent
-                            drag.axis: Drag.XAndYAxis
-                            drag.minimumX: 0
-                            drag.maximumX: contentGrid.width - parent.width
-                            drag.minimumY: 0
-                            drag.maximumY: contentGrid.height - parent.height
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        drag.target: parent
+                                                        drag.axis: Drag.XAndYAxis
+                                                        drag.minimumX: 0
+                                                        drag.maximumX: contentGrid.width - parent.width
+                                                        drag.minimumY: 0
+                                                        drag.maximumY: contentGrid.height - parent.height
 
-                            onPressed: parent.z = 3  // Временно поднимаем при перетаскивании
-                            onReleased: parent.z = 2  // Возвращаем обратно
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+                                                        onPressed: parent.z = 3  // Временно поднимаем при перетаскивании
+                                                        onReleased: parent.z = 2  // Возвращаем обратно
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
 
                             // Линия воспроизведения
                             Rectangle {
