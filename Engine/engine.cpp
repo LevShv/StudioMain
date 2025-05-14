@@ -17,12 +17,19 @@ Engine::Core::Core() {
     tracks.reserve(100);
     for (int i = 0; i < 4; i++) {
         Track track;
-       // track.isMidiTrack = (i >= 2);
+        track.isMidiTrack = false;
         ClipBase clip;
         tracks.emplace_back(std::move(track));
         juce::File file("C:\\Users\\llvvv\\source\\repos\\Studio\\StudioMain\\Step5");
         loadAudioClip(i, file, 0, 1);
     }
+
+    Track track;
+    ClipBase clip;
+    tracks.emplace_back(std::move(track));
+    juce::File file("C:\\Users\\llvvv\\source\\repos\\Studio\\StudioMain\\Step5");
+    track.isMidiTrack = false;
+    loadAudioClip(2, file, 2, 1);
 
     audioSourcePlayer.setSource(this);
 
