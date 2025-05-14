@@ -56,11 +56,11 @@ public:
     Engine();
     ~Engine();
 
-    void AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM);
-    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startTime);
+    void AddAudioClip(int trackInd, const std::string& path, double startBeats, bool loadToRAM);
+    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startBeats);
     void StopMix();
     void PlayMix();
-    void MoveClip(int trackIndex, int clipIndex, double newStartTime);
+    void MoveClip(int trackIndex, int clipIndex, double startBeats);
     void SetPlayheadPosition(double position);
     bool IsPlaying();
     void SendMidiMessage(const juce::MidiMessage& message);
@@ -104,8 +104,9 @@ private:
         double getPosition() const { return position; }
         bool isPlaying() const { return transportPlaying; }
 
-        void loadAudioClip(int trackIndex, const juce::File& file, double startTime, bool loadToRAM);
-        void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startTime);
+        void loadAudioClip(int trackIndex, const juce::File& file, double startBeats, bool loadToRAM);
+        void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startBeats);
+
         void moveClip(int trackIndex, int clipIndex, double newStartTime);
 
         void prepareToPlay(int samplesPerBlock, double sampleRate) override;

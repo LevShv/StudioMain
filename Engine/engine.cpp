@@ -204,7 +204,7 @@ void Engine::Core::setPosition(double newPosition) {
 }
 
 void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file,
-    double startTime, bool loadToRAM) {
+    double startBeats, bool loadToRAM) {
     if (trackIndex < 0 || trackIndex >= tracks.size() || tracks[trackIndex].isMidiTrack) {
         LOG_ERROR("Invalid track index or MIDI track");
         return;
@@ -212,8 +212,8 @@ void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file,
 
     auto newClip = std::make_unique<AudioClip>();
     newClip->file = file;
-    newClip->startTime = startTime;
-    newClip->startBeats = secondsToBeats(startTime); //// начало бит
+    newClip->startBeats = startBeats;
+    newClip->startTime = beatsToSeconds(startBeats); // Переводим биты в секунды //// начало бит
     newClip->useRAM = loadToRAM;
 
     if (auto reader = formatManager.createReaderFor(file)) {
@@ -230,7 +230,7 @@ void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file,
 }
 
 void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence,
-    double startTime) {
+    double startBeats) {
 
     if (trackIndex < 0 || trackIndex >= tracks.size()) {
         LOG_ERROR("Invalid track index");
@@ -248,8 +248,8 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
 
     auto newClip = std::make_unique<MidiClip>();
     newClip->midiSequence = sequence;
-    newClip->startTime = startTime;
-    newClip->startBeats = secondsToBeats(startTime); ///
+    newClip->startTime = beatsToSeconds(startBeats); // Переводим биты в секунды
+ // Устанавливаем опорный BPM ///
 
     double endTime = 0;
     for (int i = 0; i < sequence.getNumEvents(); i++) {
@@ -262,12 +262,12 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
     tracks.at(trackIndex).clips.push_back(std::move(newClip));
 }
 
-void Engine::Core::moveClip(int trackIndex, int clipIndex, double newStartTime) {
+void Engine::Core::moveClip(int trackIndex, int clipIndex, double startBeats) {
     if (trackIndex >= 0 && trackIndex < tracks.size() &&
         clipIndex >= 0 && clipIndex < tracks.at(trackIndex).clips.size()) {
         const juce::ScopedLock sl(lock);
-        tracks.at(trackIndex).clips[clipIndex]->startTime = newStartTime;
-        tracks.at(trackIndex).clips[clipIndex]->startBeats = secondsToBeats(newStartTime);
+        tracks.at(trackIndex).clips[clipIndex]->startTime = beatsToSeconds(startBeats);
+        tracks.at(trackIndex).clips[clipIndex]->startBeats = startBeats;
         updateActiveClips();
     }
 }
@@ -443,7 +443,7 @@ Engine::~Engine() {
     audioSourcePlayer.setSource(nullptr);
 }
 
-void Engine::AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM) {
+void Engine::AddAudioClip(int trackInd, const std::string& path, double startBeats, bool loadToRAM) {
     juce::File audioFile(juce::String(path).replace("\\", "/").replace("//", "/"));
 
     if (!audioFile.existsAsFile()) {
@@ -451,19 +451,19 @@ void Engine::AddAudioClip(int trackInd, const std::string& path, double startTim
         return;
     }
 
-    core.loadAudioClip(trackInd, audioFile, startTime, loadToRAM);
+    core.loadAudioClip(trackInd, audioFile, startBeats, loadToRAM);
 }
 
-void Engine::AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startTime) {
-    core.loadMidiClip(trackInd, sequence, startTime);
+void Engine::AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startBeats) {
+    core.loadMidiClip(trackInd, sequence, startBeats);
 }
 
 void Engine::StopMix() { core.stop(); }
 
 void Engine::PlayMix() { core.play(); }
 
-void Engine::MoveClip(int trackIndex, int clipIndex, double newStartTime) {
-    core.moveClip(trackIndex, clipIndex, newStartTime);
+void Engine::MoveClip(int trackIndex, int clipIndex, double startBeats) {
+    core.moveClip(trackIndex, clipIndex, startBeats);
 }
 
 void Engine::SetPlayheadPosition(double position) { core.setPosition(position); }
