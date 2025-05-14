@@ -20,8 +20,8 @@ Engine::Core::Core() {
         track.isMidiTrack = false;
         ClipBase clip;
         tracks.emplace_back(std::move(track));
-        juce::File file("C:\\Users\\llvvv\\source\\repos\\Studio\\StudioMain\\Step5");
-        loadAudioClip(i, file, 0, 1);
+        juce::File file("C:\\Users\\llvvv\\source\\repos\\Studio\\StudioMain\\Misc\\Step5.wav");
+        loadAudioClip(i, file, i, 1);
     }
 
     Track track;
