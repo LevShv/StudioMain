@@ -1,12 +1,10 @@
-// TrackModel.h
 #pragma once
 #include <QAbstractListModel>
 #include "engine.h"
 
 class TrackModel : public QAbstractListModel {
-
     Q_OBJECT
-    Q_PROPERTY(int countOfTracks READ rowCount NOTIFY countChanged)
+        Q_PROPERTY(int countOfTracks READ rowCount NOTIFY countChanged)
 
 public:
     explicit TrackModel(Engine& engine, QObject* parent = nullptr);
@@ -14,19 +12,22 @@ public:
     enum Roles {
         TrackIndexRole = Qt::UserRole + 1,
         ClipsRole,
-        CountOfTracks
+        CountOfTracks,
+        StartBeatsRole,
+        DurationBeatsRole,
+        ClipTypeRole,
+        FilePathRole
     };
 
-    Q_INVOKABLE int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    Q_INVOKABLE void update(); // Для принудительного обновления модели
+    Q_INVOKABLE void update();
 
 signals:
-    void countChanged();  // Должен вызываться при изменении количества треков
+    void countChanged();
 
 private:
     Engine& m_engine;
 };
-
