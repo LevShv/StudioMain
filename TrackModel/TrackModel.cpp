@@ -1,5 +1,6 @@
 #include "TrackModel.h"
 #include "ViewModel.h"
+#include <QDebug>
 
 TrackModel::TrackModel(Engine& engine, QObject* parent)
     : QAbstractListModel(parent), m_engine(engine) {
@@ -19,49 +20,46 @@ int TrackModel::rowCount(const QModelIndex& parent) const {
 }
 
 QVariant TrackModel::data(const QModelIndex& index, int role) const {
-    if (!index.isValid()) {
-        qDebug() << "Invalid index in TrackModel::data";
-        return QVariant();
-    }
+    if (!index.isValid()) return QVariant();
 
     const auto& tracks = m_engine.GetdataBase();
-    int trackIndex = index.row();
+    int row = index.row();
 
-    if (trackIndex < 0 || trackIndex >= tracks.size()) {
-        qDebug() << "Track index out of range:" << trackIndex;
+    if (row < 0 || row >= tracks.size()) {
+        qWarning() << "Invalid track index:" << row;
         return QVariant();
     }
 
-    qDebug() << "Processing track" << trackIndex << "for role" << role;
+    const auto& track = tracks[row];
+    qDebug() << "Processing track" << row << "with" << track.clips.size() << "clips";
 
     switch (role) {
-    case CountOfTracks:
-        return tracks.size();
-
     case TrackIndexRole:
-        return trackIndex;
-
+        return row;
     case ClipsRole: {
-        QVariantList clips;
-        const auto& trackClips = tracks[trackIndex].clips;
-        qDebug() << "Track" << trackIndex << "has" << trackClips.size() << "clips";
-        for (const auto& clip : trackClips) {
+        QVariantMap trackData;
+        QVariantList clipsList;
+
+        for (const auto& clip : track.clips) {
             QVariantMap clipData;
-            clipData["startTime"] = clip->startTime;
-            clipData["duration"] = clip->duration ? clip->duration : 1.0; // Убедимся, что duration не null
-            clipData["gain"] = clip->gain;
-            clipData["muted"] = clip->muted;
-            if (auto* audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
+            clipData["startBeats"] = clip->startBeats; // Проверьте точное написание!
+            clipData["durationBeats"] = clip->durationBeats;
+
+            if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
                 clipData["type"] = "audio";
-                clipData["file"] = QString::fromStdString(audioClip->file.getFullPathName().toStdString());
+                clipData["file"] = QString::fromUtf8(
+                    audioClip->file.getFullPathName().toRawUTF8(),
+                    audioClip->file.getFullPathName().getNumBytesAsUTF8()
+                );
             }
-            else if (auto* midiClip = dynamic_cast<Engine::MidiClip*>(clip.get())) {
+            else {
                 clipData["type"] = "midi";
             }
-            clips.append(clipData);
+            clipsList.append(clipData);
         }
-        QVariantMap trackData;
-        trackData["clips"] = clips.isEmpty() ? QVariant(QVariantList()) : clips; // Явно задаем пустой список, если клипов нет
+
+        trackData["clips"] = clipsList;
+        qDebug() << "Prepared track data:" << trackData;
         return trackData;
     }
     default:
@@ -70,19 +68,14 @@ QVariant TrackModel::data(const QModelIndex& index, int role) const {
 }
 
 QHash<int, QByteArray> TrackModel::roleNames() const {
-    QHash<int, QByteArray> roles;
-    roles[TrackIndexRole] = "trackIndex";
-    roles[ClipsRole] = "data"; // Убедимся, что роль называется "data"
-    return roles;
+    return {
+        {TrackIndexRole, "trackIndex"},
+        {ClipsRole, "data"} // Именно "data" ожидается в QML
+    };
 }
 
 void TrackModel::update() {
-    int oldCount = rowCount();
-
     beginResetModel();
     endResetModel();
-
-    if (rowCount() != oldCount) {
-        emit countChanged();
-    }
+    emit countChanged();
 }
