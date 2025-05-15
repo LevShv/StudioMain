@@ -33,9 +33,19 @@ public:
     struct MidiClip : public ClipBase {
         juce::MidiMessageSequence midiSequence;
     };
+
+    struct PluginInstance {
+        std::unique_ptr<juce::AudioPluginInstance> plugin;
+        juce::AudioProcessorEditor* editor = nullptr; // Для GUI плагина
+        bool bypass = false;
+
+        PluginInstance() = default;
+        ~PluginInstance() { if (editor) delete editor; }
+    };
    
     struct Track {
         std::vector<std::unique_ptr<ClipBase>> clips;
+        std::vector<std::unique_ptr<PluginInstance>> plugins;
         float gain = 1.0f;
         bool muted = false;
         bool isMidiTrack = false;
@@ -51,8 +61,16 @@ public:
         Track& operator=(Track&&) noexcept = default;
     };
 
+    
+
     Engine();
     ~Engine();
+
+	void AddPluginToTrack(int trackIndex, const std::string& pluginPath);
+	void RemovePluginFromTrack(int trackIndex, int pluginIndex);
+	juce::AudioProcessorEditor* GetPluginEditor(int trackIndex, int pluginIndex);
+
+	void TogglePluginBypass(int trackIndex, int pluginIndex);
 
     void AddAudioClip(int trackInd, const std::string& path, double startBeats, bool loadToRAM);
     void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startBeats);
@@ -77,6 +95,7 @@ private:
     public:
         Core();
         ~Core();
+       
 
         double position = 0.0;
         double positionInBeats = 0.0; // Позиция в ударах
@@ -87,6 +106,13 @@ private:
         std::unique_ptr<juce::MidiOutput> midiOutput;
         juce::CriticalSection lock;
         std::vector<Track> tracks;
+
+        juce::AudioPluginFormatManager pluginFormatManager; // Для загрузки VST/VST3
+
+        void addPluginToTrack(int trackIndex, const juce::String& pluginPath);
+        void removePluginFromTrack(int trackIndex, int pluginIndex);
+        void togglePluginBypass(int trackIndex, int pluginIndex);
+        juce::AudioProcessorEditor* getPluginEditor(int trackIndex, int pluginIndex);
 
         void setBPM(double newBPM);
         double getBPM() const { return bpm; }
@@ -116,15 +142,16 @@ private:
         void handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) override;
 
     private:
+
         struct ActiveClip {
             std::unique_ptr<juce::AudioFormatReaderSource> source;
             const ClipBase* clip = nullptr;
             const Track* track = nullptr;
             juce::int64 position = 0;
 
-
         };
 
+        juce::AudioBuffer<float> pluginBuffer; // Буфер для обработки плагинов
         juce::AudioFormatManager formatManager;
         juce::AudioSourcePlayer audioSourcePlayer;
 

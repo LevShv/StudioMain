@@ -177,60 +177,6 @@ Window {
                     }
                 }
 
-                // Центральная панель (каналы)
-                Rectangle {
-                    id: channelRack
-                    SplitView.maximumWidth: 250
-                    SplitView.minimumWidth: 200
-                    SplitView.preferredWidth: 250
-                    color: "#2E3440"
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 0
-                        Label {
-                            text: "Треки"
-                            color: "white"
-                            font.bold: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: 10
-                        }
-                        ScrollView {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            clip: true
-                            GridView {
-                                id: channelsGrid
-                                anchors.fill: parent
-                                cellWidth: 180
-                                cellHeight: 100
-                                model: 16
-                                delegate: Rectangle {
-                                    width: channelsGrid.width
-                                    height: channelsGrid.cellHeight - 5
-                                    color: index % 2 ? "#3B4252" : "#4C566A"
-                                    radius: 5
-                                    Column {
-                                        anchors.centerIn: parent
-                                        spacing: 5
-                                        Label {
-                                            text: "Channel " + (index + 1)
-                                            color: "white"
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-                                        Row {
-                                            spacing: 10
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            ToolButton { text: "Mute"; implicitWidth: 60 }
-                                            ToolButton { text: "Solo"; implicitWidth: 60 }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
                 // Правая панель (плейлист)
                 Rectangle {
                     id: playlistPanel
