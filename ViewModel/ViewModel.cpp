@@ -3,21 +3,39 @@
 //
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
     m_trackModel = new TrackModel(engine, this);
+    m_bpm = engine.GetBPM(); // Инициализация BPM из Engine
+    m_playheadPosition = 0.0;
+    m_isPlaying = false;
+    m_volume = 50;
     
+    m_playheadTimer = new QTimer(this);
+    connect(m_playheadTimer, &QTimer::timeout, this, &ViewModel::updatePlayhead);
 }
 
 void ViewModel::togglePlayback() {
     if (isPlaying()) {
         engine.StopMix();
+        m_playheadTimer->stop();
+        //setPlayheadPosition(0.0); // Сбрасываем позицию при остановке
     }
     else {
         engine.PlayMix();
+        m_playheadTimer->start(16); // ~60 FPS
     }
     m_isPlaying = engine.IsPlaying();
     emit isPlayingChanged();
 }
 
+void ViewModel::updatePlayhead() {
+    double position = engine.GetPlayheadPosition(); // Получаем позицию в битах
+    if (std::abs(position - m_playheadPosition) > 0.001) { // Избегаем лишних сигналов
+        m_playheadPosition = position;
+        emit playheadPositionChanged(position);
+    }
+}
+
 void ViewModel::setPlayheadPosition(double position) {
+    //double seconds = engine.beatsToSeconds(position);
     engine.SetPlayheadPosition(position);
     m_playheadPosition = position;
     emit playheadPositionChanged(position);

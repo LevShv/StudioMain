@@ -24,16 +24,18 @@ Window {
     Connections {
         target: viewModel
         function onIsPlayingChanged() {
-            if (viewModel.isPlaying) {
-                greenlineAnimator.start()
-            } else {
-                greenlineAnimator.stop()
+            console.log("Playback state changed, isPlaying:", viewModel.isPlaying)
+            if (!viewModel.isPlaying) {
+               // greenline.x = 0 // Сбрасываем позицию при остановке
             }
         }
 
         function onPlayheadPositionChanged(position) {
             if (!greenlineMouseArea.drag.active) {
-                greenline.x = position * 40
+                greenline.x = position * flickableArea.beatWidth
+                // Ограничиваем позицию, чтобы не выходить за границы
+                greenline.x = Math.max(0, Math.min(greenline.x, contentGrid.width - greenline.width))
+                console.log("Greenline updated to position:", position, "x:", greenline.x)
             }
         }
     }
@@ -337,9 +339,19 @@ Window {
                         // Внутри Flickable области
                         Flickable {
                             id: flickableArea
+                            property int countOfBeats: 100
+                            property int beatWidth: 40
+                            property int widthOfAllArea: countOfBeats * beatWidth
+
+                            Component.onCompleted: {
+                                console.log("Initial widthOfAllArea:", widthOfAllArea)
+                                console.log("contentWidth:", contentWidth)
+                                console.log("contentGrid.width:", contentGrid.width)
+                            }
+
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            contentWidth: 32 * 40
+                            contentWidth: widthOfAllArea
                             contentHeight: timeRuler.height + contentGrid.height
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
@@ -348,7 +360,7 @@ Window {
                             // Временная линейка
                             Rectangle {
                                 id: timeRuler
-                                width: 32 * 40
+                                width: flickableArea.widthOfAllArea // Явная ссылка на flickableArea.widthOfAllArea
                                 height: 50
                                 color: "#1E1E1E"
                                 z: 2
@@ -358,9 +370,9 @@ Window {
                                     spacing: 0
 
                                     Repeater {
-                                        model: 32
+                                        model: flickableArea.countOfBeats // Используем свойство
                                         Rectangle {
-                                            width: 40
+                                            width: flickableArea.beatWidth // Используем свойство
                                             height: parent.height
                                             color: "transparent"
                                             border.color: "#444"
@@ -380,15 +392,20 @@ Window {
                             Item {
                                 id: contentGrid
                                 anchors.top: timeRuler.bottom
-                                width: 32 * 40
+                                width: flickableArea.widthOfAllArea // Синхронизируем с widthOfAllArea
                                 height: 15 * 50
+
+                                Component.onCompleted: {
+                                    console.log("contentGrid.width:", width)
+                                    console.log("contentGrid.height:", height)
+                                }
 
                                 // Клипы и фоновые области треков
                                 Item {
                                     id: tracksAndClipsContainer
                                     anchors.fill: parent
-    
-                                    // 1. Фоновые прямоугольники треков (самый нижний слой)
+
+                                    // 1. Фоновые прямоугольники треков
                                     Repeater {
                                         model: viewModel.trackModel
                                         delegate: Rectangle {
@@ -396,7 +413,7 @@ Window {
                                             width: contentGrid.width
                                             height: 50
                                             y: trackIndex * 50
-                                            z: 0  // Самый нижний слой
+                                            z: 0
                                             color: "#2D2D2D"
                                             border {
                                                 width: 1
@@ -405,49 +422,53 @@ Window {
                                         }
                                     }
 
-                                    // 2. Вертикальные полосы (промежуточный слой)
+                                    // 2. Вертикальные полосы
                                     Row {
                                         anchors.fill: parent
                                         spacing: 0
-                                        z: 1  // Выше фона, но ниже клипов
+                                        z: 1
 
                                         Repeater {
-                                            model: 32
+                                            model: flickableArea.countOfBeats // Синхронизируем с countOfBeats
                                             Rectangle {
-                                                width: 40
+                                                width: flickableArea.beatWidth // Используем beatWidth
                                                 height: parent.height
                                                 color: "transparent"
                                                 border.width: 1
-                                                border.color: "#444"  
+                                                border.color: "#444"
                                             }
-                                        }  
+                                        }
                                     }
 
-                                    // 3. Клипы (верхний слой)
-
+                                    // 3. Клипы
                                     Repeater {
                                         id: tracksRepeater
                                         model: viewModel.trackModel
-    
+
                                         delegate: Item {
                                             id: trackItem
                                             property int trackIndex: model.trackIndex
                                             property var trackData: model.data || {}
-        
+
                                             width: contentGrid.width
                                             height: 50
                                             y: trackIndex * 50
                                             z: 2
 
+                                            Component.onCompleted: {
+                                                console.log("Track index:", trackIndex)
+                                                console.log("Track clips:", trackData.clips)
+                                            }
+
                                             Repeater {
                                                 model: trackData.clips || []
-            
+
                                                 delegate: Rectangle {
-                                                    id: clipRectangle  // Изменили имя с clipRect на clipRectangle
+                                                    id: clipRectangle
                                                     property var clipModel: modelData
-                
-                                                    x: (clipModel.startBeats || 0) * 40
-                                                    width: (clipModel.durationBeats || 1) * 40
+
+                                                    x: (clipModel.startBeats || 0) * flickableArea.beatWidth // Используем beatWidth
+                                                    width: (clipModel.durationBeats || 1) * flickableArea.beatWidth // Используем beatWidth
                                                     height: 48
                                                     color: clipModel.type === "audio" ? "#FF5722" : "#4CAF50"
                                                     radius: 3
@@ -466,27 +487,26 @@ Window {
 
                                                     MouseArea {
                                                         anchors.fill: parent
-                                                        drag.target: clipRectangle  // Используем новое имя
+                                                        drag.target: clipRectangle
                                                         drag.axis: Drag.XAxis
                                                         drag.minimumX: 0
-                                                        drag.maximumX: contentGrid.width - clipRectangle.width
-                    
+                                                        drag.maximumX: Math.max(0, contentGrid.width - clipRectangle.width) // Предотвращаем ошибку
+
                                                         onPressed: {
                                                             console.log("Drag started at:", clipRectangle.x)
                                                             clipRectangle.z = 3
                                                         }
-                    
+
                                                         onReleased: {
-                                                            var snappedX = Math.round(clipRectangle.x / 40) * 40
+                                                            var snappedX = Math.round(clipRectangle.x / flickableArea.beatWidth) * flickableArea.beatWidth
                                                             clipRectangle.x = snappedX
                                                             clipRectangle.z = 2
                                                             console.log("Clip dropped at:", snappedX)
-                        
-                                                            // Обновляем позицию в модели
+
                                                             viewModel.moveClip(
                                                                 trackIndex,
                                                                 index,
-                                                                snappedX / 40
+                                                                snappedX / flickableArea.beatWidth
                                                             )
                                                         }
                                                     }
@@ -498,13 +518,15 @@ Window {
                             }
 
                             // Линия воспроизведения
+                            // Линия воспроизведения
+                            // Линия воспроизведения
                             Rectangle {
                                 id: greenline
                                 width: 2
                                 height: contentGrid.height
                                 color: "green"
                                 z: 10
-                                x: viewModel.playheadPosition * 40
+                                x: viewModel.playheadPosition * flickableArea.beatWidth
                                 anchors.top: contentGrid.top
 
                                 MouseArea {
@@ -513,30 +535,28 @@ Window {
                                     drag.target: parent
                                     drag.axis: Drag.XAxis
                                     drag.minimumX: 0
-                                    drag.maximumX: contentGrid.width - parent.width
+                                    drag.maximumX: Math.max(0, contentGrid.width - parent.width)
+
+                                    onPressed: {
+                                        console.log("Greenline drag started at:", greenline.x)
+                                    }
 
                                     onReleased: {
-                                        parent.x = Math.round(parent.x / 40) * 40
-                                        viewModel.setPlayheadPosition(parent.x / 40)
+                                        var snappedX = Math.round(greenline.x / flickableArea.beatWidth) * flickableArea.beatWidth
+                                        greenline.x = snappedX
+                                        var newPosition = snappedX / flickableArea.beatWidth
+                                        viewModel.setPlayheadPosition(newPosition)
+                                        console.log("Greenline dropped at:", snappedX, "position:", newPosition)
                                     }
-                                }
-
-                                PropertyAnimation {
-                                    id: greenlineAnimator
-                                    target: greenline
-                                    property: "x"
-                                    from: 0
-                                    to: contentGrid.width
-                                    duration: 50000
-                                    loops: Animation.Infinite
-                                    running: viewModel.isPlaying
                                 }
 
                                 Connections {
                                     target: viewModel
                                     function onPlayheadPositionChanged(position) {
                                         if (!greenlineMouseArea.drag.active) {
-                                            greenline.x = position * 40
+                                            greenline.x = position * flickableArea.beatWidth
+                                            greenline.x = Math.max(0, Math.min(greenline.x, contentGrid.width - greenline.width))
+                                            console.log("Greenline updated to position:", position, "x:", greenline.x)
                                         }
                                     }
                                 }

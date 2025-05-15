@@ -24,7 +24,6 @@ public:
         //}
     };
 
-
     struct AudioClip : public ClipBase {
         juce::File file;
         juce::AudioBuffer<float> buffer;
@@ -34,7 +33,6 @@ public:
     struct MidiClip : public ClipBase {
         juce::MidiMessageSequence midiSequence;
     };
-
    
     struct Track {
         std::vector<std::unique_ptr<ClipBase>> clips;
@@ -62,8 +60,11 @@ public:
     void PlayMix();
     void MoveClip(int trackIndex, int clipIndex, double startBeats);
     void SetPlayheadPosition(double position);
+    double GetPlayheadPosition() const;
     bool IsPlaying();
     void SendMidiMessage(const juce::MidiMessage& message);
+    double GetBPM() const;
+    void SetBPM(double newBPM);
 
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;

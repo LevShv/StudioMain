@@ -466,7 +466,9 @@ void Engine::MoveClip(int trackIndex, int clipIndex, double startBeats) {
     core.moveClip(trackIndex, clipIndex, startBeats);
 }
 
-void Engine::SetPlayheadPosition(double position) { core.setPosition(position); }
+void Engine::SetPlayheadPosition(double position) { 
+    core.setPosition(core.beatsToSeconds(position));
+}
 
 bool Engine::IsPlaying() { juce::ScopedLock sl(core.lock); return core.isPlaying(); }
 
@@ -525,6 +527,21 @@ void Engine::configureMidiDevices() {
 
 double& Engine::Position() {
     return core.position;  
+}
+
+double Engine::GetPlayheadPosition() const {
+    juce::ScopedLock sl(core.lock);
+    return core.positionInBeats; // Возвращаем позицию в битах
+}
+
+double Engine::GetBPM() const {
+    juce::ScopedLock sl(core.lock);
+    return core.bpm;
+}
+
+void Engine::SetBPM(double newBPM) {
+    juce::ScopedLock sl(core.lock);
+    core.setBPM(newBPM);
 }
 
 #pragma endregion

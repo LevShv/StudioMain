@@ -4,6 +4,7 @@
 #include <QObject>
 #include "engine.h" // Предполагается, что у вас есть этот файл
 #include "TrackModel.h"
+#include <QTimer>
 
 class ViewModel : public QObject {
     Q_OBJECT
@@ -32,10 +33,18 @@ signals:
     void clipAdded(int trackIndex); // Сигнал о добавлении клипа
     void clipMoved(int trackIndex, int clipIndex, double newStartTime); // Сигнал о перемещении клипа
 
+private slots:
+    void updatePlayhead();
+
 private:
+
+
     Engine engine;
     TrackModel* m_trackModel;
+	double m_bpm = 120.0; // Инициализация BPM
     double m_playheadPosition = engine.Position();
     bool m_isPlaying = false;
     int m_volume = 50;
+
+	QTimer* m_playheadTimer;
 };
