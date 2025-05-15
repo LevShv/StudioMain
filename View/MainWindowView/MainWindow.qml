@@ -5,6 +5,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import "qrc:/FileBrowser"
 import Qt.labs.folderlistmodel
+import QtQuick.Dialogs
 
 Window {
     id: mainWindow
@@ -25,6 +26,23 @@ Window {
         target: viewModel
         function onIsPlayingChanged() {
             console.log("Playback state changed, isPlaying:", viewModel.isPlaying, "position:", viewModel.playheadPosition)
+        }
+        function onPluginAdded(trackIndex) {
+            console.log("Plugin added to track:", trackIndex)
+        }
+        function onPluginEditorOpened(trackIndex, pluginIndex, window) {
+            // Создаем динамическое окно для плагина
+            var component = Qt.createComponent("PluginEditorWindow.qml")
+            if (component.status === Component.Ready) {
+                var pluginWindow = component.createObject(mainWindow, {
+                    "trackIndex": trackIndex,
+                    "pluginIndex": pluginIndex,
+                    "nativeWindow": window
+                })
+                pluginWindow.show()
+            } else {
+                console.error("Failed to create PluginEditorWindow:", component.errorString())
+            }
         }
     }
 
@@ -164,10 +182,12 @@ Window {
                                 localPos.y >= 0 && localPos.y <= contentGrid.height) {
                                 var trackIndex = Math.floor((localPos.y - timeRuler.height) / 50)
                                 var position = Math.floor(localPos.x / flickableArea.beatWidth)
-                                if (trackIndex >= 0 && trackIndex < 10 && position >= 0) {
+                                if (trackIndex >= 0 && trackIndex < countOfTracks && position >= 0) {
                                     var fileExt = filePath.toLowerCase().split('.').pop();
                                     if (["mp3", "wav", "aiff", "flac"].indexOf(fileExt) !== -1) {
                                         viewModel.addAudioClip(trackIndex, filePath, position)
+                                    } else if (["vst", "vst3"].indexOf(fileExt) !== -1) {
+                                        viewModel.addPlugin(trackIndex, filePath)
                                     } else {
                                         console.log("Invalid file type:", filePath)
                                     }
@@ -190,13 +210,13 @@ Window {
                         // Фиксированные заголовки треков
                         Column {
                             id: trackHeaders
-                            width: 100
+                            width: 150
                             Layout.fillHeight: true
                             Rectangle { width: 100; height: 50; color: "transparent" }
                             Repeater {
                                 model: countOfTracks
                                 Rectangle {
-                                    width: 100
+                                    width: 150
                                     height: 50
                                     color: "#2D2D2D"
                                     border.color: "#444"
@@ -205,6 +225,14 @@ Window {
                                         text: "Track " + (index + 1)
                                         color: "#CCC"
                                         font.pixelSize: 12
+                                    }
+                                    ToolButton {
+                                        text: "🎹"
+                                        implicitWidth: 30
+                                        implicitHeight: 30
+                                        onClicked: {
+                                            viewModel.openPluginEditor(index, 0) // Открываем первый плагин на дорожке
+                                        }
                                     }
                                 }
                             }
