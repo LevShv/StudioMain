@@ -11,12 +11,18 @@ public:
         float gain = 1.0f;
         bool muted = false;
 
+
+        double startBeats = 0.0; // Время в ударах
+        double durationBeats = 0.0; // Длительность в ударах
+
         virtual ~ClipBase() = default;
         virtual bool isActive(double time) const {
             return time >= startTime && time < startTime + duration;
         }
+        //virtual bool isActive(double position) const {
+        //    return position >= startTime && position < startTime + duration;
+        //}
     };
-
 
     struct AudioClip : public ClipBase {
         juce::File file;
@@ -27,7 +33,6 @@ public:
     struct MidiClip : public ClipBase {
         juce::MidiMessageSequence midiSequence;
     };
-
    
     struct Track {
         std::vector<std::unique_ptr<ClipBase>> clips;
@@ -49,14 +54,17 @@ public:
     Engine();
     ~Engine();
 
-    void AddAudioClip(int trackInd, const std::string& path, double startTime, bool loadToRAM);
-    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startTime);
+    void AddAudioClip(int trackInd, const std::string& path, double startBeats, bool loadToRAM);
+    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startBeats);
     void StopMix();
     void PlayMix();
-    void MoveClip(int trackIndex, int clipIndex, double newStartTime);
+    void MoveClip(int trackIndex, int clipIndex, double startBeats);
     void SetPlayheadPosition(double position);
+    double GetPlayheadPosition() const;
     bool IsPlaying();
     void SendMidiMessage(const juce::MidiMessage& message);
+    double GetBPM() const;
+    void SetBPM(double newBPM);
 
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;
@@ -71,10 +79,23 @@ private:
         ~Core();
 
         double position = 0.0;
+        double positionInBeats = 0.0; // Позиция в ударах
+        double bpm = 120.0; // Значение по умолчанию: 120 BPM
+        int timeSignatureNumerator = 4; // Числитель метра (4 в 4/4)
+        int timeSignatureDenominator = 4; // Знаменатель метра (4 в 4/4)
 
         std::unique_ptr<juce::MidiOutput> midiOutput;
         juce::CriticalSection lock;
         std::vector<Track> tracks;
+
+        void setBPM(double newBPM);
+        double getBPM() const { return bpm; }
+        void setTimeSignature(int numerator, int denominator);
+        std::pair<int, int> getTimeSignature() const { return { timeSignatureNumerator, timeSignatureDenominator }; }
+        double secondsToBeats(double seconds) const;
+        double beatsToSeconds(double beats) const;
+        double secondsToMeasures(double seconds) const;
+        double measuresToSeconds(double measures) const;
 
         void startAudio(juce::AudioDeviceManager& deviceManager);
         void stopAudio(juce::AudioDeviceManager& deviceManager);
@@ -84,8 +105,9 @@ private:
         double getPosition() const { return position; }
         bool isPlaying() const { return transportPlaying; }
 
-        void loadAudioClip(int trackIndex, const juce::File& file, double startTime, bool loadToRAM);
-        void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startTime);
+        void loadAudioClip(int trackIndex, const juce::File& file, double startBeats, bool loadToRAM);
+        void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startBeats);
+
         void moveClip(int trackIndex, int clipIndex, double newStartTime);
 
         void prepareToPlay(int samplesPerBlock, double sampleRate) override;
