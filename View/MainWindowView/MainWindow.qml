@@ -424,78 +424,76 @@ Window {
                                     }
 
                                     // 3. Клипы (верхний слой)
-                                    // 3. Клипы (верхний слой)
-// 3. Клипы (верхний слой)
-// 3. Клипы (верхний слой)
-Repeater {
-    id: tracksRepeater
-    model: viewModel.trackModel
+
+                                    Repeater {
+                                        id: tracksRepeater
+                                        model: viewModel.trackModel
     
-    delegate: Item {
-        id: trackItem
-        property int trackIndex: model.trackIndex
-        property var trackData: model.data || {}
+                                        delegate: Item {
+                                            id: trackItem
+                                            property int trackIndex: model.trackIndex
+                                            property var trackData: model.data || {}
         
-        width: contentGrid.width
-        height: 50
-        y: trackIndex * 50
-        z: 2
+                                            width: contentGrid.width
+                                            height: 50
+                                            y: trackIndex * 50
+                                            z: 2
 
-        Repeater {
-            model: trackData.clips || []
+                                            Repeater {
+                                                model: trackData.clips || []
             
-            delegate: Rectangle {
-                id: clipRectangle  // Изменили имя с clipRect на clipRectangle
-                property var clipModel: modelData
+                                                delegate: Rectangle {
+                                                    id: clipRectangle  // Изменили имя с clipRect на clipRectangle
+                                                    property var clipModel: modelData
                 
-                x: (clipModel.startBeats || 0) * 40
-                width: (clipModel.durationBeats || 1) * 40
-                height: 48
-                color: clipModel.type === "audio" ? "#FF5722" : "#4CAF50"
-                radius: 3
-                border.width: 1
-                border.color: Qt.darker(color, 1.2)
+                                                    x: (clipModel.startBeats || 0) * 40
+                                                    width: (clipModel.durationBeats || 1) * 40
+                                                    height: 48
+                                                    color: clipModel.type === "audio" ? "#FF5722" : "#4CAF50"
+                                                    radius: 3
+                                                    border.width: 1
+                                                    border.color: Qt.darker(color, 1.2)
 
-                Label {
-                    anchors.fill: parent
-                    text: clipModel.file ? clipModel.file.split("/").pop() : "MIDI Clip"
-                    color: "white"
-                    font.pixelSize: 10
-                    padding: 5
-                    elide: Text.ElideRight
-                    verticalAlignment: Text.AlignVCenter
-                }
+                                                    Label {
+                                                        anchors.fill: parent
+                                                        text: clipModel.file ? clipModel.file.split("/").pop() : "MIDI Clip"
+                                                        color: "white"
+                                                        font.pixelSize: 10
+                                                        padding: 5
+                                                        elide: Text.ElideRight
+                                                        verticalAlignment: Text.AlignVCenter
+                                                    }
 
-                MouseArea {
-                    anchors.fill: parent
-                    drag.target: clipRectangle  // Используем новое имя
-                    drag.axis: Drag.XAxis
-                    drag.minimumX: 0
-                    drag.maximumX: contentGrid.width - clipRectangle.width
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        drag.target: clipRectangle  // Используем новое имя
+                                                        drag.axis: Drag.XAxis
+                                                        drag.minimumX: 0
+                                                        drag.maximumX: contentGrid.width - clipRectangle.width
                     
-                    onPressed: {
-                        console.log("Drag started at:", clipRectangle.x)
-                        clipRectangle.z = 3
-                    }
+                                                        onPressed: {
+                                                            console.log("Drag started at:", clipRectangle.x)
+                                                            clipRectangle.z = 3
+                                                        }
                     
-                    onReleased: {
-                        var snappedX = Math.round(clipRectangle.x / 40) * 40
-                        clipRectangle.x = snappedX
-                        clipRectangle.z = 2
-                        console.log("Clip dropped at:", snappedX)
+                                                        onReleased: {
+                                                            var snappedX = Math.round(clipRectangle.x / 40) * 40
+                                                            clipRectangle.x = snappedX
+                                                            clipRectangle.z = 2
+                                                            console.log("Clip dropped at:", snappedX)
                         
-                        // Обновляем позицию в модели
-                        viewModel.updateClipPosition(
-                            trackIndex,
-                            index,
-                            snappedX / 40
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
+                                                            // Обновляем позицию в модели
+                                                            viewModel.moveClip(
+                                                                trackIndex,
+                                                                index,
+                                                                snappedX / 40
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
 
