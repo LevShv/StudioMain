@@ -31,7 +31,7 @@ QVariant TrackModel::data(const QModelIndex& index, int role) const {
     }
 
     const auto& track = tracks[row];
-    qDebug() << "Processing track" << row << "with" << track.clips.size() << "clips";
+    //qDebug() << "Processing track" << row << "with" << track.clips.size() << "clips";
 
     switch (role) {
     case TrackIndexRole:
@@ -59,7 +59,7 @@ QVariant TrackModel::data(const QModelIndex& index, int role) const {
         }
 
         trackData["clips"] = clipsList;
-        qDebug() << "Prepared track data:" << trackData;
+        //qDebug() << "Prepared track data:" << trackData;
         return trackData;
     }
     default:

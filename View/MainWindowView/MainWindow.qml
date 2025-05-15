@@ -334,7 +334,8 @@ Window {
                                             border.color: "#444"
                                             Label {
                                                 anchors.centerIn: parent
-                                                text: index % 4 === 0 ? Math.floor(index/4) + 1 : ""
+                                                //  text: index % 4 === 0 ? Math.floor(index/4) + 1 : ""
+                                                text: index 
                                                 color: "#CCC"
                                                 font.pixelSize: 10
                                             }
@@ -349,11 +350,6 @@ Window {
                                 anchors.top: timeRuler.bottom
                                 width: flickableArea.widthOfAllArea
                                 height: 15 * 50 // Высота не зависит от зума
-
-                                Component.onCompleted: {
-                                    console.log("contentGrid.width:", width)
-                                    console.log("contentGrid.height:", height)
-                                }
 
                                 Item {
                                     id: tracksAndClipsContainer
