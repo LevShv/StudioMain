@@ -50,7 +50,7 @@ void ViewModel::moveClip(size_t trackIdx, size_t clipIdx, double newStartTime) {
 
 void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double startTime) {
     // Вызываем метод Engine
-    engine.AddAudioClip(trackIndex, filePath.toStdString(), startTime, false);
+    engine.AddAudioClip(trackIndex, filePath.toStdString(), startTime, true);
     // Уведомляем о добавлении
     emit clipAdded(trackIndex);
 }

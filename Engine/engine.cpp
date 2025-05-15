@@ -75,7 +75,7 @@ void Engine::Core::releaseResources() {
 
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const juce::ScopedLock sl(lock);
-  
+
     if (!transportPlaying) {
         info.clearActiveBufferRegion();
         return;
@@ -85,44 +85,60 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const double startTime = position;
     const double endTime = startTime + blockDuration;
 
-    // Время в ударах
     const double startBeats = positionInBeats;
     const double blockDurationBeats = secondsToBeats(blockDuration);
     const double endBeats = startBeats + blockDurationBeats;
 
-    // Очистка буфера ПЕРЕД заполнением
+    // Очистка буфера перед заполнением
     info.clearActiveBufferRegion();
-
-    /*const double startTime = position;
-    const double blockDuration = info.numSamples / sampleRate;
-    const double endTime = startTime + blockDuration;*/
 
     // Обработка аудио клипов
     for (auto& active : activeClips) {
         if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
-            if (audioClip->useRAM) {
-                const int startSample = static_cast<int>((startTime - audioClip->startTime) * sampleRate);
-                const int numSamples = juce::jmin(
-                    info.numSamples,
-                    audioClip->buffer.getNumSamples() - startSample
-                );
+            if (!audioClip->muted && !active.track->muted) {
+                if (audioClip->useRAM) {
+                    const int startSample = static_cast<int>((startTime - audioClip->startTime) * sampleRate);
+                    const int numSamples = juce::jmin(
+                        info.numSamples,
+                        audioClip->buffer.getNumSamples() - startSample
+                    );
 
-                if (startSample >= 0 && numSamples > 0) {
-                    for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                        info.buffer->addFrom(
-                            channel,
-                            info.startSample,
-                            audioClip->buffer,
-                            channel % audioClip->buffer.getNumChannels(),
-                            startSample,
-                            numSamples,
-                            active.track->gain * audioClip->gain
-                        );
+                    if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
+                        for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+                            info.buffer->addFrom(
+                                channel,
+                                info.startSample,
+                                audioClip->buffer,
+                                channel % audioClip->buffer.getNumChannels(),
+                                startSample,
+                                numSamples,
+                                active.track->gain * audioClip->gain
+                            );
+                        }
+                    }
+                    else {
+                        LOG_WARN("Invalid sample range for RAM clip: startSample=" << startSample << ", numSamples=" << numSamples);
                     }
                 }
-            }
-            else if (active.source != nullptr) {
-                active.source->getNextAudioBlock(info);
+                else if (active.source != nullptr) {
+                    // Validate parameters before creating tempInfo
+                    if (info.buffer == nullptr) {
+                        LOG_ERROR("Invalid buffer in AudioSourceChannelInfo");
+                        continue;
+                    }
+                    if (info.startSample < 0 || info.numSamples <= 0 ||
+                        (info.startSample + info.numSamples) > info.buffer->getNumSamples()) {
+                        LOG_ERROR("Invalid sample range: startSample=" << info.startSample << ", numSamples=" << info.numSamples);
+                        continue;
+                    }
+
+                    juce::AudioSourceChannelInfo tempInfo(info.buffer, info.startSample, info.numSamples);
+                    active.source->getNextAudioBlock(tempInfo);
+                    // Применяем гейн
+                    for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+                        info.buffer->applyGain(channel, info.startSample, info.numSamples, active.track->gain * audioClip->gain);
+                    }
+                }
             }
         }
     }
@@ -130,16 +146,11 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     // Обработка MIDI
     processMidiBlocks(info, startTime, endTime);
 
-    // Корректное обновление позиции
-    /*position = blockDuration;*/
-
-
+    // Обновление позиции
+    position += blockDuration;
+    positionInBeats = secondsToBeats(position); // Синхронизация
 
     updateActiveClips();
-
-    position += blockDuration; // Обновляем ПОСЛЕ
-    positionInBeats += blockDurationBeats;
- 
 }
 
 void Engine::Core::handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) {
@@ -274,8 +285,7 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double startBeats) {
 
 void Engine::Core::updateActiveClips() {
     activeClips.clear();
-
-	//LOG(position);
+    LOG("Updating active clips at position: " << position << " seconds (" << positionInBeats << " beats)");
 
     for (auto& track : tracks) {
         if (track.muted) continue;
@@ -287,22 +297,32 @@ void Engine::Core::updateActiveClips() {
                 active.track = &track;
 
                 if (auto* audioClip = dynamic_cast<AudioClip*>(clip.get())) {
-                    if (!audioClip->useRAM) { // Только для клипов не в RAM
+                    if (!audioClip->useRAM) {
                         if (auto reader = formatManager.createReaderFor(audioClip->file)) {
                             auto readerPtr = std::unique_ptr<juce::AudioFormatReader>(reader);
                             active.source = std::make_unique<juce::AudioFormatReaderSource>(
                                 readerPtr.release(), true);
                             active.source->prepareToPlay(512, sampleRate);
-                            active.source->setNextReadPosition(
-                                static_cast<juce::int64>((position - audioClip->startTime) * sampleRate));
+                            juce::int64 readPosition = static_cast<juce::int64>((position - audioClip->startTime) * sampleRate);
+                            active.source->setNextReadPosition(readPosition);
+                            LOG("Added non-RAM audio clip at startTime: " << audioClip->startTime << ", duration: " << audioClip->duration);
+                        }
+                        else {
+                            LOG_ERROR("Failed to create reader for file: " << audioClip->file.getFullPathName().toStdString());
                         }
                     }
+                    else {
+                        LOG("Added RAM audio clip at startTime: " << audioClip->startTime << ", duration: " << audioClip->duration);
+                    }
+                }
+                else if (auto* midiClip = dynamic_cast<MidiClip*>(clip.get())) {
+                    LOG("Added MIDI clip at startTime: " << midiClip->startTime << ", duration: " << midiClip->duration);
                 }
                 activeClips.add(std::move(active));
             }
         }
     }
-    LOG("Active clips updated at position: " << position << " seconds (" << positionInBeats << " beats)");
+    LOG("Total active clips: " << activeClips.size());
 }
 
 void Engine::Core::loadClipToRAM(AudioClip& clip) {
