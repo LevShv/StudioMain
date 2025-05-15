@@ -362,3 +362,5 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /Engine/engineLibs/Juce/Jucelib.lib
+/Misc/Astral Eyes.wav
+/Misc/Bdsm.wav
