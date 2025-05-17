@@ -31,7 +31,7 @@
     <Filter Include="TrackModel">
       <UniqueIdentifier>{65d07f7d-47c1-455a-94c4-71520dd340e3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Picture">
+    <Filter Include="images">
       <UniqueIdentifier>{cf6a459b-401b-4ce3-8b76-adfa4f43a3b6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
