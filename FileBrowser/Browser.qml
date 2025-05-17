@@ -57,7 +57,7 @@ Item {
                     browser.setCurrentFolder(homefolder)
                 }
             }
-
+            /* удаление отображение пути к текущей папке
             TextField {
                 id: pathField
                 width: parent.width - 100
@@ -66,7 +66,7 @@ Item {
                     console.log("Manual path input:", text)
                     browser.setCurrentFolder(text)
                 }
-            }
+            }*/
         }
 
         ListView {
@@ -80,7 +80,7 @@ Item {
             delegate: Rectangle {
             id: delegateItem
             width: ListView.view ? ListView.view.width : root.width // Безопасная привязка
-            height: 40
+            height: 30
             color: {
                 if (ListView.isCurrentItem) "#4C566A"
                 else if (root.selectedIndex === index) "#3B4252"
@@ -93,7 +93,7 @@ Item {
                 anchors.leftMargin: 10
                 anchors.verticalCenter: parent.verticalCenter
                 text: fileIsDir ? "📁" : "📄"
-                font.pixelSize: 16
+                font.pixelSize: 12
             }
 
             Text {
@@ -106,7 +106,7 @@ Item {
                 }
                 text: fileName
                 color: (ListView.isCurrentItem || root.selectedIndex === index) ? "white" : "#D8DEE9"
-                font.pixelSize: 14
+                font.pixelSize: 12
                 elide: Text.ElideRight
             }
 
@@ -212,7 +212,7 @@ Item {
         id: folderModel
         folder: "file://" + browser.currentFolder
         showDirsFirst: true
-        showDotAndDotDot: true
+        showDotAndDotDot: false // параметр отвечает за первые 2 папки с ".." и "."
         onFolderChanged: console.log("Model folder updated:", folder)
     }
 }

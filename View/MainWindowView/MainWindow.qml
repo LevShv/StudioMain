@@ -36,103 +36,83 @@ Window {
         Rectangle {
             id: toolbar
             Layout.fillWidth: true
-            Layout.preferredHeight: 102
-            color: "#2E3440"
-
-            ColumnLayout {
+            Layout.preferredHeight: 48
+            color: "#4C566A"
+            RowLayout {
                 anchors.fill: parent
-                spacing: 0
+                spacing: 10
 
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 48
-                    color: "#4C566A"
-                    // ... (Логотип без изменений)
+                Row {
+                    Layout.alignment: Qt.AlignLeft
+                    spacing: 5
+                    ToolButton { text: "Создать"; implicitWidth: 100 }
+                    ToolButton { text: "Копировать"; implicitWidth: 100 }
+                    ToolButton { text: "Сохранить"; implicitWidth: 100 }
                 }
 
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 48
-                    color: "#4C566A"
-
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 10
-
-                        Row {
-                            Layout.alignment: Qt.AlignLeft
-                            spacing: 5
-                            ToolButton { text: "Создать"; implicitWidth: 100 }
-                            ToolButton { text: "Копировать"; implicitWidth: 100 }
-                            ToolButton { text: "Сохранить"; implicitWidth: 100 }
-                        }
-
-                        Row {
-                            Layout.alignment: Qt.AlignHCenter
-                            spacing: 5
-                            ToolButton {
-                                text: viewModel.isPlaying ? "⏸️" : "▶️"
-                                implicitWidth: 60
-                                onClicked: viewModel.togglePlayback()
-                            }
-                            ToolButton { text: "⏺️"; implicitWidth: 60 }
-                            ToolButton {
-                                text: "⏮️"
-                                implicitWidth: 60
-                                onClicked: {
-                                    viewModel.setPlayheadPosition(0)
-                                    console.log("Reset playhead to start")
-                                }
-                            }
-                        }
-
-                        Row {
-                            Layout.alignment: Qt.AlignRight
-                            spacing: 10
-                            Label { text: "Zoom:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
-                            Slider {
-                                id: zoomSlider
-                                width: 150
-                                from: 0.5
-                                to: 2.0
-                                value: 1.0
-                                onValueChanged: {
-                                    // Сохраняем пропорциональную прокрутку
-                                    var oldContentWidth = flickableArea.contentWidth
-                                    var oldContentX = flickableArea.contentX
-                                    var ratio = (oldContentX + flickableArea.width / 2) / oldContentWidth
-                                    flickableArea.zoomLevel = value
-                                    flickableArea.contentX = ratio * flickableArea.contentWidth - flickableArea.width / 2
-                                    flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
-                                    console.log("Zoom (slider) changed to:", flickableArea.zoomLevel, 
-                                               "contentX:", flickableArea.contentX, 
-                                               "greenline.x:", greenline.x, 
-                                               "playheadPosition:", viewModel.playheadPosition, 
-                                               "isPlaying:", viewModel.isPlaying)
-                                }
-                            }
-                            Label { text: "BPM:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
-                            Slider {
-                                width: 150
-                                from: 60
-                                to: 200
-                                value: viewModel.bpm
-                                onValueChanged: viewModel.setBpm(value)
-                            }
-                            Slider {
-                                width: 150
-                                from: 0
-                                to: 100
-                                value: viewModel.volume
-                                onValueChanged: viewModel.setVolume(value)
-                            }
+                Row {
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: 5
+                    ToolButton {
+                        text: viewModel.isPlaying ? "⏸️" : "▶️"
+                        implicitWidth: 60
+                        onClicked: viewModel.togglePlayback()
+                    }
+                    ToolButton { text: "⏺️"; implicitWidth: 60 }
+                    ToolButton {
+                        text: "⏮️"
+                        implicitWidth: 60
+                        onClicked: {
+                            viewModel.setPlayheadPosition(0)
+                            console.log("Reset playhead to start")
                         }
                     }
-                    radius: 8
-                    border.color: "white"
-                    border.width: 1
+                }
+
+                Row {
+                    Layout.alignment: Qt.AlignRight
+                    spacing: 10
+                    Label { text: "Zoom:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
+                    Slider {
+                        id: zoomSlider
+                        width: 150
+                        from: 0.5
+                        to: 2.0
+                        value: 1.0
+                        onValueChanged: {
+                            var oldContentWidth = flickableArea.contentWidth
+                            var oldContentX = flickableArea.contentX
+                            var ratio = (oldContentX + flickableArea.width / 2) / oldContentWidth
+                            flickableArea.zoomLevel = value
+                            flickableArea.contentX = ratio * flickableArea.contentWidth - flickableArea.width / 2
+                            flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
+                            console.log("Zoom (slider) changed to:", flickableArea.zoomLevel, 
+                                       "contentX:", flickableArea.contentX, 
+                                       "greenline.x:", greenline.x, 
+                                       "playheadPosition:", viewModel.playheadPosition, 
+                                       "isPlaying:", viewModel.isPlaying)
+                        }
+                    }
+                    Label { text: "BPM:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
+                    Slider {
+                        width: 150
+                        from: 60
+                        to: 200
+                        value: viewModel.bpm
+                        onValueChanged: viewModel.setBpm(value)
+                    }
+                    Slider {
+                        width: 150
+                        from: 0
+                        to: 100
+                        value: viewModel.volume
+                        onValueChanged: viewModel.setVolume(value)
+                    }
                 }
             }
+            radius :8
+            border.color:"white"
+            border.width :1                        
         }
 
         // Основная рабочая область
@@ -149,6 +129,7 @@ Window {
                 Rectangle {
                     id: fileBrowserContainer
                     SplitView.minimumWidth: 200
+                    SplitView.maximumWidth: 400
                     SplitView.preferredWidth: 250
                     color: "transparent"
 
@@ -157,6 +138,7 @@ Window {
                         height: parent.height
                         dragParent: mainWindow.dragParent
                         onCurrentFolderChanged: console.log("Folder changed:", currentFolder)
+                        
 
                         onFileDropped: (filePath, globalX, globalY) => {
                             var localPos = contentGrid.mapFromItem(mainWindow.dragParent, globalX, globalY)
@@ -178,6 +160,7 @@ Window {
                 }
 
                 // Центральная панель (каналы)
+                /*
                 Rectangle {
                     id: channelRack
                     SplitView.maximumWidth: 250
@@ -229,7 +212,7 @@ Window {
                             }
                         }
                     }
-                }
+                }*/
 
                 // Правая панель (плейлист)
                 Rectangle {
