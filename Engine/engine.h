@@ -150,6 +150,13 @@ private:
             juce::int64 position = 0;
 
         };
+        /// <summary>
+       // juce::AudioFormatManager formatManager;
+       // juce::AudioPluginFormatManager pluginFormatManager;
+        juce::KnownPluginList pluginList; // Добавляем KnownPluginList
+       // juce::AudioBuffer<float> pluginBuffer;
+       // juce::AudioSourcePlayer audioSourcePlayer;
+        /// </summary>
 
         juce::AudioBuffer<float> pluginBuffer; // Буфер для обработки плагинов
         juce::AudioFormatManager formatManager;

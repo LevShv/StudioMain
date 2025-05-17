@@ -1,6 +1,8 @@
 
 #include "engine.h"
-
+#include "JuceHeader.h"
+#include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_audio_processors/format_types/juce_VST3PluginFormat.h>
 // Core implementation
 
 #pragma region Core
@@ -8,6 +10,15 @@
 Engine::Core::Core() {
     formatManager.registerBasicFormats();
     pluginFormatManager.addDefaultFormats();
+    //pluginFormatManager.addFormat(std::make_unique<juce::VST3PluginFormat>().release()); // Используем std::make_unique для управления памятью
+    /*juce::PluginDescription foundPluginDescription;
+    juce::KnownPluginList pluginList;
+    juce::AudioPluginFormat* vst3Format = pluginFormatManager.getFormat(0);*/
+
+    LOG("Available plugin formats:");
+    for (auto* format : pluginFormatManager.getFormats()) {
+        LOG(format->getName().toStdString());
+    }
 
     auto midiOutputs = juce::MidiOutput::getAvailableDevices();
     if (!midiOutputs.isEmpty()) {
@@ -330,12 +341,44 @@ void Engine::Core::addPluginToTrack(int trackIndex, const juce::String& pluginPa
         return;
     }
 
-    // Создаем описание плагина
-    juce::PluginDescription desc;
-    desc.fileOrIdentifier = pluginPath;
-    desc.pluginFormatName = "VST3"; // Или "VST" в зависимости от типа плагина
+    juce::File pluginFile(pluginPath);
+    if (!pluginFile.existsAsFile()) {
+        LOG_ERROR("Plugin file does not exist or is not accessible: " << pluginPath.toStdString());
+        return;
+    }
 
-    // Загружаем плагин
+    // Проверяем формат
+    if (!pluginPath.endsWithIgnoreCase(".vst3")) {
+        LOG_ERROR("Only VST3 plugins are supported: " << pluginPath.toStdString());
+        return;
+    }
+
+    // Ищем VST3 формат
+    juce::AudioPluginFormat* vst3Format = nullptr;
+    for (auto* format : pluginFormatManager.getFormats()) {
+        if (format->getName() == "VST3") {
+            vst3Format = format;
+            break;
+        }
+    }
+
+    if (!vst3Format) {
+        LOG_ERROR("VST3 format not found in pluginFormatManager!");
+        return;
+    }
+
+    // Сканируем плагин
+    juce::OwnedArray<juce::PluginDescription> typesFound;
+    pluginList.scanAndAddFile(pluginPath, false, typesFound, *vst3Format);
+    LOG("Found " << typesFound.size() << " plugins in " << pluginPath.toStdString());
+
+    if (typesFound.isEmpty()) {
+        LOG_ERROR("No plugins found in file: " << pluginPath.toStdString());
+        return;
+    }
+
+    // Используем описание для создания экземпляра
+    juce::PluginDescription desc = *typesFound[0];
     juce::String error;
     std::unique_ptr<juce::AudioPluginInstance> plugin = pluginFormatManager.createPluginInstance(
         desc, sampleRate, 512, error
@@ -346,16 +389,14 @@ void Engine::Core::addPluginToTrack(int trackIndex, const juce::String& pluginPa
         return;
     }
 
-    // Настраиваем плагин
     plugin->enableAllBuses();
     plugin->prepareToPlay(sampleRate, 512);
 
-    // Добавляем плагин в дорожку
     auto pluginInstance = std::make_unique<PluginInstance>();
     pluginInstance->plugin = std::move(plugin);
     tracks[trackIndex].plugins.push_back(std::move(pluginInstance));
 
-    LOG("Plugin loaded successfully: " << pluginPath.toStdString());
+    LOG_SUCCESS("Plugin loaded successfully: " << pluginPath.toStdString());
 }
 
 juce::AudioProcessorEditor* Engine::Core::getPluginEditor(int trackIndex, int pluginIndex) {

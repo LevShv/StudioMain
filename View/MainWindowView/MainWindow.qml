@@ -186,7 +186,7 @@ Window {
                                     var fileExt = filePath.toLowerCase().split('.').pop();
                                     if (["mp3", "wav", "aiff", "flac"].indexOf(fileExt) !== -1) {
                                         viewModel.addAudioClip(trackIndex, filePath, position)
-                                    } else if (["vst", "vst3"].indexOf(fileExt) !== -1) {
+                                    } else if (["dll", "vst3"].indexOf(fileExt) !== -1) {
                                         viewModel.addPlugin(trackIndex, filePath)
                                     } else {
                                         console.log("Invalid file type:", filePath)
