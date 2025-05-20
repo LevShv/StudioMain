@@ -41,11 +41,12 @@ Engine::Core::Core() {
     tracks.emplace_back(std::move(track));
     track.isMidiTrack = true;
 
+    addPluginToTrack(4, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\TAL-Sampler.vst3");
     juce::MidiMessageSequence sequence;
 
     // Добавляем ноту C4 (нота включения + нота выключения)
-    sequence.addEvent(juce::MidiMessage::noteOn(1, 60, 0.8f), 0.0);  // Нота включена на канале 1, нота 60 (C4), velocity 0.8
-    sequence.addEvent(juce::MidiMessage::noteOff(1, 60), 1.0);        // Нота выключена через 1 такт
+    sequence.addEvent(juce::MidiMessage::noteOn(1, 61, 0.8f), 0.0);  // Нота включена на канале 1, нота 60 (C4), velocity 0.8
+    sequence.addEvent(juce::MidiMessage::noteOff(1, 61), 1.0);        // Нота выключена через 1 такт
 
     // Добавляем ноту E4
     sequence.addEvent(juce::MidiMessage::noteOn(1, 64, 0.7f), 1.0);
@@ -54,7 +55,7 @@ Engine::Core::Core() {
     // Добавляем ноту G4
     sequence.addEvent(juce::MidiMessage::noteOn(1, 67, 0.9f), 2.0);
     sequence.addEvent(juce::MidiMessage::noteOff(1, 67), 3.0);
-	loadMidiClip(4, juce::MidiMessageSequence(), 0.0);
+	loadMidiClip(4, sequence, 0.0);
     
 
     Track track2;
@@ -177,6 +178,21 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
         }
     }
 
+    //juce::MidiBuffer clearBuffer;
+    //for (int channel = 1; channel <= 16; ++channel) {
+    //    clearBuffer.addEvent(juce::MidiMessage::allNotesOff(channel), 0);
+    //}
+
+    //for (auto& track : tracks) {
+    //    for (auto& pluginInstance : track.plugins) {
+    //        if (pluginInstance->plugin) {
+    //            juce::AudioBuffer<float> tempBuffer(2, info.numSamples); // Используем размер текущего блока
+    //            tempBuffer.clear();
+    //            pluginInstance->plugin->processBlock(tempBuffer, clearBuffer);
+    //        }
+    //    }
+    //}
+
     // Обработка плагинов на дорожках
     for (auto& track : tracks) {
         if (track.muted || track.plugins.empty()) continue;
@@ -234,11 +250,12 @@ void Engine::Core::processMidiBlocks(const juce::AudioSourceChannelInfo& info,
                 if (eventTime >= startTime && eventTime < endTime) {
                     int sampleOffset = static_cast<int>((eventTime - startTime) * sampleRate);
                     midiBuffer.addEvent(event->message, sampleOffset);
+                    LOG("MIDI event added: Note " << event->message.getNoteNumber() << " at time " << eventTime);
                 }
             }
         }
     }
-
+    LOG("MIDI buffer events: " << midiBuffer.getNumEvents());
     if (midiOutput && !midiBuffer.isEmpty()) {
         // Современный способ итерации по MidiBuffer
         for (const auto& metadata : midiBuffer) {
@@ -274,6 +291,22 @@ void Engine::Core::setPosition(double newPosition) {
     position = newPosition;
     positionInBeats = secondsToBeats(newPosition);
     updateActiveClips();
+
+    juce::MidiBuffer clearBuffer;
+    for (int channel = 1; channel <= 16; ++channel) {
+        clearBuffer.addEvent(juce::MidiMessage::allNotesOff(channel), 0);
+    }
+
+    for (auto& track : tracks) {
+        for (auto& pluginInstance : track.plugins) {
+            if (pluginInstance->plugin) {
+                juce::AudioBuffer<float> tempBuffer(2, 512); // Временный буфер
+                tempBuffer.clear();
+                pluginInstance->plugin->processBlock(tempBuffer, clearBuffer);
+            }
+        }
+    }
+    LOG("Playhead moved to: " << position << " seconds, all notes off sent");
 }
 
 void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file,
@@ -435,6 +468,21 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double startBeats) {
     if (trackIndex >= 0 && trackIndex < tracks.size() &&
         clipIndex >= 0 && clipIndex < tracks.at(trackIndex).clips.size()) {
         const juce::ScopedLock sl(lock);
+
+        juce::MidiBuffer clearBuffer;
+        for (int channel = 1; channel <= 16; ++channel) {
+            clearBuffer.addEvent(juce::MidiMessage::allNotesOff(channel), 0);
+        }
+
+        for (auto& pluginInstance : tracks[trackIndex].plugins) {
+            if (pluginInstance->plugin) {
+                juce::AudioBuffer<float> tempBuffer(2, 512); // Временный буфер
+                tempBuffer.clear();
+                pluginInstance->plugin->processBlock(tempBuffer, clearBuffer);
+            }
+        }
+
+
         tracks.at(trackIndex).clips[clipIndex]->startTime = beatsToSeconds(startBeats);
         tracks.at(trackIndex).clips[clipIndex]->startBeats = startBeats;
         updateActiveClips();

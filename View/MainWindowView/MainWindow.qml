@@ -122,11 +122,7 @@ Window {
                                     flickableArea.zoomLevel = value
                                     flickableArea.contentX = ratio * flickableArea.contentWidth - flickableArea.width / 2
                                     flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
-                                    console.log("Zoom (slider) changed to:", flickableArea.zoomLevel, 
-                                               "contentX:", flickableArea.contentX, 
-                                               "greenline.x:", greenline.x, 
-                                               "playheadPosition:", viewModel.playheadPosition, 
-                                               "isPlaying:", viewModel.isPlaying)
+                                    
                                 }
                             }
                             Label { text: "BPM:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
@@ -518,7 +514,7 @@ Window {
                                         if (!greenlineMouseArea.drag.active) {
                                             greenline.x = position * flickableArea.beatWidth
                                             greenline.x = Math.max(0, Math.min(greenline.x, contentGrid.width - greenline.width))
-                                            console.log("Greenline updated to position:", position, "x:", greenline.x)
+                                           // console.log("Greenline updated to position:", position, "x:", greenline.x)
                                         }
                                     }
                                 }
