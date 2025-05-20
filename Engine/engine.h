@@ -103,6 +103,9 @@ private:
         int timeSignatureNumerator = 4; // Числитель метра (4 в 4/4)
         int timeSignatureDenominator = 4; // Знаменатель метра (4 в 4/4)
 
+        std::map<std::pair<int, int>, double> activeNotes; // Ключ: (канал, номер ноты), значение: время noteOn
+        juce::CriticalSection noteLock;
+
         std::unique_ptr<juce::MidiOutput> midiOutput;
         juce::CriticalSection lock;
         std::vector<Track> tracks;
@@ -150,13 +153,7 @@ private:
             juce::int64 position = 0;
 
         };
-        /// <summary>
-       // juce::AudioFormatManager formatManager;
-       // juce::AudioPluginFormatManager pluginFormatManager;
         juce::KnownPluginList pluginList; // Добавляем KnownPluginList
-       // juce::AudioBuffer<float> pluginBuffer;
-       // juce::AudioSourcePlayer audioSourcePlayer;
-        /// </summary>
 
         juce::AudioBuffer<float> pluginBuffer; // Буфер для обработки плагинов
         juce::AudioFormatManager formatManager;

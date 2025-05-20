@@ -8,12 +8,9 @@
 #pragma region Core
 
 Engine::Core::Core() {
+
     formatManager.registerBasicFormats();
     pluginFormatManager.addDefaultFormats();
-    //pluginFormatManager.addFormat(std::make_unique<juce::VST3PluginFormat>().release()); // Используем std::make_unique для управления памятью
-    /*juce::PluginDescription foundPluginDescription;
-    juce::KnownPluginList pluginList;
-    juce::AudioPluginFormat* vst3Format = pluginFormatManager.getFormat(0);*/
 
     LOG("Available plugin formats:");
     for (auto* format : pluginFormatManager.getFormats()) {
@@ -42,6 +39,7 @@ Engine::Core::Core() {
     track.isMidiTrack = true;
 
     addPluginToTrack(4, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\TAL-Sampler.vst3");
+    
     juce::MidiMessageSequence sequence;
 
     // Добавляем ноту C4 (нота включения + нота выключения)
@@ -55,14 +53,29 @@ Engine::Core::Core() {
     // Добавляем ноту G4
     sequence.addEvent(juce::MidiMessage::noteOn(1, 67, 0.9f), 2.0);
     sequence.addEvent(juce::MidiMessage::noteOff(1, 67), 3.0);
-	loadMidiClip(4, sequence, 0.0);
+	loadMidiClip(4, sequence, 5);
     
 
     Track track2;
     ClipBase clip2;
     tracks.emplace_back(std::move(track2));
     track2.isMidiTrack = true;
-    loadMidiClip(5, juce::MidiMessageSequence(), 0.0);
+
+    juce::MidiMessageSequence sequence2;
+
+    // Добавляем ноту C4 (нота включения + нота выключения)
+    sequence2.addEvent(juce::MidiMessage::noteOn(1, 63, 0.8f), 0.0);  // Нота включена на канале 1, нота 60 (C4), velocity 0.8
+    sequence2.addEvent(juce::MidiMessage::noteOff(1, 63), 1.0);        // Нота выключена через 1 такт
+
+    // Добавляем ноту E4
+    sequence2.addEvent(juce::MidiMessage::noteOn(1, 64, 0.7f), 1.0);
+    sequence2.addEvent(juce::MidiMessage::noteOff(1, 64), 2.0);
+
+    // Добавляем ноту G4
+    sequence2.addEvent(juce::MidiMessage::noteOn(1, 62, 0.9f), 2.0);
+    sequence2.addEvent(juce::MidiMessage::noteOff(1, 62), 3.0);
+    loadMidiClip(5, sequence2, 0.0);
+    addPluginToTrack(5, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\TAL-Sampler.vst3");
 
     audioSourcePlayer.setSource(this);
 
@@ -170,7 +183,8 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
         else if (auto* midiClip = dynamic_cast<const MidiClip*>(active.clip)) {
             for (const auto& event : midiClip->midiSequence) {
                 double eventTime = midiClip->startTime + event->message.getTimeStamp();
-                if (eventTime >= startTime && eventTime < endTime) {
+                const double epsilon = 0.001; // 1 мс
+                if (eventTime >= startTime - epsilon && eventTime < endTime) {
                     int sampleOffset = static_cast<int>((eventTime - startTime) * sampleRate);
                     midiBuffer.addEvent(event->message, sampleOffset);
                 }
@@ -291,6 +305,10 @@ void Engine::Core::setPosition(double newPosition) {
     position = newPosition;
     positionInBeats = secondsToBeats(newPosition);
     updateActiveClips();
+    {
+        const juce::ScopedLock noteSl(noteLock);
+        activeNotes.clear(); // Сбрасываем все активные ноты при премотке
+    }
 
     juce::MidiBuffer clearBuffer;
     for (int channel = 1; channel <= 16; ++channel) {
@@ -355,6 +373,10 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
     auto newClip = std::make_unique<MidiClip>();
     newClip->midiSequence = sequence;
     newClip->startTime = beatsToSeconds(startBeats); // Переводим биты в секунды
+    newClip->startBeats = startBeats;
+    LOG("StartBeat for new clip set: " << startBeats);
+    LOG("StartTime for new clip set: " << newClip->startTime);
+
  // Устанавливаем опорный BPM ///
 
     double endTime = 0;

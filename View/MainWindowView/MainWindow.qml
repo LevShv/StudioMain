@@ -386,6 +386,10 @@ Window {
                                                     border.width: 1
                                                     border.color: Qt.darker(color, 1.2)
 
+                                                    Component.onCompleted: {
+                                                        console.log("Clip created at x:" + clipModel.startBeats)
+                                                    }
+
                                                     Label {
                                                         anchors.fill: parent
                                                         text: clipModel.file ? clipModel.file.split("/").pop() : "MIDI Clip"
@@ -503,6 +507,8 @@ Window {
                                         var snappedX = Math.round(greenline.x / flickableArea.beatWidth) * flickableArea.beatWidth
                                         greenline.x = snappedX
                                         var newPosition = snappedX / flickableArea.beatWidth
+
+                                    //    var newPosition = greenline.x
                                         viewModel.setPlayheadPosition(newPosition)
                                         console.log("Greenline dropped at:", snappedX, "position:", newPosition)
                                     }
