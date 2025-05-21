@@ -364,3 +364,538 @@ FodyWeavers.xsd
 /Engine/engineLibs/Juce/Jucelib.lib
 /Misc/Astral Eyes.wav
 /Misc/Bdsm.wav
+/Misc/Bass and Leads/WS Chikoutimi Bass Samples/Chikoutimi Bass 01.wav
+/Misc/Bass and Leads/WS Chikoutimi Bass Samples/Chikoutimi Bass 02.wav
+/Misc/Bass and Leads/WS Chikoutimi Bass Samples/Chikoutimi Bass 03.wav
+/Misc/Bass and Leads/WS Chikoutimi Bass Samples/Chikoutimi Bass 04.wav
+/Misc/Bass and Leads/WS Chikoutimi Bass Samples/Chikoutimi Bass 05.wav
+/Misc/Bass and Leads/WS Chikoutimi Bass.lpg
+/Misc/Bass and Leads/WS ClassicFMbass01 Samples/FM Bass A 01.wav
+/Misc/Bass and Leads/WS ClassicFMbass01 Samples/FM Bass A 02.wav
+/Misc/Bass and Leads/WS ClassicFMbass01 Samples/FM Bass A 03.wav
+/Misc/Bass and Leads/WS ClassicFMbass01 Samples/FM Bass A 04.wav
+/Misc/Bass and Leads/WS ClassicFMbass01 Samples/FM Bass A 05.wav
+/Misc/Bass and Leads/WS ClassicFMbass01 Samples/FM Bass A 06.wav
+/Misc/Bass and Leads/WS ClassicFMbass01 Samples/FM Bass A 07.wav
+/Misc/Bass and Leads/WS ClassicFMbass01 Samples/FM Bass A 08.wav
+/Misc/Bass and Leads/WS ClassicFMbass01.lpg
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 01.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 02.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 03.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 04.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 05.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 06.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 07.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 08.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb].lpg
+/Misc/Bass and Leads/WS Delta Juicy Bass Samples/Delta Juicy Bass 02.wav
+/Misc/Bass and Leads/WS Delta Juicy Bass Samples/Delta Juicy Bass 03.wav
+/Misc/Bass and Leads/WS Delta Juicy Bass Samples/Delta Juicy Bass 04.wav
+/Misc/Bass and Leads/WS Delta Juicy Bass Samples/Delta Juicy Bass 05.wav
+/Misc/Bass and Leads/WS Delta Juicy Bass Samples/Delta Juicy Bass 06.wav
+/Misc/Bass and Leads/WS Delta Juicy Bass Samples/Delta Juicy Bass 07.wav
+/Misc/Bass and Leads/WS Delta Juicy Bass Samples/Delta Juicy Bass 08.wav
+/Misc/Bass and Leads/WS Delta Juicy Bass Samples/Delta Juicy Bass 09.wav
+/Misc/Bass and Leads/WS Delta Juicy Bass Samples/Delta Juicy Bass 10.wav
+/Misc/Bass and Leads/WS Delta Juicy Bass.lpg
+/Misc/Bass and Leads/WS Delta KraftSweeper Samples/KraftSweeper 01.wav
+/Misc/Bass and Leads/WS Delta KraftSweeper Samples/KraftSweeper 02.wav
+/Misc/Bass and Leads/WS Delta KraftSweeper Samples/KraftSweeper 04.wav
+/Misc/Bass and Leads/WS Delta KraftSweeper Samples/KraftSweeper 06.wav
+/Misc/Bass and Leads/WS Delta KraftSweeper Samples/KraftSweeper 07.wav
+/Misc/Bass and Leads/WS Delta KraftSweeper Samples/KraftSweeper 08.wav
+/Misc/Bass and Leads/WS Delta KraftSweeper Samples/KraftSweeper 09.wav
+/Misc/Bass and Leads/WS Delta KraftSweeper Samples/KraftSweeper 10.wav
+/Misc/Bass and Leads/WS Delta KraftSweeper Samples/KraftSweeper 11.wav
+/Misc/Bass and Leads/WS Delta KraftSweeper.lpg
+/Misc/Bass and Leads/WS Delta SubPulse Samples/Subpulse 01.wav
+/Misc/Bass and Leads/WS Delta SubPulse Samples/Subpulse 02.wav
+/Misc/Bass and Leads/WS Delta SubPulse Samples/Subpulse 03.wav
+/Misc/Bass and Leads/WS Delta SubPulse Samples/Subpulse 04.wav
+/Misc/Bass and Leads/WS Delta SubPulse Samples/Subpulse 05.wav
+/Misc/Bass and Leads/WS Delta SubPulse Samples/Subpulse 06.wav
+/Misc/Bass and Leads/WS Delta SubPulse Samples/Subpulse 07.wav
+/Misc/Bass and Leads/WS Delta SubPulse Samples/Subpulse 08.wav
+/Misc/Bass and Leads/WS Delta SubPulse.lpg
+/Misc/Bass and Leads/WS Nasty BP Bass Samples/Nasty Bass A 01.wav
+/Misc/Bass and Leads/WS Nasty BP Bass Samples/Nasty Bass A 02.wav
+/Misc/Bass and Leads/WS Nasty BP Bass Samples/Nasty Bass A 03.wav
+/Misc/Bass and Leads/WS Nasty BP Bass Samples/Nasty Bass A 04.wav
+/Misc/Bass and Leads/WS Nasty BP Bass Samples/Nasty Bass A 05.wav
+/Misc/Bass and Leads/WS Nasty BP Bass Samples/Nasty Bass A 06.wav
+/Misc/Bass and Leads/WS Nasty BP Bass.lpg
+/Misc/Bass and Leads/WS Nasty80 Bass Samples/Nasty Bass B 01.wav
+/Misc/Bass and Leads/WS Nasty80 Bass Samples/Nasty Bass B 02.wav
+/Misc/Bass and Leads/WS Nasty80 Bass Samples/Nasty Bass B 03.wav
+/Misc/Bass and Leads/WS Nasty80 Bass Samples/Nasty Bass B 04.wav
+/Misc/Bass and Leads/WS Nasty80 Bass Samples/Nasty Bass B 05.wav
+/Misc/Bass and Leads/WS Nasty80 Bass Samples/Nasty Bass B 06.wav
+/Misc/Bass and Leads/WS Nasty80 Bass Samples/Nasty Bass B 07.wav
+/Misc/Bass and Leads/WS Nasty80 Bass.lpg
+/Misc/Bass and Leads/WS Omni2 Smooth Lead 01 Samples/OmniSmooth 01.wav
+/Misc/Bass and Leads/WS Omni2 Smooth Lead 01.lpg
+/Misc/Bass and Leads/WS Reso Bass Layer Samples/ResoBassA 01.wav
+/Misc/Bass and Leads/WS Reso Bass Layer.lpg
+/Misc/Bass and Leads/WS Reso Bass Layer2 Samples/ResoBassB 01.wav
+/Misc/Bass and Leads/WS Reso Bass Layer2.lpg
+/Misc/Bass and Leads/WS Reso Bass Samples/ResoBassC 01.wav
+/Misc/Bass and Leads/WS Reso Bass.lpg
+/Misc/Bass and Leads/WS Saw Delight Samples/Saw Delight 01.wav
+/Misc/Bass and Leads/WS Saw Delight Samples/Saw Delight 02.wav
+/Misc/Bass and Leads/WS Saw Delight Samples/Saw Delight 03.wav
+/Misc/Bass and Leads/WS Saw Delight Samples/Saw Delight 04.wav
+/Misc/Bass and Leads/WS Saw Delight Samples/Saw Delight 05.wav
+/Misc/Bass and Leads/WS Saw Delight Samples/Saw Delight 06.wav
+/Misc/Bass and Leads/WS Saw Delight Samples/Saw Delight 07.wav
+/Misc/Bass and Leads/WS Saw Delight.lpg
+/Misc/Bass and Leads/WS SubSub Bass Samples/DoubleSub Bass 01.wav
+/Misc/Bass and Leads/WS SubSub Bass Samples/DoubleSub Bass 02.wav
+/Misc/Bass and Leads/WS SubSub Bass Samples/DoubleSub Bass 03.wav
+/Misc/Bass and Leads/WS SubSub Bass Samples/DoubleSub Bass 04.wav
+/Misc/Bass and Leads/WS SubSub Bass Samples/DoubleSub Bass 05.wav
+/Misc/Bass and Leads/WS SubSub Bass Samples/DoubleSub Bass 06.wav
+/Misc/Bass and Leads/WS SubSub Bass Samples/DoubleSub Bass 07.wav
+/Misc/Bass and Leads/WS SubSub Bass Samples/DoubleSub Bass 08.wav
+/Misc/Bass and Leads/WS SubSub Bass.lpg
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronic03.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronic06.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronic09.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronic10.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronic11.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronic14.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronic15.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronic16.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronicFX01.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronicFX02.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronicFX03.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronicFX08.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronicFX09.wav
+/Misc/Drums/WS Cooltronics Kit1 Samples/WS CoolTronicFX10.wav
+/Misc/Drums/WS Cooltronics Kit1.lpg
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronic01.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronic02.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronic04.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronic05.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronic07.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronic08.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronic12.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronic13.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronic17.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronicFX04.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronicFX05.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronicFX06.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronicFX07.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronicFX08.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronicFX09.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronicFX10.wav
+/Misc/Drums/WS Cooltronics Kit2B Samples/WS CoolTronicFX11.wav
+/Misc/Drums/WS Cooltronics Kit2B.lpg
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 01.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 02.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 03.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 04.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 05.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 06.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 07.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 08.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 09.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 10.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 11.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 12.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 13.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 14.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 15.wav
+/Misc/Drums/WS ModfreQ Drumkit Long Samples/WS ModFreQ 16.wav
+/Misc/Drums/WS ModfreQ Drumkit Long.lpg
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 01.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 02.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 03.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 04.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 05.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 06.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 07.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 08.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 09.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 10.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 11.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 12.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 13.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 14.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 15.wav
+/Misc/Drums/WS ModfreQ Drumkit Short Samples/WS ModFreQ 16.wav
+/Misc/Drums/WS ModfreQ Drumkit Short.lpg
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 01.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 02.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 03.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 04.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 05.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 06.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 07.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 08.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 09.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 10.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 11.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 12.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 13.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 14.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 15.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01 Samples/WS OldSchoolDigga 16.wav
+/Misc/Drums/WS OldSkool Digga Drumkit01.lpg
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 01.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 02.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 03.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 04.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 05.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 06.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 07.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 08.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 09.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 10.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 11.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 12.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 13.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 14.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 15.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 16.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad].lpg
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-01.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-02.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-04.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-05.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-06.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-08.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-09.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-10.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-11.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-12.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-15.wav
+/Misc/Drums/WS RetroColor Samples/WS-Coloremix-19.wav
+/Misc/Drums/WS RetroColor.lpg
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-01.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-02.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-03.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-04.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-06.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-09.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-10.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-11.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-12.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-13.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-14.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-15.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-17.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-18.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-19.wav
+/Misc/Drums/WS Toned522 RAW Samples/WS-Toned522-22.wav
+/Misc/Drums/WS Toned522 RAW.lpg
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-01.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-02.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-03.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-04.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-06.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-09.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-10.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-11.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-12.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-13.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-14.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-15.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-17.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-18.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-19.wav
+/Misc/Drums/WS Toned522 w XYpad Samples/WS-Toned522-22.wav
+/Misc/Drums/WS Toned522 w XYpad.lpg
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 01.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 02.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 03.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 04.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 05.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 06.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 07.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 08.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 09.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 10.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 11.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 12.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 13.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 14.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 15.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 16.wav
+/Misc/Drums/WS Tronalog Drumkit01 Samples/TronalogA 17.wav
+/Misc/Drums/WS Tronalog Drumkit01.lpg
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 01.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 02.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 03.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 04.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 05.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 06.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 07.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 08.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 09.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 10.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 11.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 12.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 13.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 14.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 15.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 16.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 17.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2].lpg
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 02 BD.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 04 BD.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 07 SN.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 09 HH.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 15 CP.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 16 FX.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog07 BD.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog08 SN.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog09 CH.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog10 OH.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog11 FX.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog14 HH.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog15 PK.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog16 CY.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog17 PK.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS].lpg
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS TronAlog 02 BD.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS TronAlog 04 BD.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS TronAlog 07 SN.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS TronAlog 09 HH.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS TronAlog 15 CP.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS TronAlog 16 FX.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS-Nalog07 BD.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS-Nalog08 SN.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS-Nalog09 CH.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS-Nalog10 OH.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS-Nalog11 FX.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS-Nalog14 HH.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS-Nalog15 PK.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS-Nalog16 CY.wav
+/Misc/Drums/WS Tronalog II Drumkit Samples/WS-Nalog17 PK.wav
+/Misc/Drums/WS Tronalog II Drumkit.lpg
+/Misc/Synth Pads/WS AutoZen01 Samples/AutoZenA 01.wav
+/Misc/Synth Pads/WS AutoZen01 Samples/AutoZenA 02.wav
+/Misc/Synth Pads/WS AutoZen01 Samples/AutoZenA 03.wav
+/Misc/Synth Pads/WS AutoZen01 Samples/AutoZenA 04.wav
+/Misc/Synth Pads/WS AutoZen01.lpg
+/Misc/Synth Pads/WS AutoZen01bis w FX Samples/AutoZenB 01.wav
+/Misc/Synth Pads/WS AutoZen01bis w FX Samples/AutoZenB 02.wav
+/Misc/Synth Pads/WS AutoZen01bis w FX Samples/AutoZenB 03.wav
+/Misc/Synth Pads/WS AutoZen01bis w FX Samples/AutoZenB 04.wav
+/Misc/Synth Pads/WS AutoZen01bis w FX.lpg
+/Misc/Synth Pads/WS AutoZen02 Samples/AutoZenC 01.wav
+/Misc/Synth Pads/WS AutoZen02 Samples/AutoZenC 02.wav
+/Misc/Synth Pads/WS AutoZen02 Samples/AutoZenC 03.wav
+/Misc/Synth Pads/WS AutoZen02 Samples/AutoZenC 04.wav
+/Misc/Synth Pads/WS AutoZen02.lpg
+/Misc/Synth Pads/WS AutoZen03 Samples/AutoZenD 01.wav
+/Misc/Synth Pads/WS AutoZen03 Samples/AutoZenD 02.wav
+/Misc/Synth Pads/WS AutoZen03 Samples/AutoZenD 03.wav
+/Misc/Synth Pads/WS AutoZen03 Samples/AutoZenD 04.wav
+/Misc/Synth Pads/WS AutoZen03.lpg
+/Misc/Synth Pads/WS FlangePad Samples/FlangePad 01.wav
+/Misc/Synth Pads/WS FlangePad.lpg
+/Misc/Synth Pads/WS Ghostly Pad I Samples/Ghostly-C1.wav
+/Misc/Synth Pads/WS Ghostly Pad I Samples/Ghostly-C2.wav
+/Misc/Synth Pads/WS Ghostly Pad I Samples/Ghostly-C3.wav
+/Misc/Synth Pads/WS Ghostly Pad I Samples/Ghostly-C4.wav
+/Misc/Synth Pads/WS Ghostly Pad I Samples/Ghostly-C5.wav
+/Misc/Synth Pads/WS Ghostly Pad I.lpg
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II Samples/Ghostly-C1.wav
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II Samples/Ghostly-C2.wav
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II Samples/Ghostly-C3.wav
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II Samples/Ghostly-C4.wav
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II Samples/Ghostly-C5.wav
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II.lpg
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] 02(modu) Samples/SinePad 01.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] 02(modu) Samples/SinePad 02.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] 02(modu) Samples/SinePad 03.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] 02(modu) Samples/SinePad 04.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] 02(modu).lpg
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] Samples/SinePad 01.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] Samples/SinePad 02.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] Samples/SinePad 03.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] Samples/SinePad 04.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo].lpg
+/Misc/Synth Pads/WS Monolith Choir 01 Samples/Monolith Choir 01.wav
+/Misc/Synth Pads/WS Monolith Choir 01 Samples/Monolith Choir 02.wav
+/Misc/Synth Pads/WS Monolith Choir 01 Samples/Monolith Choir 03.wav
+/Misc/Synth Pads/WS Monolith Choir 01 Samples/Monolith Choir 04.wav
+/Misc/Synth Pads/WS Monolith Choir 01 Samples/Monolith Choir 05.wav
+/Misc/Synth Pads/WS Monolith Choir 01.lpg
+/Misc/Synth Pads/WS Omni2 Pad 01bis Samples/Omni2synthPAD 01.wav
+/Misc/Synth Pads/WS Omni2 Pad 01bis Samples/Omni2synthPAD 02.wav
+/Misc/Synth Pads/WS Omni2 Pad 01bis Samples/Omni2synthPAD 03.wav
+/Misc/Synth Pads/WS Omni2 Pad 01bis Samples/Omni2synthPAD 04.wav
+/Misc/Synth Pads/WS Omni2 Pad 01bis.lpg
+/Misc/Synth Pads/WS Omni2 Pad 02 lush Samples/Omni2synthPAD 01.wav
+/Misc/Synth Pads/WS Omni2 Pad 02 lush Samples/Omni2synthPAD 02.wav
+/Misc/Synth Pads/WS Omni2 Pad 02 lush Samples/Omni2synthPAD 03.wav
+/Misc/Synth Pads/WS Omni2 Pad 02 lush Samples/Omni2synthPAD 04.wav
+/Misc/Synth Pads/WS Omni2 Pad 02 lush.lpg
+/Misc/Synth Pads/WS OmniII VibraPad [WS] Samples/Omni2synthPAD 02.wav
+/Misc/Synth Pads/WS OmniII VibraPad [WS] Samples/Omni2synthPAD 04.wav
+/Misc/Synth Pads/WS OmniII VibraPad [WS].lpg
+/Misc/Synth Pads/WS Thick Pad Samples/Thick Shrth pad04.wav
+/Misc/Synth Pads/WS Thick Pad Samples/Thick Shrth pad05.wav
+/Misc/Synth Pads/WS Thick Pad Samples/Thick Shrth pad06.wav
+/Misc/Synth Pads/WS Thick Pad [flanging] Samples/Thick Shrth pad04.wav
+/Misc/Synth Pads/WS Thick Pad [flanging] Samples/Thick Shrth pad05.wav
+/Misc/Synth Pads/WS Thick Pad [flanging] Samples/Thick Shrth pad06.wav
+/Misc/Synth Pads/WS Thick Pad [flanging].lpg
+/Misc/Synth Pads/WS Thick Pad [sweepy wide] Samples/Thick Shrth pad04.wav
+/Misc/Synth Pads/WS Thick Pad [sweepy wide] Samples/Thick Shrth pad05.wav
+/Misc/Synth Pads/WS Thick Pad [sweepy wide] Samples/Thick Shrth pad06.wav
+/Misc/Synth Pads/WS Thick Pad [sweepy wide].lpg
+/Misc/Synth Pads/WS Thick Pad.lpg
+/Misc/Synth Pads/WS Vibrant Pad Samples/Vibrant Pad 01.wav
+/Misc/Synth Pads/WS Vibrant Pad Samples/Vibrant Pad 02.wav
+/Misc/Synth Pads/WS Vibrant Pad Samples/Vibrant Pad 03.wav
+/Misc/Synth Pads/WS Vibrant Pad Samples/Vibrant Pad 04.wav
+/Misc/Synth Pads/WS Vibrant Pad.lpg
+/Misc/Synth Pads/WS Waldo AmbSweep Pad Samples/Waldo Sweep 01.wav
+/Misc/Synth Pads/WS Waldo AmbSweep Pad Samples/Waldo Sweep 02.wav
+/Misc/Synth Pads/WS Waldo AmbSweep Pad Samples/Waldo Sweep 03.wav
+/Misc/Synth Pads/WS Waldo AmbSweep Pad Samples/Waldo Sweep 04.wav
+/Misc/Synth Pads/WS Waldo AmbSweep Pad.lpg
+/Misc/Vintage Keys/WS 56k Hive Loop Samples/Teknologikal loopD5.wav
+/Misc/Vintage Keys/WS 56k Hive Loop [granuFake] 02 Samples/Stutter Sounds 01.wav
+/Misc/Vintage Keys/WS 56k Hive Loop [granuFake] 02 Samples/Teknologikal loopD5.wav
+/Misc/Vintage Keys/WS 56k Hive Loop [granuFake] 02.lpg
+/Misc/Vintage Keys/WS 56k Hive Loop.lpg
+/Misc/Vintage Keys/WS Anton Cheap Organ Samples/anton organ01.wav
+/Misc/Vintage Keys/WS Anton Cheap Organ.lpg
+/Misc/Vintage Keys/WS Delta Pink Pianingo Samples/Delta Pink Pianingo 02.wav
+/Misc/Vintage Keys/WS Delta Pink Pianingo Samples/Delta Pink Pianingo 03.wav
+/Misc/Vintage Keys/WS Delta Pink Pianingo Samples/Delta Pink Pianingo 04.wav
+/Misc/Vintage Keys/WS Delta Pink Pianingo Samples/Delta Pink Pianingo 05.wav
+/Misc/Vintage Keys/WS Delta Pink Pianingo Samples/Delta Pink Pianingo 06.wav
+/Misc/Vintage Keys/WS Delta Pink Pianingo Samples/Delta Pink Pianingo 07.wav
+/Misc/Vintage Keys/WS Delta Pink Pianingo Samples/Delta Pink Pianingo 08.wav
+/Misc/Vintage Keys/WS Delta Pink Pianingo Samples/Delta Pink Pianingo 09.wav
+/Misc/Vintage Keys/WS Delta Pink Pianingo Samples/Delta Pink Pianingo 10.wav
+/Misc/Vintage Keys/WS Delta Pink Pianingo.lpg
+/Misc/Vintage Keys/WS Delta Pulse Samples/Delta PulseSpectra 03.wav
+/Misc/Vintage Keys/WS Delta Pulse Samples/Delta PulseSpectra 04.wav
+/Misc/Vintage Keys/WS Delta Pulse Samples/Delta PulseSpectra 05.wav
+/Misc/Vintage Keys/WS Delta Pulse Samples/Delta PulseSpectra 06.wav
+/Misc/Vintage Keys/WS Delta Pulse Samples/Delta PulseSpectra 07.wav
+/Misc/Vintage Keys/WS Delta Pulse Samples/Delta PulseSpectra 08.wav
+/Misc/Vintage Keys/WS Delta Pulse Samples/Delta PulseSpectra 09.wav
+/Misc/Vintage Keys/WS Delta Pulse Samples/Delta PulseSpectra 10.wav
+/Misc/Vintage Keys/WS Delta Pulse Samples/Delta PulseSpectra 11.wav
+/Misc/Vintage Keys/WS Delta Pulse.lpg
+/Misc/Vintage Keys/WS Delta Strings 02 slow Samples/Delta Strings 01.wav
+/Misc/Vintage Keys/WS Delta Strings 02 slow Samples/Delta Strings 02.wav
+/Misc/Vintage Keys/WS Delta Strings 02 slow Samples/Delta Strings 03.wav
+/Misc/Vintage Keys/WS Delta Strings 02 slow Samples/Delta Strings 04.wav
+/Misc/Vintage Keys/WS Delta Strings 02 slow Samples/Delta Strings 05.wav
+/Misc/Vintage Keys/WS Delta Strings 02 slow Samples/Delta Strings 06.wav
+/Misc/Vintage Keys/WS Delta Strings 02 slow Samples/Delta Strings 07.wav
+/Misc/Vintage Keys/WS Delta Strings 02 slow Samples/Delta Strings 08.wav
+/Misc/Vintage Keys/WS Delta Strings 02 slow Samples/Delta Strings 09.wav
+/Misc/Vintage Keys/WS Delta Strings 02 slow.lpg
+/Misc/Vintage Keys/WS Escape To Space Samples/Korg EPS1 - C chorus.wav
+/Misc/Vintage Keys/WS Escape To Space.lpg
+/Misc/Vintage Keys/WS SmoothGranuStutter Samples/Lucidity - Great GongBell Oscillation.wav
+/Misc/Vintage Keys/WS SmoothGranuStutter.lpg
+/Misc/Vintage Keys/WS Waldo Rave Pad 01 Samples/Rave Stab Minor 01.wav
+/Misc/Vintage Keys/WS Waldo Rave Pad 01 Samples/Rave Stab Minor 02.wav
+/Misc/Vintage Keys/WS Waldo Rave Pad 01 Samples/Rave Stab Minor 03.wav
+/Misc/Vintage Keys/WS Waldo Rave Pad 01 Samples/Rave Stab Minor 04.wav
+/Misc/Vintage Keys/WS Waldo Rave Pad 01.lpg
+/Misc/Vintage Keys/WS Waldo Rave Pad Sweep 02 Samples/Rave Sweep Minor 01.wav
+/Misc/Vintage Keys/WS Waldo Rave Pad Sweep 02 Samples/Rave Sweep Minor 02.wav
+/Misc/Vintage Keys/WS Waldo Rave Pad Sweep 02 Samples/Rave Sweep Minor 03.wav
+/Misc/Vintage Keys/WS Waldo Rave Pad Sweep 02 Samples/Rave Sweep Minor 04.wav
+/Misc/Vintage Keys/WS Waldo Rave Pad Sweep 02.lpg
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 01.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 02.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 03.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 04.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 05.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 06.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 07.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb] Samples/FM Bass B 08.wav
+/Misc/Bass and Leads/WS ClassicFMbass02 [comb].lpg
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 01.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 02.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 03.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 04.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 05.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 06.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 07.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 08.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 09.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 10.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 11.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 12.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 13.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 14.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 15.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad] Samples/WS OldSchoolDigga 16.wav
+/Misc/Drums/WS OldSkool Digga Drumkit02 [warm XYpad].lpg
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 01.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 02.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 03.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 04.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 05.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 06.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 07.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 08.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 09.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 10.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 11.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 12.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 13.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 14.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 15.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 16.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2] Samples/TronalogB 17.wav
+/Misc/Drums/WS Tronalog Drumkit02 [w XY pad 1&2].lpg
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 02 BD.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 04 BD.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 07 SN.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 09 HH.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 15 CP.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS TronAlog 16 FX.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog07 BD.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog08 SN.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog09 CH.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog10 OH.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog11 FX.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog14 HH.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog15 PK.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog16 CY.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS] Samples/WS-Nalog17 PK.wav
+/Misc/Drums/WS Tronalog II  [XY] [WS].lpg
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II Samples/Ghostly-C1.wav
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II Samples/Ghostly-C2.wav
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II Samples/Ghostly-C3.wav
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II Samples/Ghostly-C4.wav
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II Samples/Ghostly-C5.wav
+/Misc/Synth Pads/WS Ghostly Pad [vox of Atlantis] II.lpg
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] 02(modu) Samples/SinePad 01.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] 02(modu) Samples/SinePad 02.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] 02(modu) Samples/SinePad 03.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] 02(modu) Samples/SinePad 04.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] 02(modu).lpg
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] Samples/SinePad 01.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] Samples/SinePad 02.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] Samples/SinePad 03.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo] Samples/SinePad 04.wav
+/Misc/Synth Pads/WS Glenn SinePad [Waldo].lpg
+/Misc/Synth Pads/WS OmniII VibraPad [WS] Samples/Omni2synthPAD 02.wav
+/Misc/Synth Pads/WS OmniII VibraPad [WS] Samples/Omni2synthPAD 04.wav
+/Misc/Synth Pads/WS OmniII VibraPad [WS].lpg
+/Misc/Synth Pads/WS Thick Pad [flanging] Samples/Thick Shrth pad04.wav
+/Misc/Synth Pads/WS Thick Pad [flanging] Samples/Thick Shrth pad05.wav
+/Misc/Synth Pads/WS Thick Pad [flanging] Samples/Thick Shrth pad06.wav
+/Misc/Synth Pads/WS Thick Pad [flanging].lpg
+/Misc/Synth Pads/WS Thick Pad [sweepy wide] Samples/Thick Shrth pad04.wav
+/Misc/Synth Pads/WS Thick Pad [sweepy wide] Samples/Thick Shrth pad05.wav
+/Misc/Synth Pads/WS Thick Pad [sweepy wide] Samples/Thick Shrth pad06.wav
+/Misc/Synth Pads/WS Thick Pad [sweepy wide].lpg
+/Misc/Vintage Keys/WS 56k Hive Loop [granuFake] 02 Samples/Stutter Sounds 01.wav
+/Misc/Vintage Keys/WS 56k Hive Loop [granuFake] 02 Samples/Teknologikal loopD5.wav
+/Misc/Vintage Keys/WS 56k Hive Loop [granuFake] 02.lpg
