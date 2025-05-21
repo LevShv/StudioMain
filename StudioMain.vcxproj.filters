@@ -31,11 +31,11 @@
     <Filter Include="TrackModel">
       <UniqueIdentifier>{65d07f7d-47c1-455a-94c4-71520dd340e3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ClipModel">
+      <UniqueIdentifier>{dd2c9099-2329-4693-84a2-6fbcd27bb969}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <QtRcc Include="qml.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
@@ -53,6 +53,9 @@
     </ClCompile>
     <ClCompile Include="TrackModel\TrackModel.cpp">
       <Filter>TrackModel</Filter>
+    </ClCompile>
+    <ClCompile Include="ClipModel.cpp">
+      <Filter>ClipModel</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -73,6 +76,7 @@
     <ClInclude Include="Tools\log.h">
       <Filter>Tools</Filter>
     </ClInclude>
+    <ClInclude Include="ClipModel.h" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="ViewModel\ViewModel.h">
@@ -87,5 +91,10 @@
     <QtMoc Include="TrackModel\TrackModel.h">
       <Filter>TrackModel</Filter>
     </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>ClipModel</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

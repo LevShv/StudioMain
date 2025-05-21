@@ -28,6 +28,10 @@ public:
     Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
     Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
 
+    Q_INVOKABLE void addWavTrack();
+	Q_INVOKABLE void addMidiTrack();
+    Q_INVOKABLE void addSamplerTrack();
+
     bool isPlaying() const;
     int volume() const;
 
@@ -41,7 +45,7 @@ signals:
     void pluginAdded(int trackIndex);
     void pluginBypassed(int trackIndex, int pluginIndex);
     void pluginEditorOpened(int trackIndex, int pluginIndex, QWindow* window);
-
+    void trackAdded(int trackIndex); 
 private slots:
     void updatePlayhead();
 

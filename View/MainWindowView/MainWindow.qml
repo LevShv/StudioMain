@@ -83,6 +83,30 @@ Window {
                             ToolButton { text: "Создать"; implicitWidth: 100 }
                             ToolButton { text: "Копировать"; implicitWidth: 100 }
                             ToolButton { text: "Сохранить"; implicitWidth: 100 }
+
+                            ToolButton {
+                                text: "Add WAV Track"
+                                implicitWidth: 120
+                                onClicked: viewModel.addWavTrack()
+                            }
+                            ToolButton {
+                                text: "Add Sampler Track"
+                                implicitWidth: 120
+                                onClicked: viewModel.addSamplerTrack()
+                            }
+                            ToolButton {
+                                text: "Add MIDI Track"
+                                implicitWidth: 120
+                                onClicked: viewModel.addMidiTrack()
+                            }
+                        }
+
+                        Row {
+                            Layout.alignment: Qt.AlignLeft
+                            spacing: 5
+                            ToolButton { text: "Создать"; implicitWidth: 100 }
+                            ToolButton { text: "Копировать"; implicitWidth: 100 }
+                            ToolButton { text: "Сохранить"; implicitWidth: 100 }
                         }
 
                         Row {
@@ -210,7 +234,7 @@ Window {
                             Layout.fillHeight: true
                             Rectangle { width: 100; height: 50; color: "transparent" }
                             Repeater {
-                                model: countOfTracks
+                                model: viewModel.trackModel
                                 Rectangle {
                                     width: 150
                                     height: 50
@@ -327,7 +351,7 @@ Window {
 
                                     // Фоновые прямоугольники треков
                                     Repeater {
-                                        model: viewModel.trackModel
+                                        model:  viewModel.trackModel
                                         delegate: Rectangle {
                                             property int trackIndex: model.trackIndex || 0
                                             width: contentGrid.width
@@ -363,36 +387,36 @@ Window {
                                         delegate: Item {
                                             id: trackItem
                                             property int trackIndex: model.trackIndex
-                                            property var trackData: model.data || {}
+                                            property var clipsModel: model.clipsModel
                                             width: contentGrid.width
                                             height: 50
                                             y: trackIndex * 50
                                             z: 2
 
                                             Component.onCompleted: {
-                                                console.log("Track index:", trackIndex)
+                                                console.log("Track index:", trackIndex, "clipsModel:", clipsModel);
                                             }
 
                                             Repeater {
-                                                model: trackData.clips || []
+                                                id: clipsRepeater
+                                                model: clipsModel
                                                 delegate: Rectangle {
                                                     id: clipRectangle
-                                                    property var clipModel: modelData
-                                                    x: (clipModel.startBeats || 0) * flickableArea.beatWidth
-                                                    width: (clipModel.durationBeats || 1) * flickableArea.beatWidth
+                                                    x: model.startBeats * flickableArea.beatWidth
+                                                    width: model.durationBeats * flickableArea.beatWidth
                                                     height: 48
-                                                    color: clipModel.type === "audio" ? "#FF5722" : "#4CAF50"
+                                                    color: model.type === "audio" ? "#FF5722" : "#4CAF50"
                                                     radius: 3
                                                     border.width: 1
                                                     border.color: Qt.darker(color, 1.2)
 
                                                     Component.onCompleted: {
-                                                        console.log("Clip created at x:" + clipModel.startBeats)
+                                                        console.log("Clip created at x:", model.startBeats, "type:", model.type, "file:", model.file);
                                                     }
 
                                                     Label {
                                                         anchors.fill: parent
-                                                        text: clipModel.file ? clipModel.file.split("/").pop() : "MIDI Clip"
+                                                        text: model.file ? model.file.split("/").pop() : "MIDI Clip"
                                                         color: "white"
                                                         font.pixelSize: 10
                                                         padding: 5
@@ -416,15 +440,13 @@ Window {
                                                             var snappedX = Math.round(clipRectangle.x / flickableArea.beatWidth) * flickableArea.beatWidth
                                                             clipRectangle.x = snappedX
                                                             clipRectangle.z = 2
-                                                            viewModel.moveClip(
-                                                                trackIndex,
-                                                                index,
-                                                                snappedX / flickableArea.beatWidth
-                                                            )
+                                                            var newPosition = snappedX / flickableArea.beatWidth
+                                                            viewModel.moveClip(trackIndex, index, newPosition)
                                                         }
                                                     }
                                                 }
                                             }
+
                                         }
                                     }
                                 }

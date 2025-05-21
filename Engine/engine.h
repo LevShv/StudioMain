@@ -5,6 +5,8 @@
 class Engine {
 public:
 
+    
+
     struct ClipBase {
         double startTime = 0.0;
         double duration = 0.0;
@@ -26,6 +28,8 @@ public:
                 (this->startTime + this->duration >= startTime - epsilon);
         }
     };
+
+    using ClipPtr = std::unique_ptr<ClipBase>;
 
     struct AudioClip : public ClipBase {
         juce::File file;
@@ -87,10 +91,16 @@ public:
     double GetBPM() const;
     void SetBPM(double newBPM);
 
+    // ƒобавл€ем новые методы дл€ добавлени€ дорожек
+    int AddAudioTrack();
+    int AddMidiTrack();
+
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;
 
     double& Position();
+
+
 
 private:
 
