@@ -5,6 +5,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import "qrc:/FileBrowser"
 import Qt.labs.folderlistmodel
+import QtQuick.Dialogs
 
 Window {
     id: mainWindow
@@ -25,6 +26,23 @@ Window {
         target: viewModel
         function onIsPlayingChanged() {
             console.log("Playback state changed, isPlaying:", viewModel.isPlaying, "position:", viewModel.playheadPosition)
+        }
+        function onPluginAdded(trackIndex) {
+            console.log("Plugin added to track:", trackIndex)
+        }
+        function onPluginEditorOpened(trackIndex, pluginIndex, window) {
+            // Создаем динамическое окно для плагина
+            var component = Qt.createComponent("PluginEditorWindow.qml")
+            if (component.status === Component.Ready) {
+                var pluginWindow = component.createObject(mainWindow, {
+                    "trackIndex": trackIndex,
+                    "pluginIndex": pluginIndex,
+                    "nativeWindow": window
+                })
+                pluginWindow.show()
+            } else {
+                console.error("Failed to create PluginEditorWindow:", component.errorString())
+            }
         }
     }
 
@@ -104,11 +122,7 @@ Window {
                                     flickableArea.zoomLevel = value
                                     flickableArea.contentX = ratio * flickableArea.contentWidth - flickableArea.width / 2
                                     flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
-                                    console.log("Zoom (slider) changed to:", flickableArea.zoomLevel, 
-                                               "contentX:", flickableArea.contentX, 
-                                               "greenline.x:", greenline.x, 
-                                               "playheadPosition:", viewModel.playheadPosition, 
-                                               "isPlaying:", viewModel.isPlaying)
+                                    
                                 }
                             }
                             Label { text: "BPM:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
@@ -164,66 +178,14 @@ Window {
                                 localPos.y >= 0 && localPos.y <= contentGrid.height) {
                                 var trackIndex = Math.floor((localPos.y - timeRuler.height) / 50)
                                 var position = Math.floor(localPos.x / flickableArea.beatWidth)
-                                if (trackIndex >= 0 && trackIndex < 10 && position >= 0) {
+                                if (trackIndex >= 0 && trackIndex < countOfTracks && position >= 0) {
                                     var fileExt = filePath.toLowerCase().split('.').pop();
                                     if (["mp3", "wav", "aiff", "flac"].indexOf(fileExt) !== -1) {
                                         viewModel.addAudioClip(trackIndex, filePath, position)
+                                    } else if (["dll", "vst3"].indexOf(fileExt) !== -1) {
+                                        viewModel.addPlugin(trackIndex, filePath)
                                     } else {
                                         console.log("Invalid file type:", filePath)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Центральная панель (каналы)
-                Rectangle {
-                    id: channelRack
-                    SplitView.maximumWidth: 250
-                    SplitView.minimumWidth: 200
-                    SplitView.preferredWidth: 250
-                    color: "#2E3440"
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 0
-                        Label {
-                            text: "Треки"
-                            color: "white"
-                            font.bold: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: 10
-                        }
-                        ScrollView {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            clip: true
-                            GridView {
-                                id: channelsGrid
-                                anchors.fill: parent
-                                cellWidth: 180
-                                cellHeight: 100
-                                model: 16
-                                delegate: Rectangle {
-                                    width: channelsGrid.width
-                                    height: channelsGrid.cellHeight - 5
-                                    color: index % 2 ? "#3B4252" : "#4C566A"
-                                    radius: 5
-                                    Column {
-                                        anchors.centerIn: parent
-                                        spacing: 5
-                                        Label {
-                                            text: "Channel " + (index + 1)
-                                            color: "white"
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-                                        Row {
-                                            spacing: 10
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            ToolButton { text: "Mute"; implicitWidth: 60 }
-                                            ToolButton { text: "Solo"; implicitWidth: 60 }
-                                        }
                                     }
                                 }
                             }
@@ -244,13 +206,13 @@ Window {
                         // Фиксированные заголовки треков
                         Column {
                             id: trackHeaders
-                            width: 100
+                            width: 150
                             Layout.fillHeight: true
                             Rectangle { width: 100; height: 50; color: "transparent" }
                             Repeater {
                                 model: countOfTracks
                                 Rectangle {
-                                    width: 100
+                                    width: 150
                                     height: 50
                                     color: "#2D2D2D"
                                     border.color: "#444"
@@ -259,6 +221,14 @@ Window {
                                         text: "Track " + (index + 1)
                                         color: "#CCC"
                                         font.pixelSize: 12
+                                    }
+                                    ToolButton {
+                                        text: "🎹"
+                                        implicitWidth: 30
+                                        implicitHeight: 30
+                                        onClicked: {
+                                            viewModel.openPluginEditor(index, 0) // Открываем первый плагин на дорожке
+                                        }
                                     }
                                 }
                             }
@@ -416,6 +386,10 @@ Window {
                                                     border.width: 1
                                                     border.color: Qt.darker(color, 1.2)
 
+                                                    Component.onCompleted: {
+                                                        console.log("Clip created at x:" + clipModel.startBeats)
+                                                    }
+
                                                     Label {
                                                         anchors.fill: parent
                                                         text: clipModel.file ? clipModel.file.split("/").pop() : "MIDI Clip"
@@ -533,6 +507,8 @@ Window {
                                         var snappedX = Math.round(greenline.x / flickableArea.beatWidth) * flickableArea.beatWidth
                                         greenline.x = snappedX
                                         var newPosition = snappedX / flickableArea.beatWidth
+
+                                    //    var newPosition = greenline.x
                                         viewModel.setPlayheadPosition(newPosition)
                                         console.log("Greenline dropped at:", snappedX, "position:", newPosition)
                                     }
@@ -544,7 +520,7 @@ Window {
                                         if (!greenlineMouseArea.drag.active) {
                                             greenline.x = position * flickableArea.beatWidth
                                             greenline.x = Math.max(0, Math.min(greenline.x, contentGrid.width - greenline.width))
-                                            console.log("Greenline updated to position:", position, "x:", greenline.x)
+                                           // console.log("Greenline updated to position:", position, "x:", greenline.x)
                                         }
                                     }
                                 }

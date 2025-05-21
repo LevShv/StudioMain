@@ -5,6 +5,7 @@
 #include "engine.h" // Предполагается, что у вас есть этот файл
 #include "TrackModel.h"
 #include <QTimer>
+#include <QWindow>
 
 class ViewModel : public QObject {
     Q_OBJECT
@@ -23,15 +24,23 @@ public:
     Q_INVOKABLE void addAudioClip(int trackIndex, const QString& filePath, double startTime);
     Q_INVOKABLE void setVolume(int volume);
 
+    Q_INVOKABLE void addPlugin(int trackIndex, const QString& pluginPath);
+    Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
+    Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
+
     bool isPlaying() const;
     int volume() const;
 
 signals:
     void isPlayingChanged();
     void volumeChanged();
+    void bpmChanged();
     void playheadPositionChanged(double position);
-    void clipAdded(int trackIndex); // Сигнал о добавлении клипа
-    void clipMoved(int trackIndex, int clipIndex, double newStartTime); // Сигнал о перемещении клипа
+    void clipAdded(int trackIndex);
+    void clipMoved(int trackIndex, int clipIndex, double newStartTime);
+    void pluginAdded(int trackIndex);
+    void pluginBypassed(int trackIndex, int pluginIndex);
+    void pluginEditorOpened(int trackIndex, int pluginIndex, QWindow* window);
 
 private slots:
     void updatePlayhead();

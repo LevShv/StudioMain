@@ -1,5 +1,6 @@
 // ViewModel.cpp
 #include "ViewModel.h"
+#include <juce_audio_processors/juce_audio_processors.h>
 //
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
     m_trackModel = new TrackModel(engine, this);
@@ -53,6 +54,52 @@ void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double sta
     engine.AddAudioClip(trackIndex, filePath.toStdString(), startTime, true);
     // Уведомляем о добавлении
     emit clipAdded(trackIndex);
+}
+
+void ViewModel::addPlugin(int trackIndex, const QString& pluginPath) {
+    engine.AddPluginToTrack(trackIndex, pluginPath.toStdString());
+    emit pluginAdded(trackIndex);
+}
+
+void ViewModel::togglePluginBypass(int trackIndex, int pluginIndex) {
+    engine.TogglePluginBypass(trackIndex, pluginIndex);
+    emit pluginBypassed(trackIndex, pluginIndex);
+}
+
+void ViewModel::openPluginEditor(int trackIndex, int pluginIndex) {
+    if (auto* editor = engine.GetPluginEditor(trackIndex, pluginIndex)) {
+        // Создаем QWindow для встраивания JUCE-редактора
+        QWindow* pluginWindow = new QWindow();
+        pluginWindow->setTitle(QString("Plugin Editor - Track %1, Plugin %2").arg(trackIndex + 1).arg(pluginIndex + 1));
+
+        // Получаем нативный идентификатор окна JUCE
+        auto* component = dynamic_cast<juce::Component*>(editor);
+        if (component) {
+            component->addToDesktop(0); // Делаем JUCE-компонент независимым окном
+            auto nativeHandle = component->getWindowHandle();
+
+            // Встраиваем JUCE-окно в QWindow
+            pluginWindow->create();
+            pluginWindow->setGeometry(100, 100, component->getWidth(), component->getHeight());
+            pluginWindow->setProperty("nativeHandle", reinterpret_cast<qlonglong>(nativeHandle));
+
+            // Перенаправляем JUCE-окно в Qt
+            QWindow::fromWinId(reinterpret_cast<WId>(nativeHandle))->setParent(pluginWindow);
+
+            // Устанавливаем размер и видимость
+            pluginWindow->resize(component->getWidth(), component->getHeight());
+            pluginWindow->show();
+
+            emit pluginEditorOpened(trackIndex, pluginIndex, pluginWindow);
+        }
+        else {
+            LOG_ERROR("Failed to cast editor to JUCE Component");
+            delete pluginWindow;
+        }
+    }
+    else {
+        LOG_ERROR("Failed to open plugin editor for track " << trackIndex << ", plugin " << pluginIndex);
+    }
 }
 
 bool ViewModel::isPlaying() const {

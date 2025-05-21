@@ -1,12 +1,21 @@
 
 #include "engine.h"
-
+#include "JuceHeader.h"
+#include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_audio_processors/format_types/juce_VST3PluginFormat.h>
 // Core implementation
 
 #pragma region Core
 
 Engine::Core::Core() {
+
     formatManager.registerBasicFormats();
+    pluginFormatManager.addDefaultFormats();
+
+    LOG("Available plugin formats:");
+    for (auto* format : pluginFormatManager.getFormats()) {
+        LOG(format->getName().toStdString());
+    }
 
     auto midiOutputs = juce::MidiOutput::getAvailableDevices();
     if (!midiOutputs.isEmpty()) {
@@ -27,10 +36,47 @@ Engine::Core::Core() {
     Track track;
     ClipBase clip;
     tracks.emplace_back(std::move(track));
-    juce::File file("C:\\Users\\llvvv\\source\\repos\\Studio\\StudioMain\\Step5");
-    track.isMidiTrack = false;
-    loadAudioClip(2, file, 2, 1);
+    track.isMidiTrack = true;
 
+ //   addPluginToTrack(4, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\TAL-Sampler.vst3");
+    
+    juce::MidiMessageSequence sequence;
+
+    // Добавляем ноту C4 (нота включения + нота выключения)
+    sequence.addEvent(juce::MidiMessage::noteOn(1, 61, 0.8f), 0.0);  // Нота включена на канале 1, нота 60 (C4), velocity 0.8
+    sequence.addEvent(juce::MidiMessage::noteOff(1, 61), 1.0);        // Нота выключена через 1 такт
+
+    // Добавляем ноту E4
+    sequence.addEvent(juce::MidiMessage::noteOn(1, 64, 0.7f), 1.0);
+    sequence.addEvent(juce::MidiMessage::noteOff(1, 64), 2.0);
+
+    // Добавляем ноту G4
+    sequence.addEvent(juce::MidiMessage::noteOn(1, 67, 0.9f), 2.0);
+    sequence.addEvent(juce::MidiMessage::noteOff(1, 67), 3.0);
+	loadMidiClip(4, sequence, 5);
+    
+
+    Track track2;
+    ClipBase clip2;
+    tracks.emplace_back(std::move(track2));
+    track2.isMidiTrack = true;
+
+    juce::MidiMessageSequence sequence2;
+
+    // Добавляем ноту C4 (нота включения + нота выключения)
+    sequence2.addEvent(juce::MidiMessage::noteOn(1, 63, 0.8f), 0.0);  // Нота включена на канале 1, нота 60 (C4), velocity 0.8
+    sequence2.addEvent(juce::MidiMessage::noteOff(1, 63), 1.0);        // Нота выключена через 1 такт
+
+    // Добавляем ноту E4
+    sequence2.addEvent(juce::MidiMessage::noteOn(1, 64, 0.7f), 1.0);
+    sequence2.addEvent(juce::MidiMessage::noteOff(1, 64), 2.0);
+
+    // Добавляем ноту G4
+    sequence2.addEvent(juce::MidiMessage::noteOn(1, 62, 0.9f), 2.0);
+    sequence2.addEvent(juce::MidiMessage::noteOff(1, 62), 3.0);
+    loadMidiClip(5, sequence2, 0.0);
+    addPluginToTrack(5, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3");
+    addPluginToTrack(4, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3");
     audioSourcePlayer.setSource(this);
 
 }
@@ -56,6 +102,8 @@ void Engine::Core::prepareToPlay(int samplesPerBlock, double newSampleRate) {
 
     LOG("prepareToPlay called with sampleRate: " << newSampleRate);
 
+    pluginBuffer.setSize(2, samplesPerBlock); // Стерео по умолчанию
+
     for (auto& track : tracks) {
         if (track.isMidiTrack) continue;
 
@@ -66,6 +114,13 @@ void Engine::Core::prepareToPlay(int samplesPerBlock, double newSampleRate) {
                 }
             }
         }
+
+        // Подготовка плагинов
+        for (auto& pluginInstance : track.plugins) {
+            if (pluginInstance->plugin) {
+                pluginInstance->plugin->prepareToPlay(newSampleRate, samplesPerBlock);
+            }
+        }
     }
 }
 
@@ -73,8 +128,121 @@ void Engine::Core::releaseResources() {
     activeClips.clear();
 }
 
+//void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
+//    const juce::ScopedLock sl(lock);
+//
+//    if (!transportPlaying) {
+//        info.clearActiveBufferRegion();
+//        return;
+//    }
+//
+//    const double blockDuration = info.numSamples / sampleRate;
+//    const double startTime = position;
+//    const double endTime = startTime + blockDuration;
+//    const double startBeats = positionInBeats;
+//    const double blockDurationBeats = secondsToBeats(blockDuration);
+//    const double endBeats = startBeats + blockDurationBeats;
+//
+//    // Очистка буфера
+//    info.clearActiveBufferRegion();
+//
+//    // Буфер для MIDI-сообщений
+//    juce::MidiBuffer midiBuffer;
+//
+//    // Обработка аудио и MIDI клипов
+//    for (auto& active : activeClips) {
+//        if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
+//            if (!audioClip->muted && !active.track->muted) {
+//                if (audioClip->useRAM) {
+//                    const int startSample = static_cast<int>((startTime - audioClip->startTime) * sampleRate);
+//                    const int numSamples = juce::jmin(
+//                        info.numSamples,
+//                        audioClip->buffer.getNumSamples() - startSample
+//                    );
+//
+//                    if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
+//                        for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+//                            info.buffer->addFrom(
+//                                channel, info.startSample, audioClip->buffer,
+//                                channel % audioClip->buffer.getNumChannels(),
+//                                startSample, numSamples,
+//                                active.track->gain * audioClip->gain
+//                            );
+//                        }
+//                    }
+//                }
+//                else if (active.source != nullptr) {
+//                    juce::AudioSourceChannelInfo tempInfo(info.buffer, info.startSample, info.numSamples);
+//                    active.source->getNextAudioBlock(tempInfo);
+//                    for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+//                        info.buffer->applyGain(channel, info.startSample, info.numSamples, active.track->gain * audioClip->gain);
+//                    }
+//                }
+//            }
+//        }
+//        else if (auto* midiClip = dynamic_cast<const MidiClip*>(active.clip)) {
+//            for (const auto& event : midiClip->midiSequence) {
+//                double eventTime = midiClip->startTime + event->message.getTimeStamp();
+//                const double epsilon = 0.001; // 1 мс
+//                LOG("Checking MIDI event: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << ", startTime " << startTime << ", endTime " << endTime);
+//                if (eventTime >= startTime - epsilon && eventTime < endTime) {
+//                    int sampleOffset = static_cast<int>((eventTime - startTime) * sampleRate);
+//                    if (sampleOffset < 0) {
+//                      //  LOG_WARN("Negative sampleOffset: " << sampleOffset << ", adjusting to 0");
+//                        sampleOffset = 0;
+//                    }
+//                    midiBuffer.addEvent(event->message, sampleOffset);
+//                   // LOG("MIDI event added: Note " << event->message.getNoteNumber() << " at time " << eventTime << ", sampleOffset " << sampleOffset);
+//                }
+//                else {
+//                    //LOG("MIDI event skipped: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << " outside range [" << startTime - epsilon << ", " << endTime << ")");
+//                }
+//            }
+//        }
+//    }
+//
+//    // Обработка плагинов на дорожках
+//    for (auto& track : tracks) {
+//        if (track.muted || track.plugins.empty()) continue;
+//
+//        // Подготавливаем временный буфер для плагина
+//        pluginBuffer.setSize(info.buffer->getNumChannels(), info.numSamples);
+//        pluginBuffer.clear();
+//
+//        for (auto& pluginInstance : track.plugins) {
+//            if (!pluginInstance->bypass && pluginInstance->plugin) {
+//                // Передаем MIDI в плагин
+//                pluginInstance->plugin->processBlock(pluginBuffer, midiBuffer);
+//
+//                // Микшируем выход плагина в основной буфер
+//                for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+//                    info.buffer->addFrom(
+//                        channel, info.startSample, pluginBuffer,
+//                        channel % pluginBuffer.getNumChannels(),
+//                        0, info.numSamples, track.gain
+//                    );
+//                }
+//            }
+//        }
+//    }
+//
+//    // Отправка MIDI на внешние устройства
+//    if (midiOutput && !midiBuffer.isEmpty()) {
+//        for (const auto& metadata : midiBuffer) {
+//            midiOutput->sendMessageNow(metadata.getMessage());
+//        }
+//    }
+//
+//    // Обновление позиции
+//    position += blockDuration;
+//    positionInBeats = secondsToBeats(position);
+//    updateActiveClips();
+//}
+
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const juce::ScopedLock sl(lock);
+
+    
 
     if (!transportPlaying) {
         info.clearActiveBufferRegion();
@@ -84,72 +252,96 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const double blockDuration = info.numSamples / sampleRate;
     const double startTime = position;
     const double endTime = startTime + blockDuration;
-
     const double startBeats = positionInBeats;
     const double blockDurationBeats = secondsToBeats(blockDuration);
     const double endBeats = startBeats + blockDurationBeats;
 
-    // Очистка буфера перед заполнением
+    // Очистка буфера
     info.clearActiveBufferRegion();
 
-    // Обработка аудио клипов
-    for (auto& active : activeClips) {
-        if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
-            if (!audioClip->muted && !active.track->muted) {
-                if (audioClip->useRAM) {
-                    const int startSample = static_cast<int>((startTime - audioClip->startTime) * sampleRate);
-                    const int numSamples = juce::jmin(
-                        info.numSamples,
-                        audioClip->buffer.getNumSamples() - startSample
-                    );
+    for (auto& track : tracks) {
+        // Обрабатываем аудиоклипы
+        for (auto& active : activeClips) {
+            if (active.track != &track) continue; // Пропускаем клипы, не принадлежащие текущему треку
+            if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
+                if (!audioClip->muted && !active.track->muted) {
+                    if (audioClip->useRAM) {
+                        const int startSample = static_cast<int>((startTime - audioClip->startTime) * sampleRate);
+                        const int numSamples = juce::jmin(
+                            info.numSamples,
+                            audioClip->buffer.getNumSamples() - startSample
+                        );
 
-                    if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
-                        for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                            info.buffer->addFrom(
-                                channel,
-                                info.startSample,
-                                audioClip->buffer,
-                                channel % audioClip->buffer.getNumChannels(),
-                                startSample,
-                                numSamples,
-                                active.track->gain * audioClip->gain
-                            );
+                        if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
+                            for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+                                info.buffer->addFrom(
+                                    channel, info.startSample, audioClip->buffer,
+                                    channel % audioClip->buffer.getNumChannels(),
+                                    startSample, numSamples,
+                                    active.track->gain * audioClip->gain
+                                );
+                            }
                         }
                     }
-                    else {
-                        LOG_WARN("Invalid sample range for RAM clip: startSample=" << startSample << ", numSamples=" << numSamples);
+                    else if (active.source != nullptr) {
+                        juce::AudioSourceChannelInfo tempInfo(info.buffer, info.startSample, info.numSamples);
+                        active.source->getNextAudioBlock(tempInfo);
+                        for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+                            info.buffer->applyGain(channel, info.startSample, info.numSamples, active.track->gain * audioClip->gain);
+                        }
                     }
                 }
-                else if (active.source != nullptr) {
-                    // Validate parameters before creating tempInfo
-                    if (info.buffer == nullptr) {
-                        LOG_ERROR("Invalid buffer in AudioSourceChannelInfo");
-                        continue;
-                    }
-                    if (info.startSample < 0 || info.numSamples <= 0 ||
-                        (info.startSample + info.numSamples) > info.buffer->getNumSamples()) {
-                        LOG_ERROR("Invalid sample range: startSample=" << info.startSample << ", numSamples=" << info.numSamples);
-                        continue;
-                    }
+            }
+        }
 
-                    juce::AudioSourceChannelInfo tempInfo(info.buffer, info.startSample, info.numSamples);
-                    active.source->getNextAudioBlock(tempInfo);
-                    // Применяем гейн
-                    for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                        info.buffer->applyGain(channel, info.startSample, info.numSamples, active.track->gain * audioClip->gain);
+        // Собираем MIDI-сообщения только для текущего трека
+        juce::MidiBuffer midiBuffer;
+        for (auto& active : activeClips) {
+            if (active.track != &track) continue; // Пропускаем клипы, не принадлежащие текущему треку
+            if (auto* midiClip = dynamic_cast<const MidiClip*>(active.clip)) {
+                for (const auto& event : midiClip->midiSequence) {
+                    double eventTime = midiClip->startTime + event->message.getTimeStamp();
+                    const double epsilon = 0.01;
+                   // LOG("Checking MIDI event: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << ", startTime " << startTime << ", endTime " << endTime);
+                    if (eventTime >= startTime - epsilon && eventTime < endTime) {
+                        int sampleOffset = static_cast<int>((eventTime - startTime) * sampleRate);
+                        if (sampleOffset < 0) {
+                          //  LOG_WARN("Negative sampleOffset: " << sampleOffset << ", adjusting to 0");
+                            sampleOffset = 0;
+                        }
+                        midiBuffer.addEvent(event->message, sampleOffset);
+                        //LOG("MIDI event added: Note " << event->message.getNoteNumber() << " at time " << eventTime << ", sampleOffset " << sampleOffset);
                     }
+                    else {
+                        //LOG("MIDI event skipped: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << " outside range [" << startTime - epsilon << ", " << endTime << ")");
+                    }
+                }
+            }
+        }
+
+        // Обработка плагинов на дорожке
+        if (track.muted || track.plugins.empty()) continue;
+
+        pluginBuffer.setSize(info.buffer->getNumChannels(), info.numSamples);
+        pluginBuffer.clear();
+
+        for (auto& pluginInstance : track.plugins) {
+            if (!pluginInstance->bypass && pluginInstance->plugin) {
+                pluginInstance->plugin->processBlock(pluginBuffer, midiBuffer);
+                for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+                    info.buffer->addFrom(
+                        channel, info.startSample, pluginBuffer,
+                        channel % pluginBuffer.getNumChannels(),
+                        0, info.numSamples, track.gain
+                    );
                 }
             }
         }
     }
 
-    // Обработка MIDI
-    processMidiBlocks(info, startTime, endTime);
-
-    // Обновление позиции
     position += blockDuration;
-    positionInBeats = secondsToBeats(position); // Синхронизация
-
+    
+    positionInBeats = secondsToBeats(position);
     updateActiveClips();
 }
 
@@ -172,11 +364,12 @@ void Engine::Core::processMidiBlocks(const juce::AudioSourceChannelInfo& info,
                 if (eventTime >= startTime && eventTime < endTime) {
                     int sampleOffset = static_cast<int>((eventTime - startTime) * sampleRate);
                     midiBuffer.addEvent(event->message, sampleOffset);
+                    LOG("MIDI event added: Note " << event->message.getNoteNumber() << " at time " << eventTime);
                 }
             }
         }
     }
-
+    LOG("MIDI buffer events: " << midiBuffer.getNumEvents());
     if (midiOutput && !midiBuffer.isEmpty()) {
         // Современный способ итерации по MidiBuffer
         for (const auto& metadata : midiBuffer) {
@@ -212,6 +405,26 @@ void Engine::Core::setPosition(double newPosition) {
     position = newPosition;
     positionInBeats = secondsToBeats(newPosition);
     updateActiveClips();
+    {
+        const juce::ScopedLock noteSl(noteLock);
+        activeNotes.clear(); // Сбрасываем все активные ноты при премотке
+    }
+
+    juce::MidiBuffer clearBuffer;
+    for (int channel = 1; channel <= 16; ++channel) {
+        clearBuffer.addEvent(juce::MidiMessage::allNotesOff(channel), 0);
+    }
+
+    for (auto& track : tracks) {
+        for (auto& pluginInstance : track.plugins) {
+            if (pluginInstance->plugin) {
+                juce::AudioBuffer<float> tempBuffer(2, 512); // Временный буфер
+                tempBuffer.clear();
+                pluginInstance->plugin->processBlock(tempBuffer, clearBuffer);
+            }
+        }
+    }
+    LOG("Playhead moved to: " << position << " seconds, all notes off sent");
 }
 
 void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file,
@@ -260,6 +473,10 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
     auto newClip = std::make_unique<MidiClip>();
     newClip->midiSequence = sequence;
     newClip->startTime = beatsToSeconds(startBeats); // Переводим биты в секунды
+    newClip->startBeats = startBeats;
+    LOG("StartBeat for new clip set: " << startBeats);
+    LOG("StartTime for new clip set: " << newClip->startTime);
+
  // Устанавливаем опорный BPM ///
 
     double endTime = 0;
@@ -273,10 +490,118 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
     tracks.at(trackIndex).clips.push_back(std::move(newClip));
 }
 
+void Engine::Core::addPluginToTrack(int trackIndex, const juce::String& pluginPath) {
+    if (trackIndex < 0 || trackIndex >= tracks.size()) {
+        LOG_ERROR("Invalid track index: " << trackIndex);
+        return;
+    }
+
+    juce::File pluginFile(pluginPath);
+    if (!pluginFile.existsAsFile()) {
+        LOG_ERROR("Plugin file does not exist or is not accessible: " << pluginPath.toStdString());
+        return;
+    }
+
+    if (!pluginPath.endsWithIgnoreCase(".vst3")) {
+        LOG_ERROR("Only VST3 plugins are supported: " << pluginPath.toStdString());
+        return;
+    }
+
+    juce::AudioPluginFormat* vst3Format = nullptr;
+    for (auto* format : pluginFormatManager.getFormats()) {
+        if (format->getName() == "VST3") {
+            vst3Format = format;
+            break;
+        }
+    }
+
+    if (!vst3Format) {
+        LOG_ERROR("VST3 format not found in pluginFormatManager!");
+        return;
+    }
+
+    juce::OwnedArray<juce::PluginDescription> typesFound;
+    pluginList.scanAndAddFile(pluginPath, false, typesFound, *vst3Format);
+    LOG("Found " << typesFound.size() << " plugins in " << pluginPath.toStdString());
+
+    if (typesFound.isEmpty()) {
+        LOG_ERROR("No plugins found in file: " << pluginPath.toStdString());
+        return;
+    }
+
+    juce::PluginDescription desc = *typesFound[0];
+    juce::String error;
+    std::unique_ptr<juce::AudioPluginInstance> plugin = pluginFormatManager.createPluginInstance(
+        desc, sampleRate, 512, error
+    );
+
+    if (!plugin) {
+        LOG_ERROR("Failed to load plugin: " << error.toStdString());
+        return;
+    }
+
+    plugin->enableAllBuses();
+    plugin->prepareToPlay(sampleRate, 512);
+
+    auto pluginInstance = std::make_unique<PluginInstance>();
+    pluginInstance->plugin = std::move(plugin);
+    tracks[trackIndex].plugins.push_back(std::move(pluginInstance));
+
+    LOG_SUCCESS("Plugin loaded successfully: " << pluginPath.toStdString() << ", Instance address: " << (void*)tracks[trackIndex].plugins.back()->plugin.get());
+}
+
+juce::AudioProcessorEditor* Engine::Core::getPluginEditor(int trackIndex, int pluginIndex) {
+    if (trackIndex < 0 || trackIndex >= tracks.size() ||
+        pluginIndex < 0 || pluginIndex >= tracks[trackIndex].plugins.size()) {
+        LOG_ERROR("Invalid track or plugin index");
+        return nullptr;
+    }
+
+    auto& pluginInstance = tracks[trackIndex].plugins[pluginIndex];
+    if (pluginInstance->plugin && !pluginInstance->editor) {
+        pluginInstance->editor = pluginInstance->plugin->createEditorIfNeeded();
+        LOG("Editor created for plugin at address: " << (void*)pluginInstance->plugin.get() << ", Editor address: " << (void*)pluginInstance->editor);
+    }
+    return pluginInstance->editor;
+}
+
+void Engine::Core::togglePluginBypass(int trackIndex, int pluginIndex) {
+    if (trackIndex < 0 || trackIndex >= tracks.size() ||
+        pluginIndex < 0 || pluginIndex >= tracks[trackIndex].plugins.size()) {
+        LOG_ERROR("Invalid track or plugin index");
+        return;
+    }
+    tracks[trackIndex].plugins[pluginIndex]->bypass = !tracks[trackIndex].plugins[pluginIndex]->bypass;
+}
+
+void Engine::Core::removePluginFromTrack(int trackIndex, int pluginIndex) {
+    if (trackIndex < 0 || trackIndex >= tracks.size() ||
+        pluginIndex < 0 || pluginIndex >= tracks[trackIndex].plugins.size()) {
+        LOG_ERROR("Invalid track or plugin index");
+        return;
+    }
+    tracks[trackIndex].plugins.erase(tracks[trackIndex].plugins.begin() + pluginIndex);
+}
+
 void Engine::Core::moveClip(int trackIndex, int clipIndex, double startBeats) {
     if (trackIndex >= 0 && trackIndex < tracks.size() &&
         clipIndex >= 0 && clipIndex < tracks.at(trackIndex).clips.size()) {
         const juce::ScopedLock sl(lock);
+
+        juce::MidiBuffer clearBuffer;
+        for (int channel = 1; channel <= 16; ++channel) {
+            clearBuffer.addEvent(juce::MidiMessage::allNotesOff(channel), 0);
+        }
+
+        for (auto& pluginInstance : tracks[trackIndex].plugins) {
+            if (pluginInstance->plugin) {
+                juce::AudioBuffer<float> tempBuffer(2, 512); // Временный буфер
+                tempBuffer.clear();
+                pluginInstance->plugin->processBlock(tempBuffer, clearBuffer);
+            }
+        }
+
+
         tracks.at(trackIndex).clips[clipIndex]->startTime = beatsToSeconds(startBeats);
         tracks.at(trackIndex).clips[clipIndex]->startBeats = startBeats;
         updateActiveClips();
@@ -380,7 +705,6 @@ double Engine::Core::measuresToSeconds(double measures) const {
 #pragma region Engine
 
 Engine::Engine() {
-
     // 1. Инициализация аудиосистемы (явно указываем типы)
     audioSourcePlayer.setSource(&core);
     deviceManager.addAudioCallback(&audioSourcePlayer);
@@ -390,7 +714,6 @@ Engine::Engine() {
             LOG(" - " << device);
         }
     }
-
 
     // 2. Получение списка устройств (без auto)
     juce::StringArray outputDevices;
@@ -446,16 +769,14 @@ Engine::Engine() {
     }
 
     // 6. Инициализация с явными типами
-     juce::AudioIODevice* audioDevice = deviceManager.getCurrentAudioDevice();
+    juce::AudioIODevice* audioDevice = deviceManager.getCurrentAudioDevice();
     if (audioDevice != nullptr) {
         const int bufferSize = audioDevice->getCurrentBufferSizeSamples();
         const double sampleRate = audioDevice->getCurrentSampleRate();
         core.prepareToPlay(bufferSize, sampleRate);
     }
 
-    // 7. Настройка MIDI
-    configureMidiDevices();
-    
+    // 7. Убрали настройку MIDI, так как внешние MIDI не нужны
 }
 
 Engine::~Engine() {
@@ -564,4 +885,23 @@ void Engine::SetBPM(double newBPM) {
     core.setBPM(newBPM);
 }
 
+void Engine::AddPluginToTrack(int trackIndex, const std::string& pluginPath) {
+	juce::ScopedLock sl(core.lock);
+	core.addPluginToTrack(trackIndex, juce::String(pluginPath));
+}
+
+void Engine::RemovePluginFromTrack(int trackIndex, int pluginIndex) {
+	juce::ScopedLock sl(core.lock);
+	core.removePluginFromTrack(trackIndex, pluginIndex);
+}
+
+void Engine::TogglePluginBypass(int trackIndex, int pluginIndex) {
+	juce::ScopedLock sl(core.lock);
+	core.togglePluginBypass(trackIndex, pluginIndex);
+}
+
+juce::AudioProcessorEditor* Engine::GetPluginEditor(int trackIndex, int pluginIndex) {
+	juce::ScopedLock sl(core.lock);
+	return core.getPluginEditor(trackIndex, pluginIndex);
+}
 #pragma endregion
