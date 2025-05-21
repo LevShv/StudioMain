@@ -66,7 +66,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\user\source\repos\LevShv\StudioMain\TrackModel;C:\Users\llvvv\source\repos\Studio\StudioMain\TrackModel;C:\Users\llvvv\source\repos\Studio\StudioMain\Tools;C:\JUCE\modules;C:\Users\user\source\repos\LevShv\StudioMain\Tools;C:\Users\user\source\repos\LevShv\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine;C:\Users\llvvv\source\repos\Studio\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\Engine;C:\Users\user\source\repos\LevShv\StudioMain\View\MainWindowView;C:\Users\llvvv\source\repos\Studio\StudioMain\View\MainWindowView;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\llvvv\source\repos\Studio\StudioMain\ClipModel;C:\Users\user\source\repos\LevShv\StudioMain\TrackModel;C:\Users\llvvv\source\repos\Studio\StudioMain\TrackModel;C:\Users\llvvv\source\repos\Studio\StudioMain\Tools;C:\JUCE\modules;C:\Users\user\source\repos\LevShv\StudioMain\Tools;C:\Users\user\source\repos\LevShv\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine;C:\Users\llvvv\source\repos\Studio\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\Engine;C:\Users\user\source\repos\LevShv\StudioMain\View\MainWindowView;C:\Users\llvvv\source\repos\Studio\StudioMain\View\MainWindowView;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -104,6 +104,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ClipModel\ClipModel.cpp" />
     <ClCompile Include="Engine\engine.cpp" />
     <ClCompile Include="FileBrowser.cpp" />
     <ClCompile Include="main.cpp" />
@@ -116,6 +117,7 @@
     <QtRcc Include="qml.qrc" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="ClipModel\ClipModel.h" />
     <ClInclude Include="Engine\engine.h" />
     <QtMoc Include="TrackModel\TrackModel.h" />
     <QtMoc Include="FileBrowser.h" />

@@ -5,6 +5,8 @@
 class Engine {
 public:
 
+    
+
     struct ClipBase {
         double startTime = 0.0;
         double duration = 0.0;
@@ -19,10 +21,15 @@ public:
         virtual bool isActive(double time) const {
             return time >= startTime && time < startTime + duration;
         }
-        //virtual bool isActive(double position) const {
-        //    return position >= startTime && position < startTime + duration;
-        //}
+
+        virtual bool isActiveInRange(double startTime, double endTime) const {
+            const double epsilon = 0.0001;
+            return (this->startTime <= endTime + epsilon) &&
+                (this->startTime + this->duration >= startTime - epsilon);
+        }
     };
+
+    using ClipPtr = std::unique_ptr<ClipBase>;
 
     struct AudioClip : public ClipBase {
         juce::File file;
@@ -33,9 +40,19 @@ public:
     struct MidiClip : public ClipBase {
         juce::MidiMessageSequence midiSequence;
     };
+
+    struct PluginInstance {
+        std::unique_ptr<juce::AudioPluginInstance> plugin;
+        juce::AudioProcessorEditor* editor = nullptr; // Для GUI плагина
+        bool bypass = false;
+
+        PluginInstance() = default;
+        ~PluginInstance() { if (editor) delete editor; }
+    };
    
     struct Track {
         std::vector<std::unique_ptr<ClipBase>> clips;
+        std::vector<std::unique_ptr<PluginInstance>> plugins;
         float gain = 1.0f;
         bool muted = false;
         bool isMidiTrack = false;
@@ -51,8 +68,16 @@ public:
         Track& operator=(Track&&) noexcept = default;
     };
 
+    
+
     Engine();
     ~Engine();
+
+	void AddPluginToTrack(int trackIndex, const std::string& pluginPath);
+	void RemovePluginFromTrack(int trackIndex, int pluginIndex);
+	juce::AudioProcessorEditor* GetPluginEditor(int trackIndex, int pluginIndex);
+
+	void TogglePluginBypass(int trackIndex, int pluginIndex);
 
     void AddAudioClip(int trackInd, const std::string& path, double startBeats, bool loadToRAM);
     void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startBeats);
@@ -66,10 +91,16 @@ public:
     double GetBPM() const;
     void SetBPM(double newBPM);
 
+    // Добавляем новые методы для добавления дорожек
+    int AddAudioTrack();
+    int AddMidiTrack();
+
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;
 
     double& Position();
+
+
 
 private:
 
@@ -77,6 +108,7 @@ private:
     public:
         Core();
         ~Core();
+       
 
         double position = 0.0;
         double positionInBeats = 0.0; // Позиция в ударах
@@ -84,9 +116,19 @@ private:
         int timeSignatureNumerator = 4; // Числитель метра (4 в 4/4)
         int timeSignatureDenominator = 4; // Знаменатель метра (4 в 4/4)
 
+        std::map<std::pair<int, int>, double> activeNotes; // Ключ: (канал, номер ноты), значение: время noteOn
+        juce::CriticalSection noteLock;
+
         std::unique_ptr<juce::MidiOutput> midiOutput;
         juce::CriticalSection lock;
         std::vector<Track> tracks;
+
+        juce::AudioPluginFormatManager pluginFormatManager; // Для загрузки VST/VST3
+
+        void addPluginToTrack(int trackIndex, const juce::String& pluginPath);
+        void removePluginFromTrack(int trackIndex, int pluginIndex);
+        void togglePluginBypass(int trackIndex, int pluginIndex);
+        juce::AudioProcessorEditor* getPluginEditor(int trackIndex, int pluginIndex);
 
         void setBPM(double newBPM);
         double getBPM() const { return bpm; }
@@ -110,21 +152,25 @@ private:
 
         void moveClip(int trackIndex, int clipIndex, double newStartTime);
 
+        //void updateActiveClips(double blockStartTime, double blockEndTime);
+
         void prepareToPlay(int samplesPerBlock, double sampleRate) override;
         void releaseResources() override;
         void getNextAudioBlock(const juce::AudioSourceChannelInfo&) override;
         void handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) override;
 
     private:
+
         struct ActiveClip {
             std::unique_ptr<juce::AudioFormatReaderSource> source;
             const ClipBase* clip = nullptr;
             const Track* track = nullptr;
             juce::int64 position = 0;
 
-
         };
+        juce::KnownPluginList pluginList; // Добавляем KnownPluginList
 
+        juce::AudioBuffer<float> pluginBuffer; // Буфер для обработки плагинов
         juce::AudioFormatManager formatManager;
         juce::AudioSourcePlayer audioSourcePlayer;
 
