@@ -6,6 +6,8 @@ TrackModel::TrackModel(Engine& engine, QObject* parent)
     : QAbstractListModel(parent), m_engine(engine) {
 
     const auto& tracks = m_engine.GetdataBase();
+	m_rowCount = static_cast<int>(tracks.size());
+  
     for (int i = 0; i < tracks.size(); ++i) {
         ensureClipModel(i);
         qDebug() << "Initialized ClipModel for track" << i;
@@ -14,7 +16,8 @@ TrackModel::TrackModel(Engine& engine, QObject* parent)
 
 int TrackModel::rowCount(const QModelIndex& parent) const {
     Q_UNUSED(parent);
-    return m_engine.GetdataBase().size();
+    qDebug() << "TrackModel rowCount:" << m_rowCount;
+    return m_rowCount;
 }
 
 QVariant TrackModel::data(const QModelIndex& index, int role) const {
@@ -103,8 +106,16 @@ void TrackModel::ensureClipModel(int trackIndex) {
     }
 }
 
-void TrackModel::update() {
-    //beginResetModel();
-    //endResetModel();
+void TrackModel::update(int newTrackIndex) {
+    int currentCount = m_engine.GetdataBase().size();
+    qDebug() << "TrackModel update: m_rowCount =" << m_rowCount << ", currentCount =" << currentCount;
+    if (currentCount > m_rowCount) {
+        qDebug() << "Inserting rows from" << m_rowCount << "to" << (currentCount - 1);
+        beginInsertRows(QModelIndex(), m_rowCount, currentCount - 1);
+        m_rowCount = currentCount; // Обновляем m_rowCount
+        endInsertRows();
+        qDebug() << "Rows inserted, new count:" << m_rowCount;
+    }
     emit countChanged();
+    qDebug() << "TrackModel updated, final count:" << m_rowCount;
 }

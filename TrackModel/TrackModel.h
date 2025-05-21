@@ -26,10 +26,10 @@ public:
     QVariant clipData(int trackIndex, int clipIndex, int role) const;
 
     QHash<int, QByteArray> roleNames() const override;
-    Q_INVOKABLE void update();
 
     // Новый метод для создания ClipModel
     void ensureClipModel(int trackIndex);
+    Q_INVOKABLE void update(int newTrackIndex);
     // Const метод для получения ClipModel
     ClipModel* getClipModel(int trackIndex) const;
 
@@ -38,5 +38,6 @@ signals:
 
 private:
     Engine& m_engine;
+    int m_rowCount = 0;
     QMap<int, ClipModel*> m_clipModels; // Храним ClipModel для каждой дорожки
 };

@@ -87,17 +87,17 @@ Window {
                             ToolButton {
                                 text: "Add WAV Track"
                                 implicitWidth: 120
-                               // onClicked:// viewModel.addWavTrack()
+                                onClicked: viewModel.addWavTrack()
                             }
                             ToolButton {
                                 text: "Add Sampler Track"
                                 implicitWidth: 120
-                               // onClicked:// viewModel.addSamplerTrack()
+                                onClicked: viewModel.addSamplerTrack()
                             }
                             ToolButton {
                                 text: "Add MIDI Track"
                                 implicitWidth: 120
-                              //  onClicked:// viewModel.addMidiTrack()
+                                onClicked: viewModel.addMidiTrack()
                             }
                         }
 
@@ -234,7 +234,7 @@ Window {
                             Layout.fillHeight: true
                             Rectangle { width: 100; height: 50; color: "transparent" }
                             Repeater {
-                                model: countOfTracks
+                                model: viewModel.trackModel
                                 Rectangle {
                                     width: 150
                                     height: 50
@@ -351,7 +351,7 @@ Window {
 
                                     // Фоновые прямоугольники треков
                                     Repeater {
-                                        model: viewModel.trackModel
+                                        model:  viewModel.trackModel
                                         delegate: Rectangle {
                                             property int trackIndex: model.trackIndex || 0
                                             width: contentGrid.width
@@ -381,73 +381,74 @@ Window {
                                     }
 
                                     // Клипы
-                                   Repeater {
-    id: tracksRepeater
-    model: viewModel.trackModel
-    delegate: Item {
-        id: trackItem
-        property int trackIndex: model.trackIndex
-        property var clipsModel: model.clipsModel
-        width: contentGrid.width
-        height: 50
-        y: trackIndex * 50
-        z: 2
+                                    Repeater {
+                                        id: tracksRepeater
+                                        model: viewModel.trackModel
+                                        delegate: Item {
+                                            id: trackItem
+                                            property int trackIndex: model.trackIndex
+                                            property var clipsModel: model.clipsModel
+                                            width: contentGrid.width
+                                            height: 50
+                                            y: trackIndex * 50
+                                            z: 2
 
-        Component.onCompleted: {
-            console.log("Track index:", trackIndex, "clipsModel:", clipsModel);
-        }
+                                            Component.onCompleted: {
+                                                console.log("Track index:", trackIndex, "clipsModel:", clipsModel);
+                                            }
 
-        Repeater {
-            id: clipsRepeater
-            model: clipsModel
-            delegate: Rectangle {
-                id: clipRectangle
-                x: model.startBeats * flickableArea.beatWidth
-                width: model.durationBeats * flickableArea.beatWidth
-                height: 48
-                color: model.type === "audio" ? "#FF5722" : "#4CAF50"
-                radius: 3
-                border.width: 1
-                border.color: Qt.darker(color, 1.2)
+                                            Repeater {
+                                                id: clipsRepeater
+                                                model: clipsModel
+                                                delegate: Rectangle {
+                                                    id: clipRectangle
+                                                    x: model.startBeats * flickableArea.beatWidth
+                                                    width: model.durationBeats * flickableArea.beatWidth
+                                                    height: 48
+                                                    color: model.type === "audio" ? "#FF5722" : "#4CAF50"
+                                                    radius: 3
+                                                    border.width: 1
+                                                    border.color: Qt.darker(color, 1.2)
 
-                Component.onCompleted: {
-                    console.log("Clip created at x:", model.startBeats, "type:", model.type, "file:", model.file);
-                }
+                                                    Component.onCompleted: {
+                                                        console.log("Clip created at x:", model.startBeats, "type:", model.type, "file:", model.file);
+                                                    }
 
-                Label {
-                    anchors.fill: parent
-                    text: model.file ? model.file.split("/").pop() : "MIDI Clip"
-                    color: "white"
-                    font.pixelSize: 10
-                    padding: 5
-                    elide: Text.ElideRight
-                    verticalAlignment: Text.AlignVCenter
-                }
+                                                    Label {
+                                                        anchors.fill: parent
+                                                        text: model.file ? model.file.split("/").pop() : "MIDI Clip"
+                                                        color: "white"
+                                                        font.pixelSize: 10
+                                                        padding: 5
+                                                        elide: Text.ElideRight
+                                                        verticalAlignment: Text.AlignVCenter
+                                                    }
 
-                MouseArea {
-                    anchors.fill: parent
-                    drag.target: clipRectangle
-                    drag.axis: Drag.XAxis
-                    drag.minimumX: 0
-                    drag.maximumX: Math.max(0, contentGrid.width - clipRectangle.width)
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        drag.target: clipRectangle
+                                                        drag.axis: Drag.XAxis
+                                                        drag.minimumX: 0
+                                                        drag.maximumX: Math.max(0, contentGrid.width - clipRectangle.width)
 
-                    onPressed: {
-                        console.log("Drag started at:", clipRectangle.x)
-                        clipRectangle.z = 3
-                    }
+                                                        onPressed: {
+                                                            console.log("Drag started at:", clipRectangle.x)
+                                                            clipRectangle.z = 3
+                                                        }
 
-                    onReleased: {
-                        var snappedX = Math.round(clipRectangle.x / flickableArea.beatWidth) * flickableArea.beatWidth
-                        clipRectangle.x = snappedX
-                        clipRectangle.z = 2
-                        var newPosition = snappedX / flickableArea.beatWidth
-                        viewModel.moveClip(trackIndex, index, newPosition)
-                    }
-                }
-            }
-        }
-    }
-}
+                                                        onReleased: {
+                                                            var snappedX = Math.round(clipRectangle.x / flickableArea.beatWidth) * flickableArea.beatWidth
+                                                            clipRectangle.x = snappedX
+                                                            clipRectangle.z = 2
+                                                            var newPosition = snappedX / flickableArea.beatWidth
+                                                            viewModel.moveClip(trackIndex, index, newPosition)
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                        }
+                                    }
                                 }
                             }
 

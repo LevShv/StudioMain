@@ -101,6 +101,7 @@ void ViewModel::addWavTrack() {
     int newTrackIndex = engine.AddAudioTrack();
     if (newTrackIndex >= 0) {
         m_trackModel->ensureClipModel(newTrackIndex); // —оздаЄм ClipModel
+        m_trackModel->update(newTrackIndex);
         emit trackAdded(newTrackIndex);
         qDebug() << "Added WAV track at index:" << newTrackIndex;
     }
@@ -111,6 +112,7 @@ void ViewModel::addSamplerTrack() {
     if (newTrackIndex >= 0) {
         m_trackModel->ensureClipModel(newTrackIndex); // —оздаЄм ClipModel
         engine.AddPluginToTrack(newTrackIndex, "path/to/TAL-Sampler.vst3"); // ”кажите реальный путь
+        m_trackModel->update(newTrackIndex);
         emit trackAdded(newTrackIndex);
         emit pluginAdded(newTrackIndex);
         qDebug() << "Added Sampler track at index:" << newTrackIndex;
@@ -121,6 +123,7 @@ void ViewModel::addMidiTrack() {
     int newTrackIndex = engine.AddMidiTrack();
     if (newTrackIndex >= 0) {
         m_trackModel->ensureClipModel(newTrackIndex); // —оздаЄм ClipModel
+        m_trackModel->update(newTrackIndex);
         emit trackAdded(newTrackIndex);
         qDebug() << "Added MIDI track at index:" << newTrackIndex;
     }
