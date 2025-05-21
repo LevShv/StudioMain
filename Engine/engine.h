@@ -19,9 +19,12 @@ public:
         virtual bool isActive(double time) const {
             return time >= startTime && time < startTime + duration;
         }
-        //virtual bool isActive(double position) const {
-        //    return position >= startTime && position < startTime + duration;
-        //}
+
+        virtual bool isActiveInRange(double startTime, double endTime) const {
+            const double epsilon = 0.0001;
+            return (this->startTime <= endTime + epsilon) &&
+                (this->startTime + this->duration >= startTime - epsilon);
+        }
     };
 
     struct AudioClip : public ClipBase {
@@ -138,6 +141,8 @@ private:
         void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startBeats);
 
         void moveClip(int trackIndex, int clipIndex, double newStartTime);
+
+        //void updateActiveClips(double blockStartTime, double blockEndTime);
 
         void prepareToPlay(int samplesPerBlock, double sampleRate) override;
         void releaseResources() override;

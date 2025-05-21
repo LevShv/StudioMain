@@ -242,6 +242,8 @@ void Engine::Core::releaseResources() {
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const juce::ScopedLock sl(lock);
 
+    
+
     if (!transportPlaying) {
         info.clearActiveBufferRegion();
         return;
@@ -299,8 +301,8 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
             if (auto* midiClip = dynamic_cast<const MidiClip*>(active.clip)) {
                 for (const auto& event : midiClip->midiSequence) {
                     double eventTime = midiClip->startTime + event->message.getTimeStamp();
-                    const double epsilon = 0.001;
-                  //  LOG("Checking MIDI event: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << ", startTime " << startTime << ", endTime " << endTime);
+                    const double epsilon = 0.01;
+                   // LOG("Checking MIDI event: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << ", startTime " << startTime << ", endTime " << endTime);
                     if (eventTime >= startTime - epsilon && eventTime < endTime) {
                         int sampleOffset = static_cast<int>((eventTime - startTime) * sampleRate);
                         if (sampleOffset < 0) {
@@ -338,6 +340,7 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     }
 
     position += blockDuration;
+    
     positionInBeats = secondsToBeats(position);
     updateActiveClips();
 }
