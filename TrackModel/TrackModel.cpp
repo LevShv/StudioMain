@@ -5,17 +5,15 @@
 TrackModel::TrackModel(Engine& engine, QObject* parent)
     : QAbstractListModel(parent), m_engine(engine) {
 
-    ViewModel* viewModel = qobject_cast<ViewModel*>(parent);
-    if (viewModel) {
-        connect(viewModel, &ViewModel::clipAdded, this, &TrackModel::update);
-        connect(viewModel, &ViewModel::clipMoved, this, &TrackModel::update);
+    const auto& tracks = m_engine.GetdataBase();
+    for (int i = 0; i < tracks.size(); ++i) {
+        ensureClipModel(i);
+        qDebug() << "Initialized ClipModel for track" << i;
     }
-
-    qDebug() << "TrackModel initialized with" << m_engine.GetdataBase().size() << "tracks";
 }
 
 int TrackModel::rowCount(const QModelIndex& parent) const {
-    if (parent.isValid()) return 0;
+    Q_UNUSED(parent);
     return m_engine.GetdataBase().size();
 }
 
@@ -36,49 +34,22 @@ QVariant TrackModel::data(const QModelIndex& index, int role) const {
     switch (role) {
     case TrackIndexRole:
         return row;
-    case ClipsRole: {
-        QVariantMap trackData;
-        QVariantList clipsList;
-
-        for (const auto& clip : track.clips) {
-            QVariantMap clipData;
-            clipData["startBeats"] = clip->startBeats; // Проверьте точное написание!
-            clipData["durationBeats"] = clip->durationBeats;
-
-            if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
-                clipData["type"] = "audio";
-                clipData["file"] = QString::fromUtf8(
-                    audioClip->file.getFullPathName().toRawUTF8(),
-                    audioClip->file.getFullPathName().getNumBytesAsUTF8()
-                );
-            }
-            else {
-                clipData["type"] = "midi";
-            }
-            clipsList.append(clipData);
-        }
-
-        trackData["clips"] = clipsList;
-        //qDebug() << "Prepared track data:" << trackData;
-        return trackData;
+    case ClipsModelRole: {
+        return QVariant::fromValue(getClipModel(row));
     }
     default:
         return QVariant();
     }
 }
 
-QVariant TrackModel::clipData(int trackIndex, int clipIndex, int role) const
-{
+QVariant TrackModel::clipData(int trackIndex, int clipIndex, int role) const {
     const auto& tracks = m_engine.GetdataBase();
-
-    // Проверка корректности индекса дорожки
     if (trackIndex < 0 || trackIndex >= tracks.size()) {
         qWarning() << "Invalid track index in clipData:" << trackIndex;
         return QVariant();
     }
 
     const auto& track = tracks[trackIndex];
-    // Проверка корректности индекса клипа
     if (clipIndex < 0 || clipIndex >= track.clips.size()) {
         qWarning() << "Invalid clip index:" << clipIndex << "for track:" << trackIndex;
         return QVariant();
@@ -86,7 +57,6 @@ QVariant TrackModel::clipData(int trackIndex, int clipIndex, int role) const
 
     const auto& clip = track.clips[clipIndex];
 
-    // Возвращаем данные в зависимости от роли
     switch (role) {
     case StartBeatsRole:
         return clip->startBeats;
@@ -96,9 +66,7 @@ QVariant TrackModel::clipData(int trackIndex, int clipIndex, int role) const
         if (dynamic_cast<Engine::AudioClip*>(clip.get())) {
             return "audio";
         }
-        else {
-            return "midi";
-        }
+        return "midi";
     case FilePathRole:
         if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
             return QString::fromUtf8(
@@ -106,23 +74,37 @@ QVariant TrackModel::clipData(int trackIndex, int clipIndex, int role) const
                 audioClip->file.getFullPathName().getNumBytesAsUTF8()
             );
         }
-        return QVariant(); // Для MIDI-клипов файла нет
+        return QVariant();
     default:
         qWarning() << "Unknown role in clipData:" << role;
         return QVariant();
     }
-
 }
 
 QHash<int, QByteArray> TrackModel::roleNames() const {
-    return {
-        {TrackIndexRole, "trackIndex"},
-        {ClipsRole, "data"} // Именно "data" ожидается в QML
-    };
+    QHash<int, QByteArray> roles;
+    roles[TrackIndexRole] = "trackIndex";
+    roles[ClipsModelRole] = "clipsModel";
+    roles[CountOfTracks] = "countOfTracks";
+    roles[StartBeatsRole] = "startBeats";
+    roles[DurationBeatsRole] = "durationBeats";
+    roles[ClipTypeRole] = "type";
+    roles[FilePathRole] = "file";
+    return roles;
+}
+
+ClipModel* TrackModel::getClipModel(int trackIndex) const {
+    return m_clipModels.value(trackIndex, nullptr); // Возвращаем существующий или nullptr
+}
+
+void TrackModel::ensureClipModel(int trackIndex) {
+    if (!m_clipModels.contains(trackIndex)) {
+        m_clipModels[trackIndex] = new ClipModel(m_engine, trackIndex, this);
+    }
 }
 
 void TrackModel::update() {
-    beginResetModel();
-    endResetModel();
+    //beginResetModel();
+    //endResetModel();
     emit countChanged();
 }

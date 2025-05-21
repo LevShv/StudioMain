@@ -45,7 +45,7 @@ signals:
     void pluginAdded(int trackIndex);
     void pluginBypassed(int trackIndex, int pluginIndex);
     void pluginEditorOpened(int trackIndex, int pluginIndex, QWindow* window);
-
+    void trackAdded(int trackIndex); 
 private slots:
     void updatePlayhead();
 

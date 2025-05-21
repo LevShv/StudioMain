@@ -885,6 +885,22 @@ void Engine::SetBPM(double newBPM) {
     core.setBPM(newBPM);
 }
 
+int Engine::AddAudioTrack() {
+    core.tracks.emplace_back(); // Добавляем новую дорожку
+    int newTrackIndex = static_cast<int>(core.tracks.size()) - 1;
+    core.tracks[newTrackIndex].isMidiTrack = false; // Это аудиодорожка
+    LOG("Added audio track at index " << newTrackIndex);
+    return newTrackIndex;
+}
+
+int Engine::AddMidiTrack() {
+    core.tracks.emplace_back(); // Добавляем новую дорожку
+    int newTrackIndex = static_cast<int>(core.tracks.size()) - 1;
+    core.tracks[newTrackIndex].isMidiTrack = true; // Это MIDI-дорожка
+    LOG("Added MIDI track at index " << newTrackIndex);
+    return newTrackIndex;
+}
+
 void Engine::AddPluginToTrack(int trackIndex, const std::string& pluginPath) {
 	juce::ScopedLock sl(core.lock);
 	core.addPluginToTrack(trackIndex, juce::String(pluginPath));
