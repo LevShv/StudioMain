@@ -104,6 +104,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ClipModel.cpp" />
     <ClCompile Include="Engine\engine.cpp" />
     <ClCompile Include="FileBrowser.cpp" />
     <ClCompile Include="main.cpp" />
@@ -116,6 +117,7 @@
     <QtRcc Include="qml.qrc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ClipModel.h" />
     <ClInclude Include="Engine\engine.h" />
     <QtMoc Include="TrackModel\TrackModel.h" />
     <QtMoc Include="FileBrowser.h" />

@@ -28,6 +28,10 @@ public:
     Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
     Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
 
+    Q_INVOKABLE void addWavTrack();
+	Q_INVOKABLE void addMidiTrack();
+    Q_INVOKABLE void addSamplerTrack();
+
     bool isPlaying() const;
     int volume() const;
 

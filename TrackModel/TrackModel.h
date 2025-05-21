@@ -1,6 +1,7 @@
 #pragma once
 #include <QAbstractListModel>
 #include "engine.h"
+#include <log.h>
 
 class TrackModel : public QAbstractListModel {
     Q_OBJECT
@@ -21,6 +22,8 @@ public:
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+    QVariant clipData(int trackIndex, int clipIndex, int role) const;
+
     QHash<int, QByteArray> roleNames() const override;
 
     Q_INVOKABLE void update();

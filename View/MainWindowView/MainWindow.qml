@@ -83,6 +83,30 @@ Window {
                             ToolButton { text: "Создать"; implicitWidth: 100 }
                             ToolButton { text: "Копировать"; implicitWidth: 100 }
                             ToolButton { text: "Сохранить"; implicitWidth: 100 }
+
+                            ToolButton {
+                                text: "Add WAV Track"
+                                implicitWidth: 120
+                               // onClicked:// viewModel.addWavTrack()
+                            }
+                            ToolButton {
+                                text: "Add Sampler Track"
+                                implicitWidth: 120
+                               // onClicked:// viewModel.addSamplerTrack()
+                            }
+                            ToolButton {
+                                text: "Add MIDI Track"
+                                implicitWidth: 120
+                              //  onClicked:// viewModel.addMidiTrack()
+                            }
+                        }
+
+                        Row {
+                            Layout.alignment: Qt.AlignLeft
+                            spacing: 5
+                            ToolButton { text: "Создать"; implicitWidth: 100 }
+                            ToolButton { text: "Копировать"; implicitWidth: 100 }
+                            ToolButton { text: "Сохранить"; implicitWidth: 100 }
                         }
 
                         Row {
