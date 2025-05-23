@@ -97,35 +97,57 @@ void ViewModel::openPluginEditor(int trackIndex, int pluginIndex) {
     }
 }
 
-void ViewModel::addWavTrack() {
-    int newTrackIndex = engine.AddAudioTrack();
-    if (newTrackIndex >= 0) {
-        m_trackModel->ensureClipModel(newTrackIndex); // Создаём ClipModel
-        m_trackModel->update(newTrackIndex);
-        emit trackAdded(newTrackIndex);
-        qDebug() << "Added WAV track at index:" << newTrackIndex;
+void ViewModel::deleteTrack(int trackIndex) {
+    if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
+        bool wasPlaying = isPlaying();
+        if (wasPlaying) {
+            engine.StopMix();
+            m_playheadTimer->stop();
+            m_isPlaying = false;
+            emit isPlayingChanged();
+            qDebug() << "Stopped playback before deleting track";
+        }
+
+        engine.DeleteTrack(trackIndex);
+        m_trackModel->deleteTrack(trackIndex);
+        qDebug() << "Deleted track at index:" << trackIndex;
+
+        // Возобновляем воспроизведение, если оно было активно
+        if (wasPlaying && !engine.GetdataBase().empty()) {
+            engine.PlayMix();
+            m_playheadTimer->start(16);
+            m_isPlaying = true;
+            emit isPlayingChanged();
+            qDebug() << "Resumed playback after deleting track";
+        }
+    }
+    else {
+        qWarning() << "Invalid track index for deletion:" << trackIndex;
     }
 }
 
+void ViewModel::addAudioTrack() {
+    int newTrackIndex = engine.AddAudioTrack();
+    
+	if (newTrackIndex >= 0) {
+		m_trackModel->addTrack("Audio", newTrackIndex);
+		emit trackAdded(newTrackIndex);
+	}
+}
+
 void ViewModel::addSamplerTrack() {
-    int newTrackIndex = engine.AddMidiTrack();
+    int newTrackIndex = engine.AddSamplerTrack();
     if (newTrackIndex >= 0) {
-        m_trackModel->ensureClipModel(newTrackIndex); // Создаём ClipModel
-        engine.AddPluginToTrack(newTrackIndex, "path/to/TAL-Sampler.vst3"); // Укажите реальный путь
-        m_trackModel->update(newTrackIndex);
+        m_trackModel->addTrack("Sampler", newTrackIndex);
         emit trackAdded(newTrackIndex);
-        emit pluginAdded(newTrackIndex);
-        qDebug() << "Added Sampler track at index:" << newTrackIndex;
     }
 }
 
 void ViewModel::addMidiTrack() {
     int newTrackIndex = engine.AddMidiTrack();
     if (newTrackIndex >= 0) {
-        m_trackModel->ensureClipModel(newTrackIndex); // Создаём ClipModel
-        m_trackModel->update(newTrackIndex);
+        m_trackModel->addTrack("Midi", newTrackIndex);
         emit trackAdded(newTrackIndex);
-        qDebug() << "Added MIDI track at index:" << newTrackIndex;
     }
 }
 

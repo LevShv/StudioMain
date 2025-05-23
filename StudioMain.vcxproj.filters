@@ -54,9 +54,6 @@
     <ClCompile Include="TrackModel\TrackModel.cpp">
       <Filter>TrackModel</Filter>
     </ClCompile>
-    <ClCompile Include="ClipModel.cpp">
-      <Filter>ClipModel</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="View\MainWindowView\MainWindow.qml">
@@ -76,7 +73,6 @@
     <ClInclude Include="Tools\log.h">
       <Filter>Tools</Filter>
     </ClInclude>
-    <ClInclude Include="ClipModel.h" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="ViewModel\ViewModel.h">
@@ -91,9 +87,13 @@
     <QtMoc Include="TrackModel\TrackModel.h">
       <Filter>TrackModel</Filter>
     </QtMoc>
+    <QtMoc Include="ClipModel\ClipModel.h">
+      <Filter>ClipModel</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ClipModel\ClipModel.cpp">
       <Filter>ClipModel</Filter>
     </ClCompile>
   </ItemGroup>

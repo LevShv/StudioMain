@@ -28,7 +28,10 @@ public:
     Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
     Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
 
-    Q_INVOKABLE void addWavTrack();
+    Q_INVOKABLE void deleteTrack(int trackIndex);
+
+
+    Q_INVOKABLE void addAudioTrack();
 	Q_INVOKABLE void addMidiTrack();
     Q_INVOKABLE void addSamplerTrack();
 
@@ -58,6 +61,8 @@ private:
     double m_playheadPosition = engine.Position();
     bool m_isPlaying = false;
     int m_volume = 50;
+
+	const std::string samplerPath = "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3"; // ”кажите реальный путь к сэмплеру
 
 	QTimer* m_playheadTimer;
 };
