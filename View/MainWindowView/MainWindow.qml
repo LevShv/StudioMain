@@ -432,6 +432,18 @@ Window {
                                                         console.log("Clip created at x:", model.startBeats, "type:", model.type, "file:", model.file);
                                                     }
 
+                                                    ToolButton {
+                                                        anchors.right: parent.right
+                                                        anchors.top: parent.top
+                                                        anchors.margins: 2
+                                                        z: 10  // Гарантированно выше других элементов
+                                                        text: "🗑"
+                                                        onClicked: {
+                                                            console.log("Deleting clip:", index, "from track:", trackIndex);
+                                                            viewModel.deleteClip(trackIndex, index);
+                                                        }
+                                                    }
+
                                                     Label {
                                                         anchors.fill: parent
                                                         text: model.file ? model.file.split("/").pop() : "MIDI Clip"
@@ -440,6 +452,7 @@ Window {
                                                         padding: 5
                                                         elide: Text.ElideRight
                                                         verticalAlignment: Text.AlignVCenter
+
                                                     }
 
                                                     MouseArea {

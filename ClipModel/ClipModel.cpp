@@ -82,3 +82,11 @@ void ClipModel::setTrackIndex(int trackIndex)
         qDebug() << "ClipModel reset for trackIndex:" << m_trackIndex;
     }
 }
+
+void ClipModel::deleteClip(int clipIndex)
+{
+	beginRemoveRows(QModelIndex(), clipIndex, clipIndex);
+    endRemoveRows();
+	qDebug() << "ClipModel deleted clip at index:" << clipIndex;
+
+}

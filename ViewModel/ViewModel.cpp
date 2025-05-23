@@ -126,6 +126,41 @@ void ViewModel::deleteTrack(int trackIndex) {
     }
 }
 
+Q_INVOKABLE void ViewModel::deleteClip(int trackIndex, int clipindex)
+{
+    if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
+        if (clipindex >= 0 && clipindex < engine.GetdataBase()[trackIndex].clips.size()) {
+            bool wasPlaying = isPlaying();
+            if (wasPlaying) {
+                engine.StopMix();
+                m_playheadTimer->stop();
+                m_isPlaying = false;
+                emit isPlayingChanged();
+                qDebug() << "Stopped playback before deleting track";
+            }
+
+			ClipModel* clipmodel = m_trackModel->getClipModel(trackIndex);
+            clipmodel->deleteClip(clipindex);
+			engine.DeleteClip(trackIndex, clipindex);
+
+            if (wasPlaying && !engine.GetdataBase().empty()) {
+                engine.PlayMix();
+                m_playheadTimer->start(16);
+                m_isPlaying = true;
+                emit isPlayingChanged();
+                qDebug() << "Resumed playback after deleting track";
+            }
+
+        }
+        else {
+			qWarning() << "Invalid clip index for deletion:" << clipindex;
+        }
+    }
+    else {
+        qWarning() << "Invalid track index for clip deletion:" << trackIndex;
+    }
+}
+
 void ViewModel::addAudioTrack() {
     int newTrackIndex = engine.AddAudioTrack();
     

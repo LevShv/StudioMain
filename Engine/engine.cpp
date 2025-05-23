@@ -1087,11 +1087,22 @@ int Engine::AddSamplerTrack() {
 }
 
 void Engine::DeleteTrack(int trackIndex) {
+    juce::ScopedLock sl(core.lock);
     if (trackIndex < core.tracks.size()) {
         core.tracks.erase(core.tracks.begin() + trackIndex);
     }
     else {
-        std::cout << "Индекс выходит за границы вектора!\n";
+        LOG_ERROR("Index out of range");
+    }
+}
+
+void::Engine::DeleteClip(int trackIndex, int clipIndex) {
+    juce::ScopedLock sl(core.lock);
+    if (trackIndex < core.tracks.size() && clipIndex < core.tracks[trackIndex].clips.size()) {
+        core.tracks[trackIndex].clips.erase(core.tracks[trackIndex].clips.begin() + clipIndex);
+    }
+    else {
+        LOG_ERROR("Index out of range");
     }
 }
 

@@ -21,6 +21,7 @@ public:
     void addClip(const Engine::ClipPtr& clip); // Метод для добавления клипа
     void updateClip(int clipIndex); // Метод для обновления клипа
     void setTrackIndex(int trackIndex);
+	void deleteClip(int clipIndex); 
 
 private:
     Engine& m_engine;

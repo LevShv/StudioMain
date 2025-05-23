@@ -98,6 +98,7 @@ public:
     int AddSamplerTrack();
 
     void DeleteTrack(int trackIndex);
+    void DeleteClip(int trackIndex, int clipIndex);
 
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;
@@ -199,5 +200,7 @@ private:
 
     void configureMidiDevices();
     
+
+   
 
 };
