@@ -56,6 +56,7 @@ public:
         float gain = 1.0f;
         bool muted = false;
         bool isMidiTrack = false;
+        bool isSamplerTrack = false;
 
         Track() = default;
 
@@ -94,6 +95,9 @@ public:
     // ƒобавл€ем новые методы дл€ добавлени€ дорожек
     int AddAudioTrack();
     int AddMidiTrack();
+    int AddSamplerTrack();
+
+    void DeleteTrack(int trackIndex);
 
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;

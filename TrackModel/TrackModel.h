@@ -18,7 +18,8 @@ public:
         StartBeatsRole,
         DurationBeatsRole,
         ClipTypeRole,
-        FilePathRole
+        FilePathRole,
+        TrackTypeRole = Qt::UserRole + 8
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -30,6 +31,9 @@ public:
     // Ќовый метод дл€ создани€ ClipModel
     void ensureClipModel(int trackIndex);
     Q_INVOKABLE void update(int newTrackIndex);
+    void addTrack(QString type, int trackIndex);
+	void deleteTrack(int trackIndex);
+   
     // Const метод дл€ получени€ ClipModel
     ClipModel* getClipModel(int trackIndex) const;
 

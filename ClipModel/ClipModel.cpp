@@ -69,3 +69,16 @@ void ClipModel::updateClip(int clipIndex) {
     QModelIndex idx = createIndex(clipIndex, 0);
     emit dataChanged(idx, idx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole });
 }
+
+void ClipModel::setTrackIndex(int trackIndex)
+{
+    if (m_trackIndex != trackIndex) {
+        m_trackIndex = trackIndex;
+        qDebug() << "ClipModel trackIndex changed to:" << m_trackIndex;
+
+        // Перестраиваем модель, чтобы синхронизировать данные
+        beginResetModel();
+        endResetModel();
+        qDebug() << "ClipModel reset for trackIndex:" << m_trackIndex;
+    }
+}

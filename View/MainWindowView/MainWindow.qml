@@ -87,7 +87,7 @@ Window {
                             ToolButton {
                                 text: "Add WAV Track"
                                 implicitWidth: 120
-                                onClicked: viewModel.addWavTrack()
+                                onClicked: viewModel.addAudioTrack()
                             }
                             ToolButton {
                                 text: "Add Sampler Track"
@@ -242,16 +242,27 @@ Window {
                                     border.color: "#444"
                                     Label {
                                         anchors.centerIn: parent
-                                        text: "Track " + (index + 1)
+                                        text: (index + 1) + " (" + model.trackType + ")"
                                         color: "#CCC"
                                         font.pixelSize: 12
                                     }
-                                    ToolButton {
-                                        text: "🎹"
-                                        implicitWidth: 30
-                                        implicitHeight: 30
-                                        onClicked: {
-                                            viewModel.openPluginEditor(index, 0) // Открываем первый плагин на дорожке
+                                    Row {
+                                        ToolButton {
+                                            text: "🎹"
+                                            implicitWidth: 30
+                                            implicitHeight: 30
+                                            onClicked: {
+                                                viewModel.openPluginEditor(index, 0) // Открываем первый плагин на дорожке
+                                            }
+                                        }
+
+                                        ToolButton {
+                                            text: "🗑"
+                                            implicitWidth: 30
+                                            implicitHeight: 30
+                                            onClicked: {
+                                                viewModel.deleteTrack(index) // Открываем первый плагин на дорожке
+                                            }
                                         }
                                     }
                                 }
@@ -356,7 +367,7 @@ Window {
                                             property int trackIndex: model.trackIndex || 0
                                             width: contentGrid.width
                                             height: 50
-                                            y: trackIndex * 50
+                                            y: index * 50
                                             z: 0
                                             color: "#2D2D2D"
                                             border { width: 1; color: "#444" }
@@ -390,7 +401,7 @@ Window {
                                             property var clipsModel: model.clipsModel
                                             width: contentGrid.width
                                             height: 50
-                                            y: trackIndex * 50
+                                            y: index * 50
                                             z: 2
 
                                             Component.onCompleted: {

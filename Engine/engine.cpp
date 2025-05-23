@@ -901,6 +901,24 @@ int Engine::AddMidiTrack() {
     return newTrackIndex;
 }
 
+int Engine::AddSamplerTrack() {
+    core.tracks.emplace_back(); // Добавляем новую дорожку
+    int newTrackIndex = static_cast<int>(core.tracks.size()) - 1;
+    core.tracks[newTrackIndex].isMidiTrack = true; // Это MIDI-дорожка
+    core.tracks[newTrackIndex].isSamplerTrack = true;
+    LOG("Added MIDI track at index " << newTrackIndex);
+    return newTrackIndex;
+}
+
+void Engine::DeleteTrack(int trackIndex) {
+    if (trackIndex < core.tracks.size()) {
+        core.tracks.erase(core.tracks.begin() + trackIndex);
+    }
+    else {
+        std::cout << "Индекс выходит за границы вектора!\n";
+    }
+}
+
 void Engine::AddPluginToTrack(int trackIndex, const std::string& pluginPath) {
 	juce::ScopedLock sl(core.lock);
 	core.addPluginToTrack(trackIndex, juce::String(pluginPath));
