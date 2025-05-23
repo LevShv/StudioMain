@@ -106,7 +106,14 @@ Window {
                             spacing: 5
                             ToolButton { text: "Создать"; implicitWidth: 100 }
                             ToolButton { text: "Копировать"; implicitWidth: 100 }
-                            ToolButton { text: "Сохранить"; implicitWidth: 100 }
+                            ToolButton {
+                                text: "Сохранить"
+                                implicitWidth: 100 
+                                onClicked: {
+                                    viewModel.RenderToWave("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\mix.wav")
+                                    console.log("Render to WAV")
+                                }
+                            }
                         }
 
                         Row {

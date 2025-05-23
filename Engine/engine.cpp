@@ -352,6 +352,176 @@ void Engine::Core::handleIncomingMidiMessage(juce::MidiInput* source, const juce
     }
 }
 
+void Engine::Core::RenderToFile(std::string& outputPath) {
+    LOG("Starting render to file: " << outputPath);
+
+    // 1. Определяем максимальную длительность проекта
+    double projectDuration = 0.0;
+    for (const auto& track : tracks) {
+        for (const auto& clip : track.clips) {
+            double clipEndTime = clip->startTime + clip->duration;
+            projectDuration = juce::jmax(projectDuration, clipEndTime);
+        }
+    }
+
+    if (projectDuration <= 0.0) {
+        LOG_ERROR("Project duration is 0, nothing to render!");
+        return;
+    }
+
+    LOG("Project duration: " << projectDuration << " seconds");
+
+    // 2. Настраиваем параметры рендера
+    const int samplesPerBlock = 512; // Размер блока для рендера
+    const double renderSampleRate = sampleRate > 0 ? sampleRate : 44100.0;
+    const int numChannels = 2; // Стерео
+    const int totalSamples = static_cast<int>(projectDuration * renderSampleRate);
+
+    // 3. Создаём WAV-файл
+    juce::File outputFile(outputPath);
+    if (outputFile.existsAsFile()) {
+        outputFile.deleteFile();
+    }
+
+    juce::WavAudioFormat wavFormat;
+    std::unique_ptr<juce::AudioFormatWriter> writer;
+    writer.reset(wavFormat.createWriterFor(
+        new juce::FileOutputStream(outputFile),
+        renderSampleRate,
+        numChannels,
+        16, // 16-битный WAV
+        {}, // Метаданные (пустые)
+        0   // Качество (для WAV не используется)
+    ));
+
+    if (!writer) {
+        LOG_ERROR("Failed to create WAV writer for file: " << outputPath);
+        return;
+    }
+
+    // 4. Подготавливаем буферы
+    juce::AudioBuffer<float> renderBuffer(numChannels, samplesPerBlock);
+    juce::AudioSourceChannelInfo bufferInfo(&renderBuffer, 0, samplesPerBlock);
+    juce::MidiBuffer midiBuffer;
+
+    // 5. Сбрасываем позицию воспроизведения
+    double originalPosition = position;
+    double originalPositionInBeats = positionInBeats;
+    position = 0.0;
+    positionInBeats = 0.0;
+    updateActiveClips();
+
+    // 6. Рендерим
+    int samplesRendered = 0;
+    while (samplesRendered < totalSamples) {
+        int samplesThisBlock = juce::jmin(samplesPerBlock, totalSamples - samplesRendered);
+        bufferInfo.numSamples = samplesThisBlock;
+
+        // Очистка буфера перед обработкой
+        renderBuffer.clear();
+
+        const double blockDuration = samplesThisBlock / renderSampleRate;
+        const double startTime = position;
+        const double endTime = startTime + blockDuration;
+        const double startBeats = positionInBeats;
+        const double blockDurationBeats = secondsToBeats(blockDuration);
+        const double endBeats = startBeats + blockDurationBeats;
+
+        // Обрабатываем каждый трек
+        for (auto& track : tracks) {
+            // Обрабатываем аудиоклипы
+            for (auto& active : activeClips) {
+                if (active.track != &track) continue;
+                if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
+                    if (!audioClip->muted && !active.track->muted) {
+                        if (audioClip->useRAM) {
+                            const int startSample = static_cast<int>((startTime - audioClip->startTime) * renderSampleRate);
+                            const int numSamples = juce::jmin(
+                                samplesThisBlock,
+                                audioClip->buffer.getNumSamples() - startSample
+                            );
+
+                            if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
+                                for (int channel = 0; channel < numChannels; ++channel) {
+                                    renderBuffer.addFrom(
+                                        channel, 0, audioClip->buffer,
+                                        channel % audioClip->buffer.getNumChannels(),
+                                        startSample, numSamples,
+                                        active.track->gain * audioClip->gain
+                                    );
+                                }
+                            }
+                        }
+                        else if (active.source != nullptr) {
+                            juce::AudioSourceChannelInfo tempInfo(&renderBuffer, 0, samplesThisBlock);
+                            active.source->getNextAudioBlock(tempInfo);
+                            for (int channel = 0; channel < numChannels; ++channel) {
+                                renderBuffer.applyGain(channel, 0, samplesThisBlock, active.track->gain * audioClip->gain);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Собираем MIDI-сообщения для текущего трека
+            midiBuffer.clear();
+            for (auto& active : activeClips) {
+                if (active.track != &track) continue;
+                if (auto* midiClip = dynamic_cast<const MidiClip*>(active.clip)) {
+                    for (const auto& event : midiClip->midiSequence) {
+                        double eventTime = midiClip->startTime + event->message.getTimeStamp();
+                        const double epsilon = 0.01;
+                        if (eventTime >= startTime - epsilon && eventTime < endTime) {
+                            int sampleOffset = static_cast<int>((eventTime - startTime) * renderSampleRate);
+                            if (sampleOffset < 0) {
+                                sampleOffset = 0;
+                            }
+                            midiBuffer.addEvent(event->message, sampleOffset);
+                        }
+                    }
+                }
+            }
+
+            if (track.muted || track.plugins.empty()) continue;
+
+            pluginBuffer.setSize(numChannels, samplesThisBlock);
+            pluginBuffer.clear();
+
+            for (auto& pluginInstance : track.plugins) {
+                if (!pluginInstance->bypass && pluginInstance->plugin) {
+                    pluginInstance->plugin->processBlock(pluginBuffer, midiBuffer);
+                    for (int channel = 0; channel < numChannels; ++channel) {
+                        pluginBuffer.addFrom(
+                            channel, 0, renderBuffer,
+                            channel, 0, samplesThisBlock, 1.0f
+                        );
+                        renderBuffer.copyFrom(
+                            channel, 0, pluginBuffer,
+                            channel, 0, samplesThisBlock
+                        );
+                    }
+                }
+            }
+        }
+
+        writer->writeFromAudioSampleBuffer(renderBuffer, 0, samplesThisBlock);
+
+        position += blockDuration;
+        positionInBeats = secondsToBeats(position);
+        updateActiveClips();
+        samplesRendered += samplesThisBlock;
+    }
+
+    writer->flush();
+    writer.reset();
+
+    position = originalPosition;
+    positionInBeats = originalPositionInBeats;
+    updateActiveClips();
+
+    LOG_SUCCESS("Render completed successfully to: " << outputPath);
+}
+
 void Engine::Core::processMidiBlocks(const juce::AudioSourceChannelInfo& info,
     double startTime, double endTime) {
     juce::MidiBuffer midiBuffer;
@@ -868,6 +1038,12 @@ void Engine::configureMidiDevices() {
 
 double& Engine::Position() {
     return core.position;  
+}
+
+void Engine::RenderToFile(std::string& Path)
+{
+    juce::ScopedLock s1(core.lock);
+    core.RenderToFile(Path);
 }
 
 double Engine::GetPlayheadPosition() const {

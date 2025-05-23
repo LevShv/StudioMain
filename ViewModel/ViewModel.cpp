@@ -143,6 +143,13 @@ void ViewModel::addSamplerTrack() {
     }
 }
 
+Q_INVOKABLE void ViewModel::RenderToWave(QString path)
+{
+	std::string pathStr = path.toStdString();
+	engine.RenderToFile(pathStr);
+	qDebug() << "Render to file:" << path;
+}
+
 void ViewModel::addMidiTrack() {
     int newTrackIndex = engine.AddMidiTrack();
     if (newTrackIndex >= 0) {

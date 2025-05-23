@@ -104,6 +104,8 @@ public:
 
     double& Position();
 
+    void RenderToFile(std::string& Path);
+
 
 
 private:
@@ -162,6 +164,9 @@ private:
         void releaseResources() override;
         void getNextAudioBlock(const juce::AudioSourceChannelInfo&) override;
         void handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) override;
+
+
+		void RenderToFile(std::string& Path);
 
     private:
 

@@ -35,6 +35,10 @@ public:
 	Q_INVOKABLE void addMidiTrack();
     Q_INVOKABLE void addSamplerTrack();
 
+    Q_INVOKABLE void RenderToWave(QString path);
+
+   // Q_INVOKABLE void RenderToWave(QString& path);
+
     bool isPlaying() const;
     int volume() const;
 
