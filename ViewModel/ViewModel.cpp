@@ -2,14 +2,17 @@
 #include <QDebug>
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
+    buildModel();
+
+    m_playheadTimer = new QTimer(this);
+    connect(m_playheadTimer, &QTimer::timeout, this, &ViewModel::updatePlayhead);
+}
+void ViewModel::buildModel() {
     m_trackModel = new TrackModel(engine, this);
     m_bpm = engine.GetBPM();
     m_playheadPosition = engine.Position();
     m_isPlaying = false;
     m_volume = 50;
-
-    m_playheadTimer = new QTimer(this);
-    connect(m_playheadTimer, &QTimer::timeout, this, &ViewModel::updatePlayhead);
 }
 
 void ViewModel::togglePlayback() {
@@ -183,6 +186,26 @@ Q_INVOKABLE void ViewModel::RenderToWave(QString path)
 	std::string pathStr = path.toStdString();
 	engine.RenderToFile(pathStr);
 	qDebug() << "Render to file:" << path;
+}
+
+Q_INVOKABLE void ViewModel::SaveProject(QString path)
+{
+    const std::string pathStr = path.toStdString();
+    engine.SaveProject(pathStr);
+    qDebug() << "Save Proj to file:" << path;
+}
+
+Q_INVOKABLE void ViewModel::OpenProject(QString path)
+{
+    const std::string pathStr = path.toStdString();
+    qDebug() << "Trying to open Proj in file:" << path;
+
+    if (engine.LoadProject(pathStr)) {
+        buildModel();
+        qDebug() << "File finnaly opened" << path;
+    }
+    
+
 }
 
 void ViewModel::addMidiTrack() {

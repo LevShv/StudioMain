@@ -5,8 +5,6 @@
 class Engine {
 public:
 
-    
-
     struct ClipBase {
         double startTime = 0.0;
         double duration = 0.0;
@@ -69,8 +67,6 @@ public:
         Track& operator=(Track&&) noexcept = default;
     };
 
-    
-
     Engine();
     ~Engine();
 
@@ -106,8 +102,8 @@ public:
     double& Position();
 
     void RenderToFile(std::string& Path);
-
-
+    void SaveProject(const std::string& Path);
+    bool LoadProject(const std::string& Path);
 
 private:
 
@@ -154,8 +150,11 @@ private:
         double getPosition() const { return position; }
         bool isPlaying() const { return transportPlaying; }
 
+        void updateActiveClips();
+
         void loadAudioClip(int trackIndex, const juce::File& file, double startBeats, bool loadToRAM);
         void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startBeats);
+        void loadClipToRAM(AudioClip& clip);
 
         void moveClip(int trackIndex, int clipIndex, double newStartTime);
 
@@ -189,18 +188,22 @@ private:
         
         bool transportPlaying = false;
 
-        void updateActiveClips();
-        void loadClipToRAM(AudioClip& clip);
         void processMidiBlocks(const juce::AudioSourceChannelInfo&, double startTime, double endTime);
     };
 
+    class Saver {
+    public:
+        Saver(Core& core) : m_core(core) {}
+        void SaveProject(const std::string filePath);
+        bool LoadProject(const std::string filePath);
+    private:
+        Core& m_core;
+    };
+
     Core core;
+    Saver saver{ core };
     juce::AudioDeviceManager deviceManager;
     juce::AudioSourcePlayer audioSourcePlayer;
 
     void configureMidiDevices();
-    
-
-   
-
 };

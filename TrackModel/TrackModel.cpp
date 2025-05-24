@@ -7,7 +7,9 @@ TrackModel::TrackModel(Engine& engine, QObject* parent)
 
     const auto& tracks = m_engine.GetdataBase();
 	m_rowCount = static_cast<int>(tracks.size());
-  
+
+    m_clipModels.clear();
+
     for (int i = 0; i < tracks.size(); ++i) {
         ensureClipModel(i);
         qDebug() << "Initialized ClipModel for track" << i;

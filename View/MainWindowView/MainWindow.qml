@@ -81,8 +81,20 @@ Window {
                             Layout.alignment: Qt.AlignLeft
                             spacing: 5
                             ToolButton { text: "Создать"; implicitWidth: 100 }
-                            ToolButton { text: "Копировать"; implicitWidth: 100 }
-                            ToolButton { text: "Сохранить"; implicitWidth: 100 }
+                            ToolButton { 
+                                text: "Открыть" 
+                                implicitWidth: 100 
+                                onClicked: {
+                                    viewModel.OpenProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.json")
+                                }
+                            }
+                            ToolButton { 
+                                text: "Сохранить"
+                                implicitWidth: 100
+                                onClicked: {
+                                    viewModel.SaveProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.json")
+                                }
+                            }
 
                             ToolButton {
                                 text: "Add WAV Track"
