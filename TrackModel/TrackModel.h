@@ -30,7 +30,7 @@ public:
 
     // Новый метод для создания ClipModel
     void ensureClipModel(int trackIndex);
-    Q_INVOKABLE void update(int newTrackIndex);
+    Q_INVOKABLE void update();
     void addTrack(QString type, int trackIndex);
 	void deleteTrack(int trackIndex);
    

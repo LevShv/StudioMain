@@ -2,17 +2,25 @@
 #include <QDebug>
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
-    buildModel();
+
+    m_trackModel = new TrackModel(engine, this);
 
     m_playheadTimer = new QTimer(this);
     connect(m_playheadTimer, &QTimer::timeout, this, &ViewModel::updatePlayhead);
+
+    buildModel();
 }
 void ViewModel::buildModel() {
-    m_trackModel = new TrackModel(engine, this);
     m_bpm = engine.GetBPM();
     m_playheadPosition = engine.Position();
     m_isPlaying = false;
     m_volume = 50;
+
+    // Уведомляем QML об изменениях
+    emit bpmChanged();
+    emit playheadPositionChanged(m_playheadPosition);
+    emit isPlayingChanged();
+    emit volumeChanged();
 }
 
 void ViewModel::togglePlayback() {
@@ -202,6 +210,7 @@ Q_INVOKABLE void ViewModel::OpenProject(QString path)
 
     if (engine.LoadProject(pathStr)) {
         buildModel();
+        m_trackModel->update();
         qDebug() << "File finnaly opened" << path;
     }
     

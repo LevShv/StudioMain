@@ -8,8 +8,6 @@ TrackModel::TrackModel(Engine& engine, QObject* parent)
     const auto& tracks = m_engine.GetdataBase();
 	m_rowCount = static_cast<int>(tracks.size());
 
-    m_clipModels.clear();
-
     for (int i = 0; i < tracks.size(); ++i) {
         ensureClipModel(i);
         qDebug() << "Initialized ClipModel for track" << i;
@@ -117,33 +115,28 @@ void TrackModel::ensureClipModel(int trackIndex) {
     }
 }
 
-void TrackModel::update(int newTrackIndex) {
-    int currentCount = m_engine.GetdataBase().size();
-    qDebug() << "TrackModel update: m_rowCount =" << m_rowCount << ", currentCount =" << currentCount;
-    if (currentCount > m_rowCount) {
-        qDebug() << "Inserting rows from" << m_rowCount << "to" << (currentCount - 1);
-        beginInsertRows(QModelIndex(), m_rowCount, currentCount - 1);
-        m_rowCount = currentCount;
-        endInsertRows();
-        qDebug() << "Rows inserted, new count:" << m_rowCount;
-    }
-    else if (currentCount < m_rowCount) {
-        qDebug() << "Removing rows from" << currentCount << "to" << (m_rowCount - 1);
-        beginRemoveRows(QModelIndex(), currentCount, m_rowCount - 1);
-        m_rowCount = currentCount; // Обновляем m_rowCount
-        endRemoveRows();
-        qDebug() << "Rows removed, new count:" << m_rowCount;
+void TrackModel::update() {
 
-        // Удаляем ClipModel для удалённых дорожек
-        for (int i = m_rowCount; i <= newTrackIndex; ++i) {
-            if (m_clipModels.contains(i)) {
-                delete m_clipModels.take(i);
-                qDebug() << "Deleted ClipModel for track" << i;
-            }
-        }
+    const auto& tracks = m_engine.GetdataBase();
+    beginResetModel();
+
+    int newRowCount = static_cast<int>(tracks.size());
+    if (m_rowCount != newRowCount) {
+        m_rowCount = newRowCount;
+        emit countChanged();
     }
-    emit countChanged();
-    qDebug() << "TrackModel updated, final count:" << m_rowCount;
+
+    for (auto* clipModel : m_clipModels) delete clipModel;
+    m_clipModels.clear();
+
+    for (int i = 0; i < m_rowCount; ++i) {
+        ensureClipModel(i);
+        LOG("Created ClipModel for track " << i);
+    }
+
+    endResetModel();
+
+    LOG("TrackModel updated with " << m_rowCount << " tracks");
 }
 
 void TrackModel::addTrack(QString type, int trackIndex)
