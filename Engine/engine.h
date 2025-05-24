@@ -43,6 +43,7 @@ public:
         std::unique_ptr<juce::AudioPluginInstance> plugin;
         juce::AudioProcessorEditor* editor = nullptr; // Для GUI плагина
         bool bypass = false;
+        std::string Path;
 
         PluginInstance() = default;
         ~PluginInstance() { if (editor) delete editor; }

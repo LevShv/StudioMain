@@ -97,6 +97,7 @@ void Engine::Core::stopAudio(juce::AudioDeviceManager& deviceManager) {
 }
 
 void Engine::Core::prepareToPlay(int samplesPerBlock, double newSampleRate) {
+
     sampleRate = newSampleRate;
     transportPlaying = false;
 
@@ -604,6 +605,7 @@ void Engine::Core::addPluginToTrack(int trackIndex, const juce::String& pluginPa
 
     auto pluginInstance = std::make_unique<PluginInstance>();
     pluginInstance->plugin = std::move(plugin);
+    pluginInstance->Path = pluginPath.toStdString();
     tracks[trackIndex].plugins.push_back(std::move(pluginInstance));
 
     LOG_SUCCESS("Plugin loaded successfully: " << pluginPath.toStdString() << ", Instance address: " << (void*)tracks[trackIndex].plugins.back()->plugin.get());
@@ -1091,7 +1093,8 @@ void Engine::Saver::SaveProject(const std::string filePath)
         juce::Array<juce::var> pluginsArray;
         for (const auto& plugin : track.plugins) {
             juce::DynamicObject::Ptr pluginJson = new juce::DynamicObject();
-            pluginJson->setProperty("pluginPath", plugin->plugin ? juce::var(juce::String(plugin->plugin->getName().toStdString())) : "");
+            pluginJson->setProperty("pluginPath", plugin->plugin ? juce::var(juce::String(plugin->Path)) : "");
+            LOG("Plugin path: " << plugin->Path);
             pluginJson->setProperty("bypass", plugin->bypass);
             pluginsArray.add(juce::var(pluginJson));
         }
@@ -1151,9 +1154,11 @@ bool Engine::Saver::LoadProject(const std::string filePath)
         LOG("Set position:" << m_core.position);
     }
 
+
     if (json.hasProperty("tracks")) {
         const juce::var& tracksArray = json["tracks"];
         for (const auto& trackVar : *tracksArray.getArray()) {
+
             Track track;
             track.isMidiTrack = trackVar["isMidiTrack"];
             track.isSamplerTrack = trackVar["isSamplerTrack"];
@@ -1225,23 +1230,27 @@ bool Engine::Saver::LoadProject(const std::string filePath)
                 }
             }
 
-          
+            m_core.tracks.emplace_back(std::move(track));
 
             // Загружаем плагины
             if (trackVar.hasProperty("plugins")) {
                 for (const auto& pluginVar : *trackVar["plugins"].getArray()) {
                     auto pluginInstance = std::make_unique<PluginInstance>();
                     std::string pluginPath = pluginVar["pluginPath"].toString().toStdString();
+                    LOG("Plugin path after load: " << pluginPath);
+                    pluginInstance->Path = pluginPath;
                     pluginInstance->bypass = pluginVar["bypass"];
                     if (!pluginPath.empty()) {
-                        m_core.addPluginToTrack(m_core.tracks.size(), pluginPath);
+                         m_core.addPluginToTrack(m_core.tracks.size() - 1, pluginPath);
                     }
-                    track.plugins.push_back(std::move(pluginInstance));
+                    m_core.tracks[m_core.tracks.size() - 1].plugins.emplace_back(std::move(pluginInstance));
                 }
             }
 
+
            // m_core.tracks.push_back(std::move(track));
-            m_core.tracks.emplace_back(std::move(track));
+            
+                
             LOG("Loaded: " << m_core.tracks.size() << "tracks");
         }
     }
