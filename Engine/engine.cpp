@@ -1096,6 +1096,22 @@ void Engine::Saver::SaveProject(const std::string filePath)
             pluginJson->setProperty("pluginPath", plugin->plugin ? juce::var(juce::String(plugin->Path)) : "");
             LOG("Plugin path: " << plugin->Path);
             pluginJson->setProperty("bypass", plugin->bypass);
+
+            if (plugin->plugin) {
+                juce::MemoryBlock state;
+                plugin->plugin->getStateInformation(state);
+
+                if (state.getSize() > 0) {
+                    plugin->state = state;
+
+                    juce::String stateBase64 = juce::Base64::toBase64(state.getData(), state.getSize());
+                    pluginJson->setProperty("state", stateBase64);
+                    LOG("Saved plugin state for " << plugin->plugin->getName().toStdString() << ", size: " << state.getSize() << " bytes");
+                }
+                else {
+                    LOG_ERROR("Failed to get plugin state for " << plugin->plugin->getName().toStdString());
+                }
+            }
             pluginsArray.add(juce::var(pluginJson));
         }
 
@@ -1231,6 +1247,7 @@ bool Engine::Saver::LoadProject(const std::string filePath)
             }
 
             m_core.tracks.emplace_back(std::move(track));
+            int currentTrackIndex = m_core.tracks.size() - 1;
 
             // Загружаем плагины
             if (trackVar.hasProperty("plugins")) {
@@ -1238,10 +1255,30 @@ bool Engine::Saver::LoadProject(const std::string filePath)
                     auto pluginInstance = std::make_unique<PluginInstance>();
                     std::string pluginPath = pluginVar["pluginPath"].toString().toStdString();
                     LOG("Plugin path after load: " << pluginPath);
-                    pluginInstance->Path = pluginPath;
-                    pluginInstance->bypass = pluginVar["bypass"];
                     if (!pluginPath.empty()) {
-                         m_core.addPluginToTrack(m_core.tracks.size() - 1, pluginPath);
+                        m_core.addPluginToTrack(currentTrackIndex, pluginPath);
+
+                        auto& plugins = m_core.tracks[currentTrackIndex].plugins;
+                        if (plugins.empty() || !plugins.back()->plugin) {
+                            LOG_ERROR("Failed to load plugin at path: " << pluginPath);
+                            continue;
+                        }
+
+                        auto* pluginInstance = plugins.back().get();
+
+                        if (pluginVar.hasProperty("state")) {
+                            juce::String stateBase64 = pluginVar["state"].toString();
+                            juce::MemoryOutputStream stateStream;
+                            if (juce::Base64::convertFromBase64(stateStream, stateBase64)) {
+                                juce::MemoryBlock state(stateStream.getData(), stateStream.getDataSize());
+                                pluginInstance->plugin->setStateInformation(state.getData(), static_cast<int>(state.getSize()));
+                                pluginInstance->state = state;
+                                LOG("Restored plugin state for " << pluginPath << ", size: " << state.getSize() << " bytes");
+                            }
+                            else {
+                                LOG_ERROR("Failed to decode plugin state for " << pluginPath);
+                            }
+                        }
                     }
                     m_core.tracks[m_core.tracks.size() - 1].plugins.emplace_back(std::move(pluginInstance));
                 }

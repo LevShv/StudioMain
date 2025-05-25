@@ -44,6 +44,7 @@ public:
         juce::AudioProcessorEditor* editor = nullptr; // Для GUI плагина
         bool bypass = false;
         std::string Path;
+        juce::MemoryBlock state;
 
         PluginInstance() = default;
         ~PluginInstance() { if (editor) delete editor; }
