@@ -132,10 +132,9 @@ void Engine::Core::releaseResources() {
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const juce::ScopedLock sl(lock);
 
-    
-
     if (!transportPlaying) {
         info.clearActiveBufferRegion();
+       
         return;
     }
 
@@ -146,13 +145,19 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const double blockDurationBeats = secondsToBeats(blockDuration);
     const double endBeats = startBeats + blockDurationBeats;
 
-    // Очистка буфера
+    // Очистка выходного буфера
     info.clearActiveBufferRegion();
+    //LOG("Cleared output buffer, numSamples: " << info.numSamples);
 
     for (auto& track : tracks) {
-        // Обрабатываем аудиоклипы
+        // 1. Создаём временный буфер для текущей дорожки
+        pluginBuffer.setSize(info.buffer->getNumChannels(), info.numSamples);
+        pluginBuffer.clear();
+        bool hasAudio = false;
+
+        // 2. Обрабатываем аудиоклипы и записываем их в pluginBuffer
         for (auto& active : activeClips) {
-            if (active.track != &track) continue; // Пропускаем клипы, не принадлежащие текущему треку
+            if (active.track != &track) continue;
             if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
                 if (!audioClip->muted && !active.track->muted) {
                     if (audioClip->useRAM) {
@@ -161,78 +166,88 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
                             info.numSamples,
                             audioClip->buffer.getNumSamples() - startSample
                         );
-
                         if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
-                            for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                                info.buffer->addFrom(
-                                    channel, info.startSample, audioClip->buffer,
+                            for (int channel = 0; channel < pluginBuffer.getNumChannels(); ++channel) {
+                                pluginBuffer.addFrom(
+                                    channel, 0, audioClip->buffer,
                                     channel % audioClip->buffer.getNumChannels(),
                                     startSample, numSamples,
                                     active.track->gain * audioClip->gain
                                 );
                             }
+                            hasAudio = true;
+                           // LOG("Added audio clip to pluginBuffer, startSample: " << startSample << ", numSamples: " << numSamples);
                         }
                     }
                     else if (active.source != nullptr) {
-                        juce::AudioSourceChannelInfo tempInfo(info.buffer, info.startSample, info.numSamples);
+                        juce::AudioSourceChannelInfo tempInfo(&pluginBuffer, 0, info.numSamples);
                         active.source->getNextAudioBlock(tempInfo);
-                        for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                            info.buffer->applyGain(channel, info.startSample, info.numSamples, active.track->gain * audioClip->gain);
+                        for (int channel = 0; channel < pluginBuffer.getNumChannels(); ++channel) {
+                            pluginBuffer.applyGain(channel, 0, info.numSamples, active.track->gain * audioClip->gain);
                         }
+                        hasAudio = true;
+                        //LOG("Added non-RAM audio clip to pluginBuffer, gain: " << active.track->gain * audioClip->gain);
                     }
                 }
             }
         }
 
-        // Собираем MIDI-сообщения только для текущего трека
+        // 3. Собираем MIDI-сообщения только для текущего трека
         juce::MidiBuffer midiBuffer;
         for (auto& active : activeClips) {
-            if (active.track != &track) continue; // Пропускаем клипы, не принадлежащие текущему треку
+            if (active.track != &track) continue;
             if (auto* midiClip = dynamic_cast<const MidiClip*>(active.clip)) {
                 for (const auto& event : midiClip->midiSequence) {
                     double eventTime = midiClip->startTime + event->message.getTimeStamp();
                     const double epsilon = 0.01;
-                   // LOG("Checking MIDI event: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << ", startTime " << startTime << ", endTime " << endTime);
                     if (eventTime >= startTime - epsilon && eventTime < endTime) {
                         int sampleOffset = static_cast<int>((eventTime - startTime) * sampleRate);
                         if (sampleOffset < 0) {
-                          //  LOG_WARN("Negative sampleOffset: " << sampleOffset << ", adjusting to 0");
                             sampleOffset = 0;
                         }
                         midiBuffer.addEvent(event->message, sampleOffset);
-                        //LOG("MIDI event added: Note " << event->message.getNoteNumber() << " at time " << eventTime << ", sampleOffset " << sampleOffset);
-                    }
-                    else {
-                        //LOG("MIDI event skipped: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << " outside range [" << startTime - epsilon << ", " << endTime << ")");
                     }
                 }
             }
         }
+       // LOG("Collected " << midiBuffer.getNumEvents() << " MIDI events for track " << &track);
 
-        // Обработка плагинов на дорожке
-        if (track.muted || track.plugins.empty()) continue;
+        // 4. Проверяем, есть ли данные для обработки
+        if (!track.muted && (hasAudio || !midiBuffer.isEmpty() || !track.plugins.empty())) {
+            // Создаём копию для цепочки обработки
+            juce::AudioBuffer<float> processedBuffer = pluginBuffer;
+          //  LOG("Initial pluginBuffer level for track " << &track << ": " << pluginBuffer.getMagnitude(0, info.numSamples));
 
-        pluginBuffer.setSize(info.buffer->getNumChannels(), info.numSamples);
-        pluginBuffer.clear();
-
-        for (auto& pluginInstance : track.plugins) {
-            if (!pluginInstance->bypass && pluginInstance->plugin) {
-                pluginInstance->plugin->processBlock(pluginBuffer, midiBuffer);
-                for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                    info.buffer->addFrom(
-                        channel, info.startSample, pluginBuffer,
-                        channel % pluginBuffer.getNumChannels(),
-                        0, info.numSamples, track.gain
-                    );
+            // Применяем плагины
+            for (auto& pluginInstance : track.plugins) {
+                if (!pluginInstance->bypass && pluginInstance->plugin) {
+                    pluginInstance->plugin->processBlock(processedBuffer, midiBuffer);
+                   // LOG("Processed plugin at " << (void*)pluginInstance->plugin.get() << ", output level: " << processedBuffer.getMagnitude(0, info.numSamples));
                 }
             }
+
+            // Добавляем результат в info.buffer
+            for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+                info.buffer->addFrom(
+                    channel, info.startSample, processedBuffer,
+                    channel % processedBuffer.getNumChannels(),
+                    0, info.numSamples, track.gain
+                );
+            }
+            //LOG("Added processedBuffer to info.buffer for track " << &track << ", final level: " << info.buffer->getMagnitude(info.startSample, info.numSamples));
+        }
+        else if (track.muted) {
+           // LOG("Skipping track " << &track << " due to mute");
+        }
+        else {
+           // LOG("Skipping track " << &track << " due to no audio, MIDI, or plugins");
         }
     }
 
     position += blockDuration;
-    
     positionInBeats = secondsToBeats(position);
     updateActiveClips();
+    LOG("Updated position to " << position << " seconds, active clips: " << activeClips.size());
 }
 
 void Engine::Core::handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) {
@@ -1027,11 +1042,12 @@ juce::AudioProcessorEditor* Engine::GetPluginEditor(int trackIndex, int pluginIn
 	juce::ScopedLock sl(core.lock);
 	return core.getPluginEditor(trackIndex, pluginIndex);
 }
+
 #pragma endregion
 
 // Saver implementation
 
-#pragma Saver 
+#pragma region Saver 
 
 void Engine::Saver::SaveProject(const std::string filePath)
 {
@@ -1297,3 +1313,4 @@ bool Engine::Saver::LoadProject(const std::string filePath)
     return true;
 }
 
+#pragma endregion
