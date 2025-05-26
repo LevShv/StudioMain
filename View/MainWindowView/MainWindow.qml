@@ -280,7 +280,7 @@ Window {
                                             implicitWidth: 30
                                             implicitHeight: 30
                                             onClicked: {
-                                                viewModel.deleteTrack(index) // Открываем первый плагин на дорожке
+                                                viewModel.deleteTrack(index) 
                                             }
                                         }
                                     }
