@@ -97,6 +97,7 @@ void Engine::Core::stopAudio(juce::AudioDeviceManager& deviceManager) {
 }
 
 void Engine::Core::prepareToPlay(int samplesPerBlock, double newSampleRate) {
+
     sampleRate = newSampleRate;
     transportPlaying = false;
 
@@ -128,124 +129,12 @@ void Engine::Core::releaseResources() {
     activeClips.clear();
 }
 
-//void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
-//    const juce::ScopedLock sl(lock);
-//
-//    if (!transportPlaying) {
-//        info.clearActiveBufferRegion();
-//        return;
-//    }
-//
-//    const double blockDuration = info.numSamples / sampleRate;
-//    const double startTime = position;
-//    const double endTime = startTime + blockDuration;
-//    const double startBeats = positionInBeats;
-//    const double blockDurationBeats = secondsToBeats(blockDuration);
-//    const double endBeats = startBeats + blockDurationBeats;
-//
-//    // Очистка буфера
-//    info.clearActiveBufferRegion();
-//
-//    // Буфер для MIDI-сообщений
-//    juce::MidiBuffer midiBuffer;
-//
-//    // Обработка аудио и MIDI клипов
-//    for (auto& active : activeClips) {
-//        if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
-//            if (!audioClip->muted && !active.track->muted) {
-//                if (audioClip->useRAM) {
-//                    const int startSample = static_cast<int>((startTime - audioClip->startTime) * sampleRate);
-//                    const int numSamples = juce::jmin(
-//                        info.numSamples,
-//                        audioClip->buffer.getNumSamples() - startSample
-//                    );
-//
-//                    if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
-//                        for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-//                            info.buffer->addFrom(
-//                                channel, info.startSample, audioClip->buffer,
-//                                channel % audioClip->buffer.getNumChannels(),
-//                                startSample, numSamples,
-//                                active.track->gain * audioClip->gain
-//                            );
-//                        }
-//                    }
-//                }
-//                else if (active.source != nullptr) {
-//                    juce::AudioSourceChannelInfo tempInfo(info.buffer, info.startSample, info.numSamples);
-//                    active.source->getNextAudioBlock(tempInfo);
-//                    for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-//                        info.buffer->applyGain(channel, info.startSample, info.numSamples, active.track->gain * audioClip->gain);
-//                    }
-//                }
-//            }
-//        }
-//        else if (auto* midiClip = dynamic_cast<const MidiClip*>(active.clip)) {
-//            for (const auto& event : midiClip->midiSequence) {
-//                double eventTime = midiClip->startTime + event->message.getTimeStamp();
-//                const double epsilon = 0.001; // 1 мс
-//                LOG("Checking MIDI event: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << ", startTime " << startTime << ", endTime " << endTime);
-//                if (eventTime >= startTime - epsilon && eventTime < endTime) {
-//                    int sampleOffset = static_cast<int>((eventTime - startTime) * sampleRate);
-//                    if (sampleOffset < 0) {
-//                      //  LOG_WARN("Negative sampleOffset: " << sampleOffset << ", adjusting to 0");
-//                        sampleOffset = 0;
-//                    }
-//                    midiBuffer.addEvent(event->message, sampleOffset);
-//                   // LOG("MIDI event added: Note " << event->message.getNoteNumber() << " at time " << eventTime << ", sampleOffset " << sampleOffset);
-//                }
-//                else {
-//                    //LOG("MIDI event skipped: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << " outside range [" << startTime - epsilon << ", " << endTime << ")");
-//                }
-//            }
-//        }
-//    }
-//
-//    // Обработка плагинов на дорожках
-//    for (auto& track : tracks) {
-//        if (track.muted || track.plugins.empty()) continue;
-//
-//        // Подготавливаем временный буфер для плагина
-//        pluginBuffer.setSize(info.buffer->getNumChannels(), info.numSamples);
-//        pluginBuffer.clear();
-//
-//        for (auto& pluginInstance : track.plugins) {
-//            if (!pluginInstance->bypass && pluginInstance->plugin) {
-//                // Передаем MIDI в плагин
-//                pluginInstance->plugin->processBlock(pluginBuffer, midiBuffer);
-//
-//                // Микшируем выход плагина в основной буфер
-//                for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-//                    info.buffer->addFrom(
-//                        channel, info.startSample, pluginBuffer,
-//                        channel % pluginBuffer.getNumChannels(),
-//                        0, info.numSamples, track.gain
-//                    );
-//                }
-//            }
-//        }
-//    }
-//
-//    // Отправка MIDI на внешние устройства
-//    if (midiOutput && !midiBuffer.isEmpty()) {
-//        for (const auto& metadata : midiBuffer) {
-//            midiOutput->sendMessageNow(metadata.getMessage());
-//        }
-//    }
-//
-//    // Обновление позиции
-//    position += blockDuration;
-//    positionInBeats = secondsToBeats(position);
-//    updateActiveClips();
-//}
-
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const juce::ScopedLock sl(lock);
 
-    
-
     if (!transportPlaying) {
         info.clearActiveBufferRegion();
+       
         return;
     }
 
@@ -256,13 +145,19 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
     const double blockDurationBeats = secondsToBeats(blockDuration);
     const double endBeats = startBeats + blockDurationBeats;
 
-    // Очистка буфера
+    // Очистка выходного буфера
     info.clearActiveBufferRegion();
+    //LOG("Cleared output buffer, numSamples: " << info.numSamples);
 
     for (auto& track : tracks) {
-        // Обрабатываем аудиоклипы
+        // 1. Создаём временный буфер для текущей дорожки
+        pluginBuffer.setSize(info.buffer->getNumChannels(), info.numSamples);
+        pluginBuffer.clear();
+        bool hasAudio = false;
+
+        // 2. Обрабатываем аудиоклипы и записываем их в pluginBuffer
         for (auto& active : activeClips) {
-            if (active.track != &track) continue; // Пропускаем клипы, не принадлежащие текущему треку
+            if (active.track != &track) continue;
             if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
                 if (!audioClip->muted && !active.track->muted) {
                     if (audioClip->useRAM) {
@@ -271,78 +166,88 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
                             info.numSamples,
                             audioClip->buffer.getNumSamples() - startSample
                         );
-
                         if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
-                            for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                                info.buffer->addFrom(
-                                    channel, info.startSample, audioClip->buffer,
+                            for (int channel = 0; channel < pluginBuffer.getNumChannels(); ++channel) {
+                                pluginBuffer.addFrom(
+                                    channel, 0, audioClip->buffer,
                                     channel % audioClip->buffer.getNumChannels(),
                                     startSample, numSamples,
                                     active.track->gain * audioClip->gain
                                 );
                             }
+                            hasAudio = true;
+                           // LOG("Added audio clip to pluginBuffer, startSample: " << startSample << ", numSamples: " << numSamples);
                         }
                     }
                     else if (active.source != nullptr) {
-                        juce::AudioSourceChannelInfo tempInfo(info.buffer, info.startSample, info.numSamples);
+                        juce::AudioSourceChannelInfo tempInfo(&pluginBuffer, 0, info.numSamples);
                         active.source->getNextAudioBlock(tempInfo);
-                        for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                            info.buffer->applyGain(channel, info.startSample, info.numSamples, active.track->gain * audioClip->gain);
+                        for (int channel = 0; channel < pluginBuffer.getNumChannels(); ++channel) {
+                            pluginBuffer.applyGain(channel, 0, info.numSamples, active.track->gain * audioClip->gain);
                         }
+                        hasAudio = true;
+                        //LOG("Added non-RAM audio clip to pluginBuffer, gain: " << active.track->gain * audioClip->gain);
                     }
                 }
             }
         }
 
-        // Собираем MIDI-сообщения только для текущего трека
+        // 3. Собираем MIDI-сообщения только для текущего трека
         juce::MidiBuffer midiBuffer;
         for (auto& active : activeClips) {
-            if (active.track != &track) continue; // Пропускаем клипы, не принадлежащие текущему треку
+            if (active.track != &track) continue;
             if (auto* midiClip = dynamic_cast<const MidiClip*>(active.clip)) {
                 for (const auto& event : midiClip->midiSequence) {
                     double eventTime = midiClip->startTime + event->message.getTimeStamp();
                     const double epsilon = 0.01;
-                   // LOG("Checking MIDI event: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << ", startTime " << startTime << ", endTime " << endTime);
                     if (eventTime >= startTime - epsilon && eventTime < endTime) {
                         int sampleOffset = static_cast<int>((eventTime - startTime) * sampleRate);
                         if (sampleOffset < 0) {
-                          //  LOG_WARN("Negative sampleOffset: " << sampleOffset << ", adjusting to 0");
                             sampleOffset = 0;
                         }
                         midiBuffer.addEvent(event->message, sampleOffset);
-                        //LOG("MIDI event added: Note " << event->message.getNoteNumber() << " at time " << eventTime << ", sampleOffset " << sampleOffset);
-                    }
-                    else {
-                        //LOG("MIDI event skipped: Note " << event->message.getNoteNumber() << ", eventTime " << eventTime << " outside range [" << startTime - epsilon << ", " << endTime << ")");
                     }
                 }
             }
         }
+       // LOG("Collected " << midiBuffer.getNumEvents() << " MIDI events for track " << &track);
 
-        // Обработка плагинов на дорожке
-        if (track.muted || track.plugins.empty()) continue;
+        // 4. Проверяем, есть ли данные для обработки
+        if (!track.muted && (hasAudio || !midiBuffer.isEmpty() || !track.plugins.empty())) {
+            // Создаём копию для цепочки обработки
+            juce::AudioBuffer<float> processedBuffer = pluginBuffer;
+          //  LOG("Initial pluginBuffer level for track " << &track << ": " << pluginBuffer.getMagnitude(0, info.numSamples));
 
-        pluginBuffer.setSize(info.buffer->getNumChannels(), info.numSamples);
-        pluginBuffer.clear();
-
-        for (auto& pluginInstance : track.plugins) {
-            if (!pluginInstance->bypass && pluginInstance->plugin) {
-                pluginInstance->plugin->processBlock(pluginBuffer, midiBuffer);
-                for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
-                    info.buffer->addFrom(
-                        channel, info.startSample, pluginBuffer,
-                        channel % pluginBuffer.getNumChannels(),
-                        0, info.numSamples, track.gain
-                    );
+            // Применяем плагины
+            for (auto& pluginInstance : track.plugins) {
+                if (!pluginInstance->bypass && pluginInstance->plugin) {
+                    pluginInstance->plugin->processBlock(processedBuffer, midiBuffer);
+                   // LOG("Processed plugin at " << (void*)pluginInstance->plugin.get() << ", output level: " << processedBuffer.getMagnitude(0, info.numSamples));
                 }
             }
+
+            // Добавляем результат в info.buffer
+            for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+                info.buffer->addFrom(
+                    channel, info.startSample, processedBuffer,
+                    channel % processedBuffer.getNumChannels(),
+                    0, info.numSamples, track.gain
+                );
+            }
+            //LOG("Added processedBuffer to info.buffer for track " << &track << ", final level: " << info.buffer->getMagnitude(info.startSample, info.numSamples));
+        }
+        else if (track.muted) {
+           // LOG("Skipping track " << &track << " due to mute");
+        }
+        else {
+           // LOG("Skipping track " << &track << " due to no audio, MIDI, or plugins");
         }
     }
 
     position += blockDuration;
-    
     positionInBeats = secondsToBeats(position);
     updateActiveClips();
+    LOG("Updated position to " << position << " seconds, active clips: " << activeClips.size());
 }
 
 void Engine::Core::handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) {
@@ -350,6 +255,176 @@ void Engine::Core::handleIncomingMidiMessage(juce::MidiInput* source, const juce
     if (message.isNoteOn()) {
         LOG("MIDI Note On: " << message.getNoteNumber());
     }
+}
+
+void Engine::Core::RenderToFile(std::string& outputPath) {
+    LOG("Starting render to file: " << outputPath);
+
+    // 1. Определяем максимальную длительность проекта
+    double projectDuration = 0.0;
+    for (const auto& track : tracks) {
+        for (const auto& clip : track.clips) {
+            double clipEndTime = clip->startTime + clip->duration;
+            projectDuration = juce::jmax(projectDuration, clipEndTime);
+        }
+    }
+
+    if (projectDuration <= 0.0) {
+        LOG_ERROR("Project duration is 0, nothing to render!");
+        return;
+    }
+
+    LOG("Project duration: " << projectDuration << " seconds");
+
+    // 2. Настраиваем параметры рендера
+    const int samplesPerBlock = 512; // Размер блока для рендера
+    const double renderSampleRate = sampleRate > 0 ? sampleRate : 44100.0;
+    const int numChannels = 2; // Стерео
+    const int totalSamples = static_cast<int>(projectDuration * renderSampleRate);
+
+    // 3. Создаём WAV-файл
+    juce::File outputFile(outputPath);
+    if (outputFile.existsAsFile()) {
+        outputFile.deleteFile();
+    }
+
+    juce::WavAudioFormat wavFormat;
+    std::unique_ptr<juce::AudioFormatWriter> writer;
+    writer.reset(wavFormat.createWriterFor(
+        new juce::FileOutputStream(outputFile),
+        renderSampleRate,
+        numChannels,
+        16, // 16-битный WAV
+        {}, // Метаданные (пустые)
+        0   // Качество (для WAV не используется)
+    ));
+
+    if (!writer) {
+        LOG_ERROR("Failed to create WAV writer for file: " << outputPath);
+        return;
+    }
+
+    // 4. Подготавливаем буферы
+    juce::AudioBuffer<float> renderBuffer(numChannels, samplesPerBlock);
+    juce::AudioSourceChannelInfo bufferInfo(&renderBuffer, 0, samplesPerBlock);
+    juce::MidiBuffer midiBuffer;
+
+    // 5. Сбрасываем позицию воспроизведения
+    double originalPosition = position;
+    double originalPositionInBeats = positionInBeats;
+    position = 0.0;
+    positionInBeats = 0.0;
+    updateActiveClips();
+
+    // 6. Рендерим
+    int samplesRendered = 0;
+    while (samplesRendered < totalSamples) {
+        int samplesThisBlock = juce::jmin(samplesPerBlock, totalSamples - samplesRendered);
+        bufferInfo.numSamples = samplesThisBlock;
+
+        // Очистка буфера перед обработкой
+        renderBuffer.clear();
+
+        const double blockDuration = samplesThisBlock / renderSampleRate;
+        const double startTime = position;
+        const double endTime = startTime + blockDuration;
+        const double startBeats = positionInBeats;
+        const double blockDurationBeats = secondsToBeats(blockDuration);
+        const double endBeats = startBeats + blockDurationBeats;
+
+        // Обрабатываем каждый трек
+        for (auto& track : tracks) {
+            // Обрабатываем аудиоклипы
+            for (auto& active : activeClips) {
+                if (active.track != &track) continue;
+                if (auto* audioClip = dynamic_cast<const AudioClip*>(active.clip)) {
+                    if (!audioClip->muted && !active.track->muted) {
+                        if (audioClip->useRAM) {
+                            const int startSample = static_cast<int>((startTime - audioClip->startTime) * renderSampleRate);
+                            const int numSamples = juce::jmin(
+                                samplesThisBlock,
+                                audioClip->buffer.getNumSamples() - startSample
+                            );
+
+                            if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
+                                for (int channel = 0; channel < numChannels; ++channel) {
+                                    renderBuffer.addFrom(
+                                        channel, 0, audioClip->buffer,
+                                        channel % audioClip->buffer.getNumChannels(),
+                                        startSample, numSamples,
+                                        active.track->gain * audioClip->gain
+                                    );
+                                }
+                            }
+                        }
+                        else if (active.source != nullptr) {
+                            juce::AudioSourceChannelInfo tempInfo(&renderBuffer, 0, samplesThisBlock);
+                            active.source->getNextAudioBlock(tempInfo);
+                            for (int channel = 0; channel < numChannels; ++channel) {
+                                renderBuffer.applyGain(channel, 0, samplesThisBlock, active.track->gain * audioClip->gain);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Собираем MIDI-сообщения для текущего трека
+            midiBuffer.clear();
+            for (auto& active : activeClips) {
+                if (active.track != &track) continue;
+                if (auto* midiClip = dynamic_cast<const MidiClip*>(active.clip)) {
+                    for (const auto& event : midiClip->midiSequence) {
+                        double eventTime = midiClip->startTime + event->message.getTimeStamp();
+                        const double epsilon = 0.01;
+                        if (eventTime >= startTime - epsilon && eventTime < endTime) {
+                            int sampleOffset = static_cast<int>((eventTime - startTime) * renderSampleRate);
+                            if (sampleOffset < 0) {
+                                sampleOffset = 0;
+                            }
+                            midiBuffer.addEvent(event->message, sampleOffset);
+                        }
+                    }
+                }
+            }
+
+            if (track.muted || track.plugins.empty()) continue;
+
+            pluginBuffer.setSize(numChannels, samplesThisBlock);
+            pluginBuffer.clear();
+
+            for (auto& pluginInstance : track.plugins) {
+                if (!pluginInstance->bypass && pluginInstance->plugin) {
+                    pluginInstance->plugin->processBlock(pluginBuffer, midiBuffer);
+                    for (int channel = 0; channel < numChannels; ++channel) {
+                        pluginBuffer.addFrom(
+                            channel, 0, renderBuffer,
+                            channel, 0, samplesThisBlock, 1.0f
+                        );
+                        renderBuffer.copyFrom(
+                            channel, 0, pluginBuffer,
+                            channel, 0, samplesThisBlock
+                        );
+                    }
+                }
+            }
+        }
+
+        writer->writeFromAudioSampleBuffer(renderBuffer, 0, samplesThisBlock);
+
+        position += blockDuration;
+        positionInBeats = secondsToBeats(position);
+        updateActiveClips();
+        samplesRendered += samplesThisBlock;
+    }
+
+    writer->flush();
+    writer.reset();
+
+    position = originalPosition;
+    positionInBeats = originalPositionInBeats;
+    updateActiveClips();
+
+    LOG_SUCCESS("Render completed successfully to: " << outputPath);
 }
 
 void Engine::Core::processMidiBlocks(const juce::AudioSourceChannelInfo& info,
@@ -545,6 +620,7 @@ void Engine::Core::addPluginToTrack(int trackIndex, const juce::String& pluginPa
 
     auto pluginInstance = std::make_unique<PluginInstance>();
     pluginInstance->plugin = std::move(plugin);
+    pluginInstance->Path = pluginPath.toStdString();
     tracks[trackIndex].plugins.push_back(std::move(pluginInstance));
 
     LOG_SUCCESS("Plugin loaded successfully: " << pluginPath.toStdString() << ", Instance address: " << (void*)tracks[trackIndex].plugins.back()->plugin.get());
@@ -870,6 +946,23 @@ double& Engine::Position() {
     return core.position;  
 }
 
+void Engine::RenderToFile(std::string& Path)
+{
+    juce::ScopedLock s1(core.lock);
+    core.RenderToFile(Path);
+}
+
+void Engine::SaveProject(const std::string& Path)
+{
+    juce::ScopedLock s1(core.lock);
+    saver.SaveProject(Path);
+}
+
+bool Engine::LoadProject(const std::string& Path) {
+    juce::ScopedLock sl(core.lock);
+    return saver.LoadProject(Path);
+}
+
 double Engine::GetPlayheadPosition() const {
     juce::ScopedLock sl(core.lock);
     return core.positionInBeats; // Возвращаем позицию в битах
@@ -911,11 +1004,22 @@ int Engine::AddSamplerTrack() {
 }
 
 void Engine::DeleteTrack(int trackIndex) {
+    juce::ScopedLock sl(core.lock);
     if (trackIndex < core.tracks.size()) {
         core.tracks.erase(core.tracks.begin() + trackIndex);
     }
     else {
-        std::cout << "Индекс выходит за границы вектора!\n";
+        LOG_ERROR("Index out of range");
+    }
+}
+
+void::Engine::DeleteClip(int trackIndex, int clipIndex) {
+    juce::ScopedLock sl(core.lock);
+    if (trackIndex < core.tracks.size() && clipIndex < core.tracks[trackIndex].clips.size()) {
+        core.tracks[trackIndex].clips.erase(core.tracks[trackIndex].clips.begin() + clipIndex);
+    }
+    else {
+        LOG_ERROR("Index out of range");
     }
 }
 
@@ -938,4 +1042,275 @@ juce::AudioProcessorEditor* Engine::GetPluginEditor(int trackIndex, int pluginIn
 	juce::ScopedLock sl(core.lock);
 	return core.getPluginEditor(trackIndex, pluginIndex);
 }
+
+#pragma endregion
+
+// Saver implementation
+
+#pragma region Saver 
+
+void Engine::Saver::SaveProject(const std::string filePath)
+{
+    juce::var projectJson = juce::var(new juce::DynamicObject());
+
+    //Глобальные настройки
+	projectJson.getDynamicObject()->setProperty("bpm", m_core.bpm);
+    projectJson.getDynamicObject()->setProperty("position", m_core.position);
+
+    juce::Array<juce::var> tracksArray;
+
+    //Дорожки
+    for (const auto& track : m_core.tracks) {
+        juce::DynamicObject::Ptr trackJson = new juce::DynamicObject();
+
+        trackJson->setProperty("isMidiTrack", track.isMidiTrack);
+        trackJson->setProperty("isSamplerTrack", track.isSamplerTrack);
+        trackJson->setProperty("gain", track.gain);
+        trackJson->setProperty("muted", track.muted);
+
+        juce::Array<juce::var> clipsArray;
+
+        for (const auto& clip : track.clips) {
+            juce::DynamicObject::Ptr clipJson = new juce::DynamicObject();
+            clipJson->setProperty("startBeats", clip->startBeats); 
+            clipJson->setProperty("durationBeats", clip->durationBeats); 
+            clipJson->setProperty("isMidiTrack", track.isMidiTrack);
+            clipJson->setProperty("isSamplerTrack", track.isSamplerTrack);
+            clipJson->setProperty("gain", track.gain);
+            clipJson->setProperty("muted", track.muted);
+
+            if (auto* audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
+                clipJson->setProperty("type", "audio");
+                clipJson->setProperty("filePath", juce::var(juce::String(audioClip->file.getFullPathName().toStdString())));
+                clipJson->setProperty("useRAM", audioClip->useRAM);
+            }
+            else if (auto* midiClip = dynamic_cast<Engine::MidiClip*>(clip.get())) {
+                clipJson->setProperty("type", "midi");
+
+                juce::MidiFile midiFile;
+                midiFile.addTrack(midiClip->midiSequence); 
+                midiFile.setTicksPerQuarterNote(960); 
+
+                // Записываем MIDI-данные в поток
+                juce::MemoryOutputStream midiStream;
+                if (!midiFile.writeTo(midiStream)) {
+                    LOG_ERROR("Failed to write MIDI sequence to stream");
+                    continue;
+                }
+
+                juce::String midiBase64 = juce::Base64::toBase64(midiStream.getData(), midiStream.getDataSize());
+                clipJson->setProperty("midiData", midiBase64);
+            }
+            clipsArray.add(juce::var(clipJson));
+        }
+
+        trackJson->setProperty("clips", clipsArray);
+
+        juce::Array<juce::var> pluginsArray;
+        for (const auto& plugin : track.plugins) {
+            juce::DynamicObject::Ptr pluginJson = new juce::DynamicObject();
+            pluginJson->setProperty("pluginPath", plugin->plugin ? juce::var(juce::String(plugin->Path)) : "");
+            LOG("Plugin path: " << plugin->Path);
+            pluginJson->setProperty("bypass", plugin->bypass);
+
+            if (plugin->plugin) {
+                juce::MemoryBlock state;
+                plugin->plugin->getStateInformation(state);
+
+                if (state.getSize() > 0) {
+                    plugin->state = state;
+
+                    juce::String stateBase64 = juce::Base64::toBase64(state.getData(), state.getSize());
+                    pluginJson->setProperty("state", stateBase64);
+                    LOG("Saved plugin state for " << plugin->plugin->getName().toStdString() << ", size: " << state.getSize() << " bytes");
+                }
+                else {
+                    LOG_ERROR("Failed to get plugin state for " << plugin->plugin->getName().toStdString());
+                }
+            }
+            pluginsArray.add(juce::var(pluginJson));
+        }
+
+        trackJson->setProperty("plugins", pluginsArray);
+        tracksArray.add(juce::var(trackJson));
+
+    }
+
+    projectJson.getDynamicObject()->setProperty("tracks", tracksArray);
+
+    juce::File projectFile(filePath);
+    if (projectFile.existsAsFile()) projectFile.deleteFile();
+
+    juce::FileOutputStream OS(projectFile);
+    if (!OS.openedOk()) {
+        LOG_ERROR("Failed to open file for saving: " << filePath);
+        return;
+    }
+
+    juce::JSON::writeToStream(OS, projectJson, true);
+    OS.flush();
+
+    LOG_SUCCESS("roject saved successfully to : " << filePath);
+
+}
+
+bool Engine::Saver::LoadProject(const std::string filePath)
+{
+    juce::File projectFile(filePath);
+    if (!projectFile.existsAsFile()) {
+        LOG_ERROR("Project file does not exist: " << filePath);
+        return false;
+    }
+
+    juce::FileInputStream inputStream(projectFile);
+    if (!inputStream.openedOk()) {
+        LOG_ERROR("Failed to open file for loading: " << filePath);
+        return false;
+    }
+
+    juce::var json = juce::JSON::parse(inputStream);
+    if (json.isUndefined() || !json.isObject()) {
+        LOG_ERROR("Failed to parse project JSON from file: " << filePath);
+        return false;
+    }
+
+    m_core.stop();
+    m_core.tracks.clear();
+
+    if (json.hasProperty("bpm")) {
+        m_core.setBPM(json["bpm"]);
+        LOG("Set bpm:" << m_core.bpm);
+    }
+    if (json.hasProperty("position")) {
+        m_core.setPosition(json["position"]);
+        LOG("Set position:" << m_core.position);
+    }
+
+
+    if (json.hasProperty("tracks")) {
+        const juce::var& tracksArray = json["tracks"];
+        for (const auto& trackVar : *tracksArray.getArray()) {
+
+            Track track;
+            track.isMidiTrack = trackVar["isMidiTrack"];
+            track.isSamplerTrack = trackVar["isSamplerTrack"];
+            track.gain = trackVar["gain"];
+            track.muted = trackVar["muted"];
+
+            // Загружаем клипы
+            if (trackVar.hasProperty("clips")) {
+                for (const auto& clipVar : *trackVar["clips"].getArray()) {
+                    std::string clipType = clipVar["type"].toString().toStdString();
+                    double startBeats = clipVar["startBeats"];
+                    double durationBeats = clipVar["durationBeats"];
+                    float gain = clipVar["gain"];
+                    bool muted = clipVar["muted"];
+
+                    if (clipType == "audio") {
+                        auto audioClip = std::make_unique<AudioClip>();
+                        audioClip->startBeats = startBeats;
+                        audioClip->durationBeats = durationBeats;
+                        audioClip->gain = gain;
+                        audioClip->muted = muted;
+                        audioClip->file = juce::File(clipVar["filePath"].toString());
+                        audioClip->useRAM = clipVar["useRAM"];
+                        audioClip->startTime = m_core.beatsToSeconds(startBeats);
+                        audioClip->duration = m_core.beatsToSeconds(durationBeats);
+
+                        if (audioClip->useRAM) {
+                            m_core.loadClipToRAM(*audioClip);
+                        }
+
+                        track.clips.push_back(std::move(audioClip));
+                    }
+                    else if (clipType == "midi") {
+                        auto midiClip = std::make_unique<MidiClip>();
+                        midiClip->startBeats = startBeats;
+                        midiClip->durationBeats = durationBeats;
+                        midiClip->gain = gain;
+                        midiClip->muted = muted;
+                        midiClip->startTime = m_core.beatsToSeconds(startBeats);
+                        midiClip->duration = m_core.beatsToSeconds(durationBeats);
+
+                       
+                        juce::String midiBase64 = clipVar["midiData"].toString();
+                        juce::MemoryOutputStream midiOutputStream;
+                        if (!juce::Base64::convertFromBase64(midiOutputStream, midiBase64)) {
+                            LOG_ERROR("Failed to decode Base64 MIDI data: " << midiBase64.toStdString());
+                            continue;
+                        }
+
+                        juce::MemoryInputStream midiStream(midiOutputStream.getData(), midiOutputStream.getDataSize(), false);
+
+                        juce::MidiFile midiFile;
+                        if (!midiFile.readFrom(midiStream)) {
+                            LOG_ERROR("Failed to read MIDI sequence from stream");
+                            continue;
+                        }
+
+                        if (midiFile.getNumTracks() > 0) {
+                            midiClip->midiSequence = *(midiFile.getTrack(0));
+                        }
+                        else {
+                            LOG_ERROR("No MIDI tracks found in loaded data");
+                        }
+
+                        track.clips.emplace_back(std::move(midiClip));
+                        
+                        
+                    }
+                }
+            }
+
+            m_core.tracks.emplace_back(std::move(track));
+            int currentTrackIndex = m_core.tracks.size() - 1;
+
+            // Загружаем плагины
+            if (trackVar.hasProperty("plugins")) {
+                for (const auto& pluginVar : *trackVar["plugins"].getArray()) {
+                    auto pluginInstance = std::make_unique<PluginInstance>();
+                    std::string pluginPath = pluginVar["pluginPath"].toString().toStdString();
+                    LOG("Plugin path after load: " << pluginPath);
+                    if (!pluginPath.empty()) {
+                        m_core.addPluginToTrack(currentTrackIndex, pluginPath);
+
+                        auto& plugins = m_core.tracks[currentTrackIndex].plugins;
+                        if (plugins.empty() || !plugins.back()->plugin) {
+                            LOG_ERROR("Failed to load plugin at path: " << pluginPath);
+                            continue;
+                        }
+
+                        auto* pluginInstance = plugins.back().get();
+
+                        if (pluginVar.hasProperty("state")) {
+                            juce::String stateBase64 = pluginVar["state"].toString();
+                            juce::MemoryOutputStream stateStream;
+                            if (juce::Base64::convertFromBase64(stateStream, stateBase64)) {
+                                juce::MemoryBlock state(stateStream.getData(), stateStream.getDataSize());
+                                pluginInstance->plugin->setStateInformation(state.getData(), static_cast<int>(state.getSize()));
+                                pluginInstance->state = state;
+                                LOG("Restored plugin state for " << pluginPath << ", size: " << state.getSize() << " bytes");
+                            }
+                            else {
+                                LOG_ERROR("Failed to decode plugin state for " << pluginPath);
+                            }
+                        }
+                    }
+                    m_core.tracks[m_core.tracks.size() - 1].plugins.emplace_back(std::move(pluginInstance));
+                }
+            }
+
+
+           // m_core.tracks.push_back(std::move(track));
+            
+                
+            LOG("Loaded: " << m_core.tracks.size() << "tracks");
+        }
+    }
+
+    m_core.updateActiveClips();
+    LOG_SUCCESS("Project loaded successfully");
+    return true;
+}
+
 #pragma endregion

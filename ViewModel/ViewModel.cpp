@@ -2,14 +2,25 @@
 #include <QDebug>
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
+
     m_trackModel = new TrackModel(engine, this);
+
+    m_playheadTimer = new QTimer(this);
+    connect(m_playheadTimer, &QTimer::timeout, this, &ViewModel::updatePlayhead);
+
+    buildModel();
+}
+void ViewModel::buildModel() {
     m_bpm = engine.GetBPM();
     m_playheadPosition = engine.Position();
     m_isPlaying = false;
     m_volume = 50;
 
-    m_playheadTimer = new QTimer(this);
-    connect(m_playheadTimer, &QTimer::timeout, this, &ViewModel::updatePlayhead);
+    // Уведомляем QML об изменениях
+    emit bpmChanged();
+    emit playheadPositionChanged(m_playheadPosition);
+    emit isPlayingChanged();
+    emit volumeChanged();
 }
 
 void ViewModel::togglePlayback() {
@@ -126,6 +137,41 @@ void ViewModel::deleteTrack(int trackIndex) {
     }
 }
 
+Q_INVOKABLE void ViewModel::deleteClip(int trackIndex, int clipindex)
+{
+    if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
+        if (clipindex >= 0 && clipindex < engine.GetdataBase()[trackIndex].clips.size()) {
+            bool wasPlaying = isPlaying();
+            if (wasPlaying) {
+                engine.StopMix();
+                m_playheadTimer->stop();
+                m_isPlaying = false;
+                emit isPlayingChanged();
+                qDebug() << "Stopped playback before deleting track";
+            }
+
+			ClipModel* clipmodel = m_trackModel->getClipModel(trackIndex);
+            clipmodel->deleteClip(clipindex);
+			engine.DeleteClip(trackIndex, clipindex);
+
+            if (wasPlaying && !engine.GetdataBase().empty()) {
+                engine.PlayMix();
+                m_playheadTimer->start(16);
+                m_isPlaying = true;
+                emit isPlayingChanged();
+                qDebug() << "Resumed playback after deleting track";
+            }
+
+        }
+        else {
+			qWarning() << "Invalid clip index for deletion:" << clipindex;
+        }
+    }
+    else {
+        qWarning() << "Invalid track index for clip deletion:" << trackIndex;
+    }
+}
+
 void ViewModel::addAudioTrack() {
     int newTrackIndex = engine.AddAudioTrack();
     
@@ -141,6 +187,34 @@ void ViewModel::addSamplerTrack() {
         m_trackModel->addTrack("Sampler", newTrackIndex);
         emit trackAdded(newTrackIndex);
     }
+}
+
+Q_INVOKABLE void ViewModel::RenderToWave(QString path)
+{
+	std::string pathStr = path.toStdString();
+	engine.RenderToFile(pathStr);
+	qDebug() << "Render to file:" << path;
+}
+
+Q_INVOKABLE void ViewModel::SaveProject(QString path)
+{
+    const std::string pathStr = path.toStdString();
+    engine.SaveProject(pathStr);
+    qDebug() << "Save Proj to file:" << path;
+}
+
+Q_INVOKABLE void ViewModel::OpenProject(QString path)
+{
+    const std::string pathStr = path.toStdString();
+    qDebug() << "Trying to open Proj in file:" << path;
+
+    if (engine.LoadProject(pathStr)) {
+        buildModel();
+        m_trackModel->update();
+        qDebug() << "File finnaly opened" << path;
+    }
+    
+
 }
 
 void ViewModel::addMidiTrack() {

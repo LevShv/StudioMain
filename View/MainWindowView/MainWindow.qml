@@ -81,8 +81,20 @@ Window {
                             Layout.alignment: Qt.AlignLeft
                             spacing: 5
                             ToolButton { text: "Создать"; implicitWidth: 100 }
-                            ToolButton { text: "Копировать"; implicitWidth: 100 }
-                            ToolButton { text: "Сохранить"; implicitWidth: 100 }
+                            ToolButton { 
+                                text: "Открыть" 
+                                implicitWidth: 100 
+                                onClicked: {
+                                    viewModel.OpenProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.json")
+                                }
+                            }
+                            ToolButton { 
+                                text: "Сохранить"
+                                implicitWidth: 100
+                                onClicked: {
+                                    viewModel.SaveProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.json")
+                                }
+                            }
 
                             ToolButton {
                                 text: "Add WAV Track"
@@ -106,7 +118,14 @@ Window {
                             spacing: 5
                             ToolButton { text: "Создать"; implicitWidth: 100 }
                             ToolButton { text: "Копировать"; implicitWidth: 100 }
-                            ToolButton { text: "Сохранить"; implicitWidth: 100 }
+                            ToolButton {
+                                text: "Сохранить"
+                                implicitWidth: 100 
+                                onClicked: {
+                                    viewModel.RenderToWave("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\mix.wav")
+                                    console.log("Render to WAV")
+                                }
+                            }
                         }
 
                         Row {
@@ -261,7 +280,7 @@ Window {
                                             implicitWidth: 30
                                             implicitHeight: 30
                                             onClicked: {
-                                                viewModel.deleteTrack(index) // Открываем первый плагин на дорожке
+                                                viewModel.deleteTrack(index) 
                                             }
                                         }
                                     }
@@ -425,6 +444,18 @@ Window {
                                                         console.log("Clip created at x:", model.startBeats, "type:", model.type, "file:", model.file);
                                                     }
 
+                                                    ToolButton {
+                                                        anchors.right: parent.right
+                                                        anchors.top: parent.top
+                                                        anchors.margins: 2
+                                                        z: 10  // Гарантированно выше других элементов
+                                                        text: "🗑"
+                                                        onClicked: {
+                                                            console.log("Deleting clip:", index, "from track:", trackIndex);
+                                                            viewModel.deleteClip(trackIndex, index);
+                                                        }
+                                                    }
+
                                                     Label {
                                                         anchors.fill: parent
                                                         text: model.file ? model.file.split("/").pop() : "MIDI Clip"
@@ -433,6 +464,7 @@ Window {
                                                         padding: 5
                                                         elide: Text.ElideRight
                                                         verticalAlignment: Text.AlignVCenter
+
                                                     }
 
                                                     MouseArea {

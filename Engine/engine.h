@@ -5,8 +5,6 @@
 class Engine {
 public:
 
-    
-
     struct ClipBase {
         double startTime = 0.0;
         double duration = 0.0;
@@ -45,6 +43,8 @@ public:
         std::unique_ptr<juce::AudioPluginInstance> plugin;
         juce::AudioProcessorEditor* editor = nullptr; // Для GUI плагина
         bool bypass = false;
+        std::string Path;
+        juce::MemoryBlock state;
 
         PluginInstance() = default;
         ~PluginInstance() { if (editor) delete editor; }
@@ -68,8 +68,6 @@ public:
         Track(Track&&) noexcept = default;
         Track& operator=(Track&&) noexcept = default;
     };
-
-    
 
     Engine();
     ~Engine();
@@ -98,13 +96,16 @@ public:
     int AddSamplerTrack();
 
     void DeleteTrack(int trackIndex);
+    void DeleteClip(int trackIndex, int clipIndex);
 
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;
 
     double& Position();
 
-
+    void RenderToFile(std::string& Path);
+    void SaveProject(const std::string& Path);
+    bool LoadProject(const std::string& Path);
 
 private:
 
@@ -151,8 +152,11 @@ private:
         double getPosition() const { return position; }
         bool isPlaying() const { return transportPlaying; }
 
+        void updateActiveClips();
+
         void loadAudioClip(int trackIndex, const juce::File& file, double startBeats, bool loadToRAM);
         void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startBeats);
+        void loadClipToRAM(AudioClip& clip);
 
         void moveClip(int trackIndex, int clipIndex, double newStartTime);
 
@@ -162,6 +166,9 @@ private:
         void releaseResources() override;
         void getNextAudioBlock(const juce::AudioSourceChannelInfo&) override;
         void handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) override;
+
+
+		void RenderToFile(std::string& Path);
 
     private:
 
@@ -183,16 +190,22 @@ private:
         
         bool transportPlaying = false;
 
-        void updateActiveClips();
-        void loadClipToRAM(AudioClip& clip);
         void processMidiBlocks(const juce::AudioSourceChannelInfo&, double startTime, double endTime);
     };
 
+    class Saver {
+    public:
+        Saver(Core& core) : m_core(core) {}
+        void SaveProject(const std::string filePath);
+        bool LoadProject(const std::string filePath);
+    private:
+        Core& m_core;
+    };
+
     Core core;
+    Saver saver{ core };
     juce::AudioDeviceManager deviceManager;
     juce::AudioSourcePlayer audioSourcePlayer;
 
     void configureMidiDevices();
-    
-
 };
