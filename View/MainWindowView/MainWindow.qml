@@ -452,7 +452,7 @@ Window {
                                                     border.color: Qt.darker(color, 1.2)
 
                                                     Component.onCompleted: {
-                                                        console.log("Clip created at x:", model.startBeats, "type:", model.type, "file:", model.file);
+                                                        console.log("beatWidth: " + flickableArea.beatWidth);
                                                     }
 
                                                     ToolButton {
@@ -492,7 +492,7 @@ Window {
 
                                                         onReleased: {
                                                             var snappedX = Math.round(clipRectangle.x / flickableArea.beatWidth) * flickableArea.beatWidth
-                                                            clipRectangle.x = snappedX
+                                                           // clipRectangle.x = snappedX
                                                             clipRectangle.z = 2
                                                             var newPosition = snappedX / flickableArea.beatWidth
                                                             viewModel.moveClip(trackIndex, index, newPosition)
