@@ -10,7 +10,7 @@ int ClipModel::rowCount(const QModelIndex& parent) const {
     const auto& tracks = m_engine.GetdataBase();
     if (m_trackIndex < 0 || m_trackIndex >= tracks.size()) return 0;
     int count = static_cast<int>(tracks[m_trackIndex].clips.size());
-    qDebug() << "ClipModel rowCount for track" << m_trackIndex << ": " << count;
+   // qDebug() << "ClipModel rowCount for track" << m_trackIndex << ": " << count;
     return count;
 }
 

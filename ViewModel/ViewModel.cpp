@@ -10,6 +10,7 @@ ViewModel::ViewModel(QObject* parent) : QObject(parent) {
 
     buildModel();
 }
+
 void ViewModel::buildModel() {
     m_bpm = engine.GetBPM();
     m_playheadPosition = engine.Position();

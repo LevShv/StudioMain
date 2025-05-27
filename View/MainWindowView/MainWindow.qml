@@ -150,24 +150,6 @@ Window {
                         Row {
                             Layout.alignment: Qt.AlignRight
                             spacing: 10
-                            Label { text: "Zoom:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
-                            Slider {
-                                id: zoomSlider
-                                width: 150
-                                from: 0.5
-                                to: 2.0
-                                value: 1.0
-                                onValueChanged: {
-                                    // Сохраняем пропорциональную прокрутку
-                                    var oldContentWidth = flickableArea.contentWidth
-                                    var oldContentX = flickableArea.contentX
-                                    var ratio = (oldContentX + flickableArea.width / 2) / oldContentWidth
-                                    flickableArea.zoomLevel = value
-                                    flickableArea.contentX = ratio * flickableArea.contentWidth - flickableArea.width / 2
-                                    flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
-                                    
-                                }
-                            }
                             Label { text: "BPM:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
                             Slider {
                                 width: 150
@@ -297,10 +279,6 @@ Window {
                             property real beatWidth: baseBeatWidth * zoomLevel
                             property real widthOfAllArea: countOfBeats * beatWidth
 
-                            Component.onCompleted: {
-                                console.log("Initial widthOfAllArea:", widthOfAllArea)
-                            }
-
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             contentWidth: widthOfAllArea
@@ -309,34 +287,67 @@ Window {
                             boundsBehavior: Flickable.StopAtBounds
                             flickableDirection: Flickable.HorizontalFlick
 
-                            // Обработка колеса мыши для зума с фокусировкой на курсоре
+                            onZoomLevelChanged: {
+                               beatWidth = baseBeatWidth * zoomLevel
+                                contentWidth = countOfBeats * beatWidth
+                                contentX = Math.max(0, Math.min(contentX, contentWidth - width))
+                                //console.log("Flickable: ZoomLevel changed: zoomLevel:", zoomLevel, "beatWidth:", beatWidth, "contentWidth:", contentWidth)
+                            }
+
+
                             MouseArea {
                                 anchors.fill: parent
                                 acceptedButtons: Qt.NoButton
+                                hoverEnabled: true
+
                                 onWheel: (wheel) => {
-                                    // Позиция курсора
-                                    var cursorX = wheel.x
+                                    // Координата курсора
+                                    var cursorX = Math.max(0, Math.min(wheel.x - flickableArea.contentX, flickableArea.width))
+                                    if (isNaN(cursorX)) {
+                                        cursorX = flickableArea.width / 2
+                                        console.log("MouseArea: Invalid cursorX, fallback to center")
+                                    }
+
+                                    // Текущий бит под курсором
                                     var contentCursorX = cursorX + flickableArea.contentX
-                                    var cursorBeat = contentCursorX / flickableArea.beatWidth
+                                    var oldBeatWidth = flickableArea.baseBeatWidth * flickableArea.zoomLevel
+                                    var currentBeat = oldBeatWidth > 0 ? contentCursorX / oldBeatWidth : 0
 
                                     // Изменяем zoomLevel
                                     var delta = wheel.angleDelta.y / 120
                                     var newZoom = Math.max(0.5, Math.min(2.0, flickableArea.zoomLevel + delta * 0.1))
                                     flickableArea.zoomLevel = newZoom
-                                    zoomSlider.value = newZoom
 
-                                    // Корректируем contentX для фокусировки на курсоре
-                                    var newContentCursorX = cursorBeat * flickableArea.beatWidth
+                                    // Пересчитываем beatWidth и contentWidth
+                                    var newBeatWidth = flickableArea.baseBeatWidth * flickableArea.zoomLevel
+                                    flickableArea.contentWidth = flickableArea.countOfBeats * newBeatWidth
+
+                                    // Пересчитываем contentX
+                                    var newContentCursorX = currentBeat * newBeatWidth
                                     flickableArea.contentX = newContentCursorX - cursorX
                                     flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
 
-                                    console.log("Zoom (wheel) changed to:", flickableArea.zoomLevel, 
-                                               "contentX:", flickableArea.contentX, 
-                                               "greenline.x:", greenline.x, 
-                                               "playheadPosition:", viewModel.playheadPosition, 
-                                               "isPlaying:", viewModel.isPlaying)
+                                    // Проверяем текущий бит
+                                    var currentContentX = flickableArea.contentX + cursorX
+                                    var newCurrentBeat = newBeatWidth > 0 ? currentContentX / newBeatWidth : 0
+
+                                    // Логируем
+                                    console.log("Zoom (wheel): zoomLevel:", flickableArea.zoomLevel,
+                                        "contentX:", flickableArea.contentX,
+                                        "contentWidth:", flickableArea.contentWidth,
+                                        "cursorX:", cursorX,
+                                        "wheelX:", wheel.x,
+                                        "contentCursorX:", contentCursorX,
+                                        "currentBeat:", newCurrentBeat,
+                                        "oldBeatWidth:", oldBeatWidth,
+                                        "newBeatWidth:", newBeatWidth,
+                                        "flickableWidth:", flickableArea.width,
+                                        "playheadPosition:", viewModel.playheadPosition,
+                                        "greenlineX:", greenline.x,
+                                        "isPlaying:", viewModel.isPlaying)
+                                    
                                 }
-                            }
+                            }   
 
                             // Временная линейка
                             Rectangle {
@@ -489,7 +500,6 @@ Window {
                                                     }
                                                 }
                                             }
-
                                         }
                                     }
                                 }
@@ -502,7 +512,7 @@ Window {
                                 height: contentGrid.height
                                 color: "green"
                                 z: 10
-                                x: viewModel.playheadPosition * flickableArea.beatWidth
+                                x: Math.max(0, Math.min(viewModel.playheadPosition * flickableArea.beatWidth, flickableArea.contentWidth - width))
                                 anchors.top: contentGrid.top
 
                                 // Шлейф (основной слой)
@@ -562,7 +572,7 @@ Window {
                                     drag.target: greenline
                                     drag.axis: Drag.XAxis
                                     drag.minimumX: 0
-                                    drag.maximumX: Math.max(0, contentGrid.width - greenline.width)
+                                    drag.maximumX: Math.max(0, flickableArea.contentWidth - greenline.width)
 
                                     onPressed: {
                                         console.log("Greenline drag started at:", greenline.x)
@@ -571,21 +581,30 @@ Window {
                                     onReleased: {
                                         var snappedX = Math.round(greenline.x / flickableArea.beatWidth) * flickableArea.beatWidth
                                         greenline.x = snappedX
-                                        var newPosition = snappedX / flickableArea.beatWidth
-
-                                    //    var newPosition = greenline.x
+                                        var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
                                         viewModel.setPlayheadPosition(newPosition)
                                         console.log("Greenline dropped at:", snappedX, "position:", newPosition)
                                     }
-                                }
 
-                                Connections {
-                                    target: viewModel
-                                    function onPlayheadPositionChanged(position) {
-                                        if (!greenlineMouseArea.drag.active) {
-                                            greenline.x = position * flickableArea.beatWidth
-                                            greenline.x = Math.max(0, Math.min(greenline.x, contentGrid.width - greenline.width))
-                                           // console.log("Greenline updated to position:", position, "x:", greenline.x)
+                                    Connections {
+                                        target: viewModel
+                                        function onPlayheadPositionChanged(position) {
+                                            if (!greenlineMouseArea.drag.active) {
+                                                greenline.x = position * flickableArea.beatWidth
+                                                greenline.x = Math.max(0, Math.min(greenline.x, flickableArea.contentWidth - greenline.width))
+                                                console.log("Playhead updated: position:", position, "x:", greenline.x, "beat:", greenline.x / flickableArea.beatWidth, "isPlaying:", viewModel.isPlaying)
+                                            }
+                                        }
+                                    }
+
+                                    Connections {
+                                        target: flickableArea
+                                        function onBeatWidthChanged() {
+                                            if (!viewModel.isPlaying && !greenlineMouseArea.drag.active) {
+                                                greenline.x = viewModel.playheadPosition * flickableArea.beatWidth
+                                                greenline.x = Math.max(0, Math.min(greenline.x, flickableArea.contentWidth - greenline.width))
+                                                console.log("Greenline updated on beatWidth change: greenlineX:", greenline.x, "playheadPosition:", viewModel.playheadPosition, "beatWidth:", flickableArea.beatWidth, "isPlaying:", viewModel.isPlaying)
+                                            }
                                         }
                                     }
                                 }
