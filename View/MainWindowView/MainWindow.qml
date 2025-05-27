@@ -315,7 +315,7 @@ Window {
 
                                     // Изменяем zoomLevel
                                     var delta = wheel.angleDelta.y / 120
-                                    var newZoom = Math.max(0.5, Math.min(2.0, flickableArea.zoomLevel + delta * 0.1))
+                                    var newZoom = Math.max(0.2, Math.min(10.0, flickableArea.zoomLevel + delta * 0.1))
                                     flickableArea.zoomLevel = newZoom
 
                                     // Пересчитываем beatWidth и contentWidth
@@ -332,7 +332,7 @@ Window {
                                     var newCurrentBeat = newBeatWidth > 0 ? currentContentX / newBeatWidth : 0
 
                                     // Логируем
-                                    console.log("Zoom (wheel): zoomLevel:", flickableArea.zoomLevel,
+                                    /* console.log("Zoom (wheel): zoomLevel:", flickableArea.zoomLevel,
                                         "contentX:", flickableArea.contentX,
                                         "contentWidth:", flickableArea.contentWidth,
                                         "cursorX:", cursorX,
@@ -344,7 +344,7 @@ Window {
                                         "flickableWidth:", flickableArea.width,
                                         "playheadPosition:", viewModel.playheadPosition,
                                         "greenlineX:", greenline.x,
-                                        "isPlaying:", viewModel.isPlaying)
+                                        "isPlaying:", viewModel.isPlaying) */
                                     
                                 }
                             }   
