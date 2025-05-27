@@ -943,7 +943,7 @@ void Engine::configureMidiDevices() {
 }
 
 double& Engine::Position() {
-    return core.position;  
+    return core.positionInBeats;  
 }
 
 void Engine::RenderToFile(std::string& Path)
