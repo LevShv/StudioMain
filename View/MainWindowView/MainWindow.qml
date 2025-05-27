@@ -439,67 +439,147 @@ Window {
                                             }
 
                                             Repeater {
-                                                id: clipsRepeater
-                                                model: clipsModel
-                                                delegate: Rectangle {
-                                                    id: clipRectangle
-                                                    x: model.startBeats * flickableArea.beatWidth
-                                                    width: model.durationBeats * flickableArea.beatWidth
-                                                    height: 48
-                                                    color: model.type === "audio" ? "#FF5722" : "#4CAF50"
-                                                    radius: 3
-                                                    border.width: 1
-                                                    border.color: Qt.darker(color, 1.2)
+    id: clipsRepeater
+    model: clipsModel
+    delegate: Rectangle {
+        id: clipRectangle
+        x: model.startBeats * flickableArea.beatWidth
+        width: model.durationBeats * flickableArea.beatWidth
+        height: 48
+        color: model.type === "audio" ? "#FF5722" : "#4CAF50"
+        radius: 3
+        border.width: 1
+        border.color: Qt.darker(color, 1.2)
 
-                                                    Component.onCompleted: {
-                                                        console.log("beatWidth: " + flickableArea.beatWidth);
-                                                    }
+        // Проверяем, виден ли клип
+        readonly property bool isVisible: {
+            var clipX = x - flickableArea.contentX
+            return clipX + width > 0 && clipX < flickableArea.width
+        }
 
-                                                    ToolButton {
-                                                        anchors.right: parent.right
-                                                        anchors.top: parent.top
-                                                        anchors.margins: 2
-                                                        z: 10  // Гарантированно выше других элементов
-                                                        text: "🗑"
-                                                        onClicked: {
-                                                            console.log("Deleting clip:", index, "from track:", trackIndex);
-                                                            viewModel.deleteClip(trackIndex, index);
-                                                        }
-                                                    }
+        Component.onCompleted: {
+            console.log("Clip created: beatWidth:", flickableArea.beatWidth, 
+                       "startBeats:", model.startBeats, 
+                       "x:", x, 
+                       "type:", model.type, 
+                       "file:", model.file, 
+                       "waveformPoints:", model.waveformData ? model.waveformData.length : 0)
+        }
 
-                                                    Label {
-                                                        anchors.fill: parent
-                                                        text: model.file ? model.file.split("/").pop() : "MIDI Clip"
-                                                        color: "white"
-                                                        font.pixelSize: 10
-                                                        padding: 5
-                                                        elide: Text.ElideRight
-                                                        verticalAlignment: Text.AlignVCenter
+        // Волноформа для аудиоклипов
+        Canvas {
+            id: waveformCanvas
+            anchors.fill: parent
+            visible: model.type === "audio" && model.waveformData && model.waveformData.length > 0 && clipRectangle.isVisible
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.clearRect(0, 0, width, height)
+                ctx.strokeStyle = "white"
+                ctx.lineWidth = 1
 
-                                                    }
+                if (!model.waveformData || model.waveformData.length === 0) {
+                    return
+                }
 
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        drag.target: clipRectangle
-                                                        drag.axis: Drag.XAxis
-                                                        drag.minimumX: 0
-                                                        drag.maximumX: Math.max(0, contentGrid.width - clipRectangle.width)
+                var step = width / model.waveformData.length
+                var centerY = height / 2
+                var maxHeight = height * 0.8 / 2
 
-                                                        onPressed: {
-                                                            console.log("Drag started at:", clipRectangle.x)
-                                                            clipRectangle.z = 3
-                                                        }
+                ctx.beginPath()
+                ctx.moveTo(0, centerY)
 
-                                                        onReleased: {
-                                                            var snappedX = Math.round(clipRectangle.x / flickableArea.beatWidth) * flickableArea.beatWidth
-                                                           // clipRectangle.x = snappedX
-                                                            clipRectangle.z = 2
-                                                            var newPosition = snappedX / flickableArea.beatWidth
-                                                            viewModel.moveClip(trackIndex, index, newPosition)
-                                                        }
-                                                    }
-                                                }
-                                            }
+                for (var i = 0; i < model.waveformData.length; i++) {
+                    var x = i * step
+                    var amplitude = model.waveformData[i] * maxHeight
+                    ctx.lineTo(x, centerY - amplitude)
+                }
+
+                for (var i = model.waveformData.length - 1; i >= 0; i--) {
+                    var x = i * step
+                    var amplitude = model.waveformData[i] * maxHeight
+                    ctx.lineTo(x, centerY + amplitude)
+                }
+
+                ctx.closePath()
+                ctx.stroke()
+            }
+
+            // Дебаунсинг перерисовки
+            Timer {
+                id: repaintTimer
+                interval: 50 // 50 мс
+                onTriggered: {
+                    if (clipRectangle.isVisible) {
+                        waveformCanvas.requestPaint()
+                    }
+                }
+            }
+
+            Connections {
+                target: clipRectangle
+                function onWidthChanged() {
+                    repaintTimer.restart()
+                }
+            }
+
+            Connections {
+                target: flickableArea
+                function onContentXChanged() {
+                    if (clipRectangle.isVisible && !repaintTimer.running) {
+                        waveformCanvas.requestPaint()
+                    }
+                }
+            }
+        }
+
+        ToolButton {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 2
+            z: 10
+            text: "🗑"
+            onClicked: {
+                console.log("Deleting clip:", index, "from track:", trackIndex)
+                viewModel.deleteClip(trackIndex, index)
+            }
+        }
+
+        Label {
+            anchors.fill: parent
+            text: model.file ? model.file.split("/").pop() : "MIDI Clip"
+            color: "white"
+            font.pixelSize: 10
+            padding: 5
+            elide: Text.ElideRight
+            verticalAlignment: Text.AlignVCenter
+            opacity: model.type === "audio" ? 0.5 : 1.0
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            drag.target: clipRectangle
+            drag.axis: Drag.XAxis
+            drag.minimumX: 0
+            drag.maximumX: Math.max(0, contentGrid.width - clipRectangle.width)
+
+            onPressed: {
+                console.log("Drag started at: x:", clipRectangle.x, "startBeats:", model.startBeats)
+                clipRectangle.z = 3
+            }
+
+            onReleased: {
+                var snappedX = Math.round(clipRectangle.x / flickableArea.beatWidth) * flickableArea.beatWidth
+                var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
+                clipRectangle.z = 2
+                viewModel.moveClip(trackIndex, index, newPosition)
+                console.log("Clip moved: snappedX:", snappedX, 
+                           "newPosition:", newPosition, 
+                           "startBeats:", model.startBeats, 
+                           "x:", clipRectangle.x)
+            }
+        }
+    }
+}
                                         }
                                     }
                                 }

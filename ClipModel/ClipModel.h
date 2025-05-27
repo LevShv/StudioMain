@@ -11,7 +11,8 @@ public:
         StartBeatsRole = Qt::UserRole + 1,
         DurationBeatsRole,
         ClipTypeRole,
-        FilePathRole
+        FilePathRole,
+        WaveformDataRole
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -26,4 +27,5 @@ public:
 private:
     Engine& m_engine;
     int m_trackIndex;
+    mutable QMap<int, QVariantList> m_waveformDataCache;
 };

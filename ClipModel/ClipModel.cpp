@@ -10,7 +10,6 @@ int ClipModel::rowCount(const QModelIndex& parent) const {
     const auto& tracks = m_engine.GetdataBase();
     if (m_trackIndex < 0 || m_trackIndex >= tracks.size()) return 0;
     int count = static_cast<int>(tracks[m_trackIndex].clips.size());
-   // qDebug() << "ClipModel rowCount for track" << m_trackIndex << ": " << count;
     return count;
 }
 
@@ -44,6 +43,49 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
             );
         }
         return QVariant();
+    case WaveformDataRole:
+        if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
+            // Проверяем кэш
+            if (m_waveformDataCache.contains(clipIndex)) {
+                return m_waveformDataCache[clipIndex];
+            }
+
+            QVariantList waveformData;
+            const auto& buffer = audioClip->buffer;
+            int numSamples = buffer.getNumSamples();
+            int numChannels = buffer.getNumChannels();
+            int sampleCount = 100;
+
+            if (numSamples == 0) {
+                qDebug() << "Empty audio buffer for clip:" << clipIndex;
+                return waveformData;
+            }
+
+            int step = numSamples / sampleCount;
+            if (step < 1) step = 1;
+
+            for (int i = 0; i < sampleCount && i * step < numSamples; ++i) {
+                float maxAmplitude = 0.0f;
+                for (int j = 0; j < step; ++j) {
+                    int sampleIdx = i * step + j;
+                    float amplitude = 0.0f;
+                    for (int c = 0; c < numChannels; ++c) {
+                        if (sampleIdx < numSamples) {
+                            amplitude += std::abs(buffer.getSample(c, sampleIdx));
+                        }
+                    }
+                    amplitude /= numChannels;
+                    maxAmplitude = std::max(maxAmplitude, amplitude);
+                }
+                waveformData.append(maxAmplitude);
+            }
+
+            // Сохраняем в кэш
+            m_waveformDataCache[clipIndex] = waveformData;
+            qDebug() << "Computed waveform data for clip" << clipIndex << ":" << waveformData.size() << "points";
+            return waveformData;
+        }
+        return QVariant();
     default:
         return QVariant();
     }
@@ -55,38 +97,36 @@ QHash<int, QByteArray> ClipModel::roleNames() const {
     roles[DurationBeatsRole] = "durationBeats";
     roles[ClipTypeRole] = "type";
     roles[FilePathRole] = "file";
+    roles[WaveformDataRole] = "waveformData";
     return roles;
 }
 
 void ClipModel::addClip(const Engine::ClipPtr& clip) {
-    int newIndex = m_engine.GetdataBase()[m_trackIndex].clips.size() - 1; // Новый клип добавлен в конец
+    int newIndex = m_engine.GetdataBase()[m_trackIndex].clips.size() - 1;
     beginInsertRows(QModelIndex(), newIndex, newIndex);
-    // Данные уже добавлены в Engine, просто уведомляем QML
     endInsertRows();
 }
 
 void ClipModel::updateClip(int clipIndex) {
+    // Очищаем кэш для обновлённого клипа
+    m_waveformDataCache.remove(clipIndex);
     QModelIndex idx = createIndex(clipIndex, 0);
-    emit dataChanged(idx, idx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole });
+    emit dataChanged(idx, idx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole, WaveformDataRole });
 }
 
-void ClipModel::setTrackIndex(int trackIndex)
-{
+void ClipModel::setTrackIndex(int trackIndex) {
     if (m_trackIndex != trackIndex) {
         m_trackIndex = trackIndex;
+        m_waveformDataCache.clear(); // Очищаем кэш
         qDebug() << "ClipModel trackIndex changed to:" << m_trackIndex;
-
-        // Перестраиваем модель, чтобы синхронизировать данные
         beginResetModel();
         endResetModel();
-        qDebug() << "ClipModel reset for trackIndex:" << m_trackIndex;
     }
 }
 
-void ClipModel::deleteClip(int clipIndex)
-{
-	beginRemoveRows(QModelIndex(), clipIndex, clipIndex);
+void ClipModel::deleteClip(int clipIndex) {
+    m_waveformDataCache.remove(clipIndex); // Удаляем из кэша
+    beginRemoveRows(QModelIndex(), clipIndex, clipIndex);
     endRemoveRows();
-	qDebug() << "ClipModel deleted clip at index:" << clipIndex;
-
+    qDebug() << "ClipModel deleted clip at index:" << clipIndex;
 }
