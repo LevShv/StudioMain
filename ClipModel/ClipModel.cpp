@@ -176,12 +176,12 @@ QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
         waveformPath.moveTo(0, centerY);
         for (int i = 0; i < numPoints; ++i) {
             float x = i * step;
-            float amplitude = audioClip->waveformData[i * audioClip->waveformData.size() / numPoints] * maxHeight;
+            float amplitude = audioClip->waveformData[i * audioClip->waveformData.size() / numPoints] * maxHeight * 2;
             waveformPath.lineTo(x, centerY - amplitude);
         }
         for (int i = numPoints - 1; i >= 0; --i) {
             float x = i * step;
-            float amplitude = audioClip->waveformData[i * audioClip->waveformData.size() / numPoints] * maxHeight;
+            float amplitude = audioClip->waveformData[i * audioClip->waveformData.size() / numPoints] * maxHeight * 2;
             waveformPath.lineTo(x, centerY + amplitude);
         }
         waveformPath.closeSubpath();
