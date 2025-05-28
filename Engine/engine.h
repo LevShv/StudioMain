@@ -1,6 +1,11 @@
 #pragma once
 #include <log.h>
 #include <JuceHeader.h>
+#include <iomanip>
+#include <random>
+#include <chrono>
+#include <sstream>
+#include <iomanip>
 
 class Engine {
 public:
@@ -34,7 +39,19 @@ public:
         juce::AudioBuffer<float> buffer;
         bool useRAM = false;
         std::vector<float> waveformData;
+        std::string clipID;
 
+
+
+        std::string generateClipID() {
+            auto now = std::chrono::system_clock::now().time_since_epoch().count();
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_int_distribution<> dis(0, 9999);
+            std::stringstream ss;
+            ss << std::hex << now << dis(gen);
+            return ss.str();
+        }
     };
 
     struct MidiClip : public ClipBase {
