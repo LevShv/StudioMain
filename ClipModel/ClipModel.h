@@ -7,6 +7,8 @@ class ClipModel : public QAbstractListModel {
 public:
     explicit ClipModel(Engine& engine, int trackIndex, QObject* parent = nullptr);
 
+    Q_INVOKABLE QString getWaveformImage(int clipIndex, int width, int height);
+
     enum Roles {
         StartBeatsRole = Qt::UserRole + 1,
         DurationBeatsRole,

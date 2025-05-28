@@ -33,6 +33,8 @@ public:
         juce::File file;
         juce::AudioBuffer<float> buffer;
         bool useRAM = false;
+        std::vector<float> waveformData;
+
     };
 
     struct MidiClip : public ClipBase {

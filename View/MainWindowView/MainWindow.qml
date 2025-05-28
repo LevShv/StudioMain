@@ -438,7 +438,7 @@ Window {
                                                 console.log("Track index:", trackIndex, "clipsModel:", clipsModel);
                                             }
 
-                                            Repeater {
+Repeater {
     id: clipsRepeater
     model: clipsModel
     delegate: Rectangle {
@@ -451,66 +451,31 @@ Window {
         border.width: 1
         border.color: Qt.darker(color, 1.2)
 
-        // Проверяем, виден ли клип
         readonly property bool isVisible: {
             var clipX = x - flickableArea.contentX
             return clipX + width > 0 && clipX < flickableArea.width
         }
 
-        Component.onCompleted: {
-            console.log("Clip created: beatWidth:", flickableArea.beatWidth, 
-                       "startBeats:", model.startBeats, 
-                       "x:", x, 
-                       "type:", model.type, 
-                       "file:", model.file, 
-                       "waveformPoints:", model.waveformData ? model.waveformData.length : 0)
-        }
-
-        // Волноформа для аудиоклипов
-        Canvas {
-            id: waveformCanvas
+        Image {
+            id: waveformImage
             anchors.fill: parent
-            visible: model.type === "audio" && model.waveformData && model.waveformData.length > 0 && clipRectangle.isVisible
-            onPaint: {
-                var ctx = getContext("2d")
-                ctx.clearRect(0, 0, width, height)
-                ctx.strokeStyle = "white"
-                ctx.lineWidth = 1
-
-                if (!model.waveformData || model.waveformData.length === 0) {
-                    return
+            source: ""
+            asynchronous: true
+            visible: model.type === "audio" && source != ""
+            onStatusChanged: {
+                if (status == Image.Ready) {
+                    console.log("Waveform image loaded for clip:", index, "source:", source)
+                } else if (status == Image.Error) {
+                    console.log("Waveform image error for clip:", index, "source:", source)
                 }
-
-                var step = width / model.waveformData.length
-                var centerY = height / 2
-                var maxHeight = height * 0.8 / 2
-
-                ctx.beginPath()
-                ctx.moveTo(0, centerY)
-
-                for (var i = 0; i < model.waveformData.length; i++) {
-                    var x = i * step
-                    var amplitude = model.waveformData[i] * maxHeight
-                    ctx.lineTo(x, centerY - amplitude)
-                }
-
-                for (var i = model.waveformData.length - 1; i >= 0; i--) {
-                    var x = i * step
-                    var amplitude = model.waveformData[i] * maxHeight
-                    ctx.lineTo(x, centerY + amplitude)
-                }
-
-                ctx.closePath()
-                ctx.stroke()
             }
 
-            // Дебаунсинг перерисовки
             Timer {
-                id: repaintTimer
-                interval: 50 // 50 мс
+                id: imageUpdateTimer
+                interval: 16 // 60 FPS
                 onTriggered: {
                     if (clipRectangle.isVisible) {
-                        waveformCanvas.requestPaint()
+                        waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
                     }
                 }
             }
@@ -518,15 +483,20 @@ Window {
             Connections {
                 target: clipRectangle
                 function onWidthChanged() {
-                    repaintTimer.restart()
+                    var delta = Math.abs(clipRectangle.width - lastWidth)
+                    if (delta > 5) {
+                        imageUpdateTimer.restart()
+                        lastWidth = clipRectangle.width
+                    }
                 }
+                property real lastWidth: clipRectangle.width
             }
 
             Connections {
                 target: flickableArea
                 function onContentXChanged() {
-                    if (clipRectangle.isVisible && !repaintTimer.running) {
-                        waveformCanvas.requestPaint()
+                    if (clipRectangle.isVisible && !imageUpdateTimer.running) {
+                        imageUpdateTimer.restart()
                     }
                 }
             }
@@ -572,10 +542,6 @@ Window {
                 var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
                 clipRectangle.z = 2
                 viewModel.moveClip(trackIndex, index, newPosition)
-                console.log("Clip moved: snappedX:", snappedX, 
-                           "newPosition:", newPosition, 
-                           "startBeats:", model.startBeats, 
-                           "x:", clipRectangle.x)
             }
         }
     }

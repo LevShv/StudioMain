@@ -1,8 +1,8 @@
 
 #include "engine.h"
 #include "JuceHeader.h"
-#include <juce_audio_processors/juce_audio_processors.h>
-#include <juce_audio_processors/format_types/juce_VST3PluginFormat.h>
+#include <thread>
+#include <mutex>
 // Core implementation
 
 #pragma region Core
@@ -502,30 +502,59 @@ void Engine::Core::setPosition(double newPosition) {
     LOG("Playhead moved to: " << position << " seconds, all notes off sent");
 }
 
-void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file,
-    double startBeats, bool loadToRAM) {
-    if (trackIndex < 0 || trackIndex >= tracks.size() || tracks[trackIndex].isMidiTrack) {
-        LOG_ERROR("Invalid track index or MIDI track");
-        return;
-    }
+void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file, double startBeats, bool loadToRAM) {
+    if (trackIndex < 0 || trackIndex >= tracks.size()) return;
 
-    auto newClip = std::make_unique<AudioClip>();
-    newClip->file = file;
-    newClip->startBeats = startBeats;
-    newClip->startTime = beatsToSeconds(startBeats); // Переводим биты в секунды //// начало бит
-    newClip->useRAM = loadToRAM;
+    auto clip = std::make_unique<AudioClip>();
+    clip->file = file;
+    clip->startBeats = startBeats;
+    clip->startTime = beatsToSeconds(startBeats);
 
-    if (auto reader = formatManager.createReaderFor(file)) {
-        newClip->duration = reader->lengthInSamples / reader->sampleRate;
-        newClip->durationBeats = secondsToBeats(newClip->duration); /// задали длину в битах
+    juce::AudioFormatReader* reader = formatManager.createReaderFor(file);
+    if (reader) {
+        clip->duration = reader->lengthInSamples / reader->sampleRate;
+        clip->durationBeats = secondsToBeats(clip->duration);
 
         if (loadToRAM) {
-            newClip->buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
-            reader->read(&newClip->buffer, 0, (int)reader->lengthInSamples, 0, true, true);
+            clip->buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
+            reader->read(&clip->buffer, 0, (int)reader->lengthInSamples, 0, true, true);
+            clip->useRAM = true;
+
+            // Асинхронная генерация волноформы
+            std::thread([clip = clip.get()]() {
+                int sampleCount = 300; // Фиксированное число точек
+                int numSamples = clip->buffer.getNumSamples();
+                int numChannels = clip->buffer.getNumChannels();
+                int step = numSamples / sampleCount;
+                if (step < 1) step = 1;
+
+                std::vector<float> waveformData(sampleCount);
+                for (int i = 0; i < sampleCount && i * step < numSamples; ++i) {
+                    float maxAmplitude = 0.0f;
+                    for (int j = 0; j < step; ++j) {
+                        int sampleIdx = i * step + j;
+                        float amplitude = 0.0f;
+                        for (int c = 0; c < numChannels; ++c) {
+                            if (sampleIdx < numSamples) {
+                                amplitude += std::abs(clip->buffer.getSample(c, sampleIdx));
+                            }
+                        }
+                        amplitude /= numChannels;
+                        maxAmplitude = std::max(maxAmplitude, amplitude);
+                    }
+                    waveformData[i] = maxAmplitude;
+                }
+
+                // Безопасно записываем результат
+                juce::CriticalSection lock;
+                const juce::ScopedLock sl(lock);
+                clip->waveformData = std::move(waveformData);
+                }).detach(); // Отсоединяем поток
         }
+        delete reader;
     }
 
-    tracks.at(trackIndex).clips.push_back(std::move(newClip));
+    tracks[trackIndex].clips.push_back(std::move(clip));
 }
 
 void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence,

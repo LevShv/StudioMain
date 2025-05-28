@@ -1,5 +1,11 @@
 #include "ClipModel.h"
 #include <QDebug>
+#include <QImage>
+#include <QPainterPath>
+#include <QPainter>
+#include <QDir>
+#include <QStandardPaths>
+#include <QUrl>
 
 ClipModel::ClipModel(Engine& engine, int trackIndex, QObject* parent)
     : QAbstractListModel(parent), m_engine(engine), m_trackIndex(trackIndex) {
@@ -12,6 +18,8 @@ int ClipModel::rowCount(const QModelIndex& parent) const {
     int count = static_cast<int>(tracks[m_trackIndex].clips.size());
     return count;
 }
+
+
 
 QVariant ClipModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid()) return QVariant();
@@ -45,44 +53,10 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
         return QVariant();
     case WaveformDataRole:
         if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
-            // Проверяем кэш
-            if (m_waveformDataCache.contains(clipIndex)) {
-                return m_waveformDataCache[clipIndex];
-            }
-
             QVariantList waveformData;
-            const auto& buffer = audioClip->buffer;
-            int numSamples = buffer.getNumSamples();
-            int numChannels = buffer.getNumChannels();
-            int sampleCount = 100;
-
-            if (numSamples == 0) {
-                qDebug() << "Empty audio buffer for clip:" << clipIndex;
-                return waveformData;
+            for (float amplitude : audioClip->waveformData) {
+                waveformData.append(amplitude);
             }
-
-            int step = numSamples / sampleCount;
-            if (step < 1) step = 1;
-
-            for (int i = 0; i < sampleCount && i * step < numSamples; ++i) {
-                float maxAmplitude = 0.0f;
-                for (int j = 0; j < step; ++j) {
-                    int sampleIdx = i * step + j;
-                    float amplitude = 0.0f;
-                    for (int c = 0; c < numChannels; ++c) {
-                        if (sampleIdx < numSamples) {
-                            amplitude += std::abs(buffer.getSample(c, sampleIdx));
-                        }
-                    }
-                    amplitude /= numChannels;
-                    maxAmplitude = std::max(maxAmplitude, amplitude);
-                }
-                waveformData.append(maxAmplitude);
-            }
-
-            // Сохраняем в кэш
-            m_waveformDataCache[clipIndex] = waveformData;
-            qDebug() << "Computed waveform data for clip" << clipIndex << ":" << waveformData.size() << "points";
             return waveformData;
         }
         return QVariant();
@@ -129,4 +103,75 @@ void ClipModel::deleteClip(int clipIndex) {
     beginRemoveRows(QModelIndex(), clipIndex, clipIndex);
     endRemoveRows();
     qDebug() << "ClipModel deleted clip at index:" << clipIndex;
+}
+
+QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
+    const auto& tracks = m_engine.GetdataBase();
+    if (m_trackIndex < 0 || m_trackIndex >= tracks.size() || clipIndex < 0 || clipIndex >= tracks[m_trackIndex].clips.size()) {
+        qDebug() << "Invalid track or clip index:" << m_trackIndex << clipIndex;
+        return "";
+    }
+
+    const auto& clip = tracks[m_trackIndex].clips[clipIndex];
+    if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
+        if (audioClip->waveformData.empty()) {
+            qDebug() << "No waveform data for clip:" << clipIndex;
+            return "";
+        }
+
+        // Используем папку в пользовательской директории для надёжности
+        QDir projectDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/waveforms");
+        if (!projectDir.exists()) {
+            if (!projectDir.mkpath(".")) {
+                qDebug() << "Failed to create waveforms directory:" << projectDir.absolutePath();
+                return "";
+            }
+            qDebug() << "Created waveforms directory:" << projectDir.absolutePath();
+        }
+
+        QString fileName = QString("waveform_%1_%2.png").arg(m_trackIndex).arg(clipIndex);
+        QString filePath = projectDir.absoluteFilePath(fileName);
+
+        // Проверяем, существует ли файл
+        if (QFileInfo(filePath).exists()) {
+            qDebug() << "Using existing waveform image for clip:" << clipIndex << "at" << filePath;
+            return QUrl::fromLocalFile(filePath).toString();
+        }
+
+        QImage image(width, height, QImage::Format_ARGB32);
+        image.fill(Qt::transparent);
+
+        QPainter painter(&image);
+        painter.setPen(QPen(Qt::white, 1));
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        int numPoints = audioClip->waveformData.size();
+        float step = static_cast<float>(width) / numPoints;
+        float centerY = height / 2.0f;
+        float maxHeight = height * 0.8f / 2.0f;
+
+        QPainterPath waveformPath;
+        waveformPath.moveTo(0, centerY);
+        for (int i = 0; i < numPoints; ++i) {
+            float x = i * step;
+            float amplitude = audioClip->waveformData[i] * maxHeight;
+            waveformPath.lineTo(x, centerY - amplitude);
+        }
+        for (int i = numPoints - 1; i >= 0; --i) {
+            float x = i * step;
+            float amplitude = audioClip->waveformData[i] * maxHeight;
+            waveformPath.lineTo(x, centerY + amplitude);
+        }
+        waveformPath.closeSubpath();
+        painter.drawPath(waveformPath);
+
+        if (!image.save(filePath)) {
+            qDebug() << "Failed to save waveform image for clip:" << clipIndex << "at" << filePath;
+            return "";
+        }
+
+        qDebug() << "Waveform image saved for clip:" << clipIndex << "at" << filePath;
+        return QUrl::fromLocalFile(filePath).toString();
+    }
+    return "";
 }
