@@ -88,13 +88,19 @@ void ClipModel::updateClip(int clipIndex) {
     emit dataChanged(idx, idx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole, WaveformDataRole });
 }
 
-void ClipModel::setTrackIndex(int trackIndex) {
+void ClipModel::setTrackIndex(int trackIndex)
+{
     if (m_trackIndex != trackIndex) {
         m_trackIndex = trackIndex;
-        m_waveformDataCache.clear(); // Очищаем кэш
+        m_waveformDataCache.clear(); // Очищаем кэш вейвформ
         qDebug() << "ClipModel trackIndex changed to:" << m_trackIndex;
-        beginResetModel();
-        endResetModel();
+
+        // Уведомляем QML об изменении данных для всех клипов в этой дорожке
+        if (rowCount() > 0) {
+            QModelIndex topLeft = createIndex(0, 0);
+            QModelIndex bottomRight = createIndex(rowCount() - 1, 0);
+            emit dataChanged(topLeft, bottomRight, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole, WaveformDataRole });
+        }
     }
 }
 

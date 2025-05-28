@@ -330,21 +330,6 @@ Window {
                                     // Проверяем текущий бит
                                     var currentContentX = flickableArea.contentX + cursorX
                                     var newCurrentBeat = newBeatWidth > 0 ? currentContentX / newBeatWidth : 0
-
-                                    // Логируем
-                                    /* console.log("Zoom (wheel): zoomLevel:", flickableArea.zoomLevel,
-                                        "contentX:", flickableArea.contentX,
-                                        "contentWidth:", flickableArea.contentWidth,
-                                        "cursorX:", cursorX,
-                                        "wheelX:", wheel.x,
-                                        "contentCursorX:", contentCursorX,
-                                        "currentBeat:", newCurrentBeat,
-                                        "oldBeatWidth:", oldBeatWidth,
-                                        "newBeatWidth:", newBeatWidth,
-                                        "flickableWidth:", flickableArea.width,
-                                        "playheadPosition:", viewModel.playheadPosition,
-                                        "greenlineX:", greenline.x,
-                                        "isPlaying:", viewModel.isPlaying) */
                                     
                                 }
                             }   
@@ -434,118 +419,132 @@ Window {
                                             y: index * 50
                                             z: 2
 
-                                            Component.onCompleted: {
-                                                console.log("Track index:", trackIndex, "clipsModel:", clipsModel);
+                                            Connections {
+                                                target: viewModel.trackModel
+                                                function onDataChanged(topLeft, bottomRight, roles) {
+                                                    if (index >= topLeft.row && index <= bottomRight.row && roles.includes(viewModel.trackModel.TrackIndexRole)) {
+                                                        trackIndex = model.trackIndex
+                                                        console.log("Updated trackIndex to:", trackIndex, "for track at index:", index)
+                                                    }
+                                                }
+                                                function onModelReset() {
+                                                    trackIndex = model.trackIndex
+                                                    console.log("Reset trackIndex to:", trackIndex, "for track at index:", index)
+                                                }
                                             }
 
-Repeater {
-    id: clipsRepeater
-    model: clipsModel
-    delegate: Rectangle {
-        id: clipRectangle
-        x: model.startBeats * flickableArea.beatWidth
-        width: model.durationBeats * flickableArea.beatWidth
-        height: 48
-        color: model.type === "audio" ? "#FF5722" : "#4CAF50"
-        radius: 3
-        border.width: 1
-        border.color: Qt.darker(color, 1.2)
+                                            Component.onCompleted: {
+                                                console.log("Track index:", trackIndex, "clipsModel:", clipsModel)
+                                            }
 
-        readonly property bool isVisible: {
-            var clipX = x - flickableArea.contentX
-            return clipX + width > 0 && clipX < flickableArea.width
-        }
+                                            Repeater {
+                                                id: clipsRepeater
+                                                model: clipsModel
+                                                delegate: Rectangle {
+                                                    id: clipRectangle
+                                                    x: model.startBeats * flickableArea.beatWidth
+                                                    width: model.durationBeats * flickableArea.beatWidth
+                                                    height: 48
+                                                    color: model.type === "audio" ? "#FF5722" : "#4CAF50"
+                                                    radius: 3
+                                                    border.width: 1
+                                                    border.color: Qt.darker(color, 1.2)
 
-        Image {
-            id: waveformImage
-            anchors.fill: parent
-            source: ""
-            asynchronous: true
-            visible: model.type === "audio" && source != ""
-            onStatusChanged: {
-                if (status == Image.Ready) {
-                    console.log("Waveform image loaded for clip:", index, "source:", source)
-                } else if (status == Image.Error) {
-                    console.log("Waveform image error for clip:", index, "source:", source)
-                }
-            }
+                                                    readonly property bool isVisible: {
+                                                        var clipX = x - flickableArea.contentX
+                                                        return clipX + width > 0 && clipX < flickableArea.width
+                                                    }
 
-            Timer {
-                id: imageUpdateTimer
-                interval: 16 // 60 FPS
-                onTriggered: {
-                    if (clipRectangle.isVisible) {
-                        waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
-                    }
-                }
-            }
+                                                    Image {
+                                                        id: waveformImage
+                                                        anchors.fill: parent
+                                                        source: ""
+                                                        asynchronous: true
+                                                        visible: model.type === "audio" && source != ""
+                                                        onStatusChanged: {
+                                                            if (status == Image.Ready) {
+                                                                console.log("Waveform image loaded for clip:", index, "source:", source)
+                                                            } else if (status == Image.Error) {
+                                                                console.log("Waveform image error for clip:", index, "source:", source)
+                                                            }
+                                                        }
 
-            Connections {
-                target: clipRectangle
-                function onWidthChanged() {
-                    var delta = Math.abs(clipRectangle.width - lastWidth)
-                    if (delta > 5) {
-                        imageUpdateTimer.restart()
-                        lastWidth = clipRectangle.width
-                    }
-                }
-                property real lastWidth: clipRectangle.width
-            }
+                                                        Timer {
+                                                            id: imageUpdateTimer
+                                                            interval: 16 // 60 FPS
+                                                            onTriggered: {
+                                                                if (clipRectangle.isVisible) {
+                                                                    waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
+                                                                }
+                                                            }
+                                                        }
 
-            Connections {
-                target: flickableArea
-                function onContentXChanged() {
-                    if (clipRectangle.isVisible && !imageUpdateTimer.running) {
-                        imageUpdateTimer.restart()
-                    }
-                }
-            }
-        }
+                                                        Connections {
+                                                            target: clipRectangle
+                                                            function onWidthChanged() {
+                                                                var delta = Math.abs(clipRectangle.width - lastWidth)
+                                                                if (delta > 5) {
+                                                                    imageUpdateTimer.restart()
+                                                                    lastWidth = clipRectangle.width
+                                                                }
+                                                            }
+                                                            property real lastWidth: clipRectangle.width
+                                                        }
 
-        ToolButton {
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 2
-            z: 10
-            text: "🗑"
-            onClicked: {
-                console.log("Deleting clip:", index, "from track:", trackIndex)
-                viewModel.deleteClip(trackIndex, index)
-            }
-        }
+                                                        Connections {
+                                                            target: flickableArea
+                                                            function onContentXChanged() {
+                                                                if (clipRectangle.isVisible && !imageUpdateTimer.running) {
+                                                                    imageUpdateTimer.restart()
+                                                                }
+                                                            }
+                                                        }
+                                                    }
 
-        Label {
-            anchors.fill: parent
-            text: model.file ? model.file.split("/").pop() : "MIDI Clip"
-            color: "white"
-            font.pixelSize: 10
-            padding: 5
-            elide: Text.ElideRight
-            verticalAlignment: Text.AlignVCenter
-            opacity: model.type === "audio" ? 0.5 : 1.0
-        }
+                                                    ToolButton {
+                                                        anchors.right: parent.right
+                                                        anchors.top: parent.top
+                                                        anchors.margins: 2
+                                                        z: 10
+                                                        text: "🗑"
+                                                        onClicked: {
+                                                            console.log("Deleting clip:", index, "from track:", trackIndex)
+                                                            viewModel.deleteClip(trackIndex, index)
+                                                        }
+                                                    }
 
-        MouseArea {
-            anchors.fill: parent
-            drag.target: clipRectangle
-            drag.axis: Drag.XAxis
-            drag.minimumX: 0
-            drag.maximumX: Math.max(0, contentGrid.width - clipRectangle.width)
+                                                    Label {
+                                                        anchors.fill: parent
+                                                        text: model.file ? model.file.split("/").pop() : "MIDI Clip"
+                                                        color: "white"
+                                                        font.pixelSize: 10
+                                                        padding: 5
+                                                        elide: Text.ElideRight
+                                                        verticalAlignment: Text.AlignVCenter
+                                                        opacity: model.type === "audio" ? 0.5 : 1.0
+                                                    }
 
-            onPressed: {
-                console.log("Drag started at: x:", clipRectangle.x, "startBeats:", model.startBeats)
-                clipRectangle.z = 3
-            }
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        drag.target: clipRectangle
+                                                        drag.axis: Drag.XAxis
+                                                        drag.minimumX: 0
+                                                        drag.maximumX: Math.max(0, contentGrid.width - clipRectangle.width)
 
-            onReleased: {
-                var snappedX = Math.round(clipRectangle.x / flickableArea.beatWidth) * flickableArea.beatWidth
-                var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
-                clipRectangle.z = 2
-                viewModel.moveClip(trackIndex, index, newPosition)
-            }
-        }
-    }
-}
+                                                        onPressed: {
+                                                            console.log("Drag started at: x:", clipRectangle.x, "startBeats:", model.startBeats)
+                                                            clipRectangle.z = 3
+                                                        }
+
+                                                        onReleased: {
+                                                            var snappedX = Math.round(clipRectangle.x / flickableArea.beatWidth) * flickableArea.beatWidth
+                                                            var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
+                                                            clipRectangle.z = 2
+                                                            viewModel.moveClip(trackIndex, index, newPosition)
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
