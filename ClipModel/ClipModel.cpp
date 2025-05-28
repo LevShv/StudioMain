@@ -119,8 +119,19 @@ QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
             return "";
         }
 
-        // Используем папку в пользовательской директории для надёжности
-        QDir projectDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/waveforms");
+        // Предопределённые ширины
+        const std::vector<int> targetWidths = { 100, 200, 400, 800, 1600 };
+        int targetWidth = targetWidths[0];
+        int minDiff = std::abs(width - targetWidth);
+        for (int w : targetWidths) {
+            int diff = std::abs(width - w);
+            if (diff < minDiff) {
+                minDiff = diff;
+                targetWidth = w;
+            }
+        }
+
+        QDir projectDir(QDir::currentPath() + "/waveforms");
         if (!projectDir.exists()) {
             if (!projectDir.mkpath(".")) {
                 qDebug() << "Failed to create waveforms directory:" << projectDir.absolutePath();
@@ -129,24 +140,35 @@ QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
             qDebug() << "Created waveforms directory:" << projectDir.absolutePath();
         }
 
-        QString fileName = QString("waveform_%1_%2.png").arg(m_trackIndex).arg(clipIndex);
+        QString fileName = QString("waveform_%1_%2.png").arg(QString::fromStdString(audioClip->clipID)).arg(targetWidth);
         QString filePath = projectDir.absoluteFilePath(fileName);
 
-        // Проверяем, существует ли файл
-        if (QFileInfo(filePath).exists()) {
-            qDebug() << "Using existing waveform image for clip:" << clipIndex << "at" << filePath;
+        QFileInfo fileInfo(filePath);
+        if (fileInfo.exists()) {
+            qDebug() << "Using existing waveform image for clip ID:" << audioClip->clipID.c_str() << "at" << filePath;
             return QUrl::fromLocalFile(filePath).toString();
         }
 
-        QImage image(width, height, QImage::Format_ARGB32);
+        // Ограничиваем до 5 файлов
+        QStringList existingFiles = projectDir.entryList(
+            QStringList() << QString("waveform_%1_*.png").arg(QString::fromStdString(audioClip->clipID)),
+            QDir::Files, QDir::Name
+        );
+        if (existingFiles.size() >= 5) {
+            QString oldestFile = projectDir.absoluteFilePath(existingFiles.first());
+            QFile::remove(oldestFile);
+            qDebug() << "Removed oldest waveform image:" << oldestFile;
+        }
+
+        QImage image(targetWidth, height, QImage::Format_ARGB32);
         image.fill(Qt::transparent);
 
         QPainter painter(&image);
         painter.setPen(QPen(Qt::white, 1));
         painter.setRenderHint(QPainter::Antialiasing);
 
-        int numPoints = audioClip->waveformData.size();
-        float step = static_cast<float>(width) / numPoints;
+        int numPoints = std::min((int)audioClip->waveformData.size(), targetWidth);
+        float step = numPoints > 1 ? static_cast<float>(targetWidth) / (numPoints - 1) : targetWidth;
         float centerY = height / 2.0f;
         float maxHeight = height * 0.8f / 2.0f;
 
@@ -154,24 +176,26 @@ QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
         waveformPath.moveTo(0, centerY);
         for (int i = 0; i < numPoints; ++i) {
             float x = i * step;
-            float amplitude = audioClip->waveformData[i] * maxHeight;
+            float amplitude = audioClip->waveformData[i * audioClip->waveformData.size() / numPoints] * maxHeight;
             waveformPath.lineTo(x, centerY - amplitude);
         }
         for (int i = numPoints - 1; i >= 0; --i) {
             float x = i * step;
-            float amplitude = audioClip->waveformData[i] * maxHeight;
+            float amplitude = audioClip->waveformData[i * audioClip->waveformData.size() / numPoints] * maxHeight;
             waveformPath.lineTo(x, centerY + amplitude);
         }
         waveformPath.closeSubpath();
         painter.drawPath(waveformPath);
 
         if (!image.save(filePath)) {
-            qDebug() << "Failed to save waveform image for clip:" << clipIndex << "at" << filePath;
+            qDebug() << "Failed to save waveform image for clip ID:" << audioClip->clipID.c_str() << "at" << filePath;
             return "";
         }
 
-        qDebug() << "Waveform image saved for clip:" << clipIndex << "at" << filePath;
-        return QUrl::fromLocalFile(filePath).toString();
+        qDebug() << "Waveform image saved for clip ID:" << audioClip->clipID.c_str() << "at" << filePath;
+        QString url = QUrl::fromLocalFile(filePath).toString();
+        qDebug() << "Returning URL for clip ID:" << audioClip->clipID.c_str() << "url:" << url;
+        return url;
     }
     return "";
 }

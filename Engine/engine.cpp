@@ -3,6 +3,7 @@
 #include "JuceHeader.h"
 #include <thread>
 #include <mutex>
+#include <algorithm>
 // Core implementation
 
 #pragma region Core
@@ -502,6 +503,8 @@ void Engine::Core::setPosition(double newPosition) {
     LOG("Playhead moved to: " << position << " seconds, all notes off sent");
 }
 
+
+
 void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file, double startBeats, bool loadToRAM) {
     if (trackIndex < 0 || trackIndex >= tracks.size()) return;
 
@@ -509,6 +512,7 @@ void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file, double 
     clip->file = file;
     clip->startBeats = startBeats;
     clip->startTime = beatsToSeconds(startBeats);
+    clip->clipID = clip->generateClipID(); // Уникальный ID
 
     juce::AudioFormatReader* reader = formatManager.createReaderFor(file);
     if (reader) {
@@ -520,11 +524,19 @@ void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file, double 
             reader->read(&clip->buffer, 0, (int)reader->lengthInSamples, 0, true, true);
             clip->useRAM = true;
 
-            // Асинхронная генерация волноформы
             std::thread([clip = clip.get()]() {
-                int sampleCount = 300; // Фиксированное число точек
                 int numSamples = clip->buffer.getNumSamples();
                 int numChannels = clip->buffer.getNumChannels();
+
+                const int minSamplesPerPoint = 100;
+                const int maxSamplesPerPoint = 1000;
+                const int maxSampleCount = 10000;
+                int sampleCount = numSamples / minSamplesPerPoint;
+                sampleCount = std::max(1, std::min(sampleCount, maxSampleCount));
+                if (numSamples / sampleCount > maxSamplesPerPoint) {
+                    sampleCount = numSamples / maxSamplesPerPoint;
+                }
+
                 int step = numSamples / sampleCount;
                 if (step < 1) step = 1;
 
@@ -545,11 +557,10 @@ void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file, double 
                     waveformData[i] = maxAmplitude;
                 }
 
-                // Безопасно записываем результат
                 juce::CriticalSection lock;
                 const juce::ScopedLock sl(lock);
                 clip->waveformData = std::move(waveformData);
-                }).detach(); // Отсоединяем поток
+                }).detach();
         }
         delete reader;
     }
