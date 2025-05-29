@@ -90,11 +90,13 @@
     <QtMoc Include="ClipModel\ClipModel.h">
       <Filter>ClipModel</Filter>
     </QtMoc>
+    <QtMoc Include="TimelinePainter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ClipModel\ClipModel.cpp">
       <Filter>ClipModel</Filter>
     </ClCompile>
+    <ClCompile Include="TimelinePainter.cpp" />
   </ItemGroup>
 </Project>
