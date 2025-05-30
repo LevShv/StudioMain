@@ -416,7 +416,7 @@ Flickable {
                     antialiasing: true
                     width: {
                         var beatIndex = index * flickableArea.cachedGroupSize
-                        return beatIndex % 4 < 0.001 ? 2 : 1
+                        return beatIndex % 4 < 0.001 ? 1 : 0.5
                     }
                 }
 
@@ -497,7 +497,7 @@ Flickable {
                     z: 1
                     width: {
                         var beatIndex = index * flickableArea.cachedGroupSize
-                        return beatIndex % 4 < 0.001 ? 2 : 1
+                        return beatIndex % 4 < 0.001 ? 1 : 0.5
                     }
                 }
             }
@@ -576,7 +576,7 @@ Flickable {
                     z: 1
                     width: {
                         var beatIndex = index * flickableArea.cachedGroupSize
-                        return beatIndex % 4 < 0.001 ? 2 : 1
+                        return beatIndex % 4 < 0.001 ? 1 : 0.5
                     }
                     visible: {
                         var itemX = x - flickableArea.contentX
