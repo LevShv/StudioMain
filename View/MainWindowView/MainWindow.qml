@@ -246,7 +246,7 @@ Window {
                                 model: viewModel.trackModel
                                 Rectangle {
                                     width: 150
-                                    height: 50
+                                    height: 52
                                     color: "#2D2D2D"
                                     border.color: "#444"
                                     Label {
