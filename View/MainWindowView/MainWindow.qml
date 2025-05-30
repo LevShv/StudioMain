@@ -282,7 +282,7 @@ Window {
                         // Прокручиваемая область
 Flickable {
     id: flickableArea
-    property int countOfBeats: 10000
+    property int countOfBeats: 1000
     property real baseBeatWidth: 40
     property real zoomLevel: 1.0
     property real beatWidth: baseBeatWidth * zoomLevel
@@ -344,12 +344,11 @@ Flickable {
     }
 
     function getGroupSize() {
-        // Определяем размер группы в зависимости от zoomLevel
-        if (zoomLevel >= 8.0) return 0.0625 // Делим 0.25 бита на 4 подячейки (0.0625 бита)
-        if (zoomLevel >= 4.0) return 0.25   // Делим 1 бит на 4 подячейки (0.25 бита)
-        if (zoomLevel >= 2.0) return 1      // Делим 4 бита на 4 подячейки (1 бит)
-        if (zoomLevel >= 0.5) return 4      // Базовая группа: 4 бита
-        return 16                           // Для минимального зума: 16 битов
+        if (zoomLevel >= 8.0) return 0.0625
+        if (zoomLevel >= 4.0) return 0.25
+        if (zoomLevel >= 2.0) return 1
+        if (zoomLevel >= 0.5) return 4
+        return 16
     }
 
     ListModel {
@@ -400,42 +399,61 @@ Flickable {
                 }
 
                 Rectangle {
-                    width: 1
+                    anchors.fill: parent
+                    color: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        return measure % 2 === 0 ? "#444444" : "#333333"
+                    }
+                    z: 0
+                }
+
+                Rectangle {
                     height: parent.height
                     x: 0
                     color: "#000000"
                     z: 1
                     antialiasing: true
+                    width: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        return beatIndex % 4 < 0.001 ? 2 : 1
+                    }
                 }
 
                 Label {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.horizontalCenterOffset: width / 2
+                    anchors.left: parent.left
+                    anchors.leftMargin: 2
                     anchors.verticalCenter: parent.verticalCenter
                     text: {
                         var groupSize = flickableArea.cachedGroupSize
                         var beatIndex = index * groupSize
-                        if (groupSize < 1) {
-                            // Для дробных подячеек (например, 0.25 бита)
-                            return beatIndex.toFixed(2)
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        if (groupSize >= 4) {
+                            return measure
                         }
+                        var beatInMeasure = Math.floor(beatIndex % 4) + 1
                         if (groupSize === 1) {
-                            // Для целых битов
-                            return beatIndex.toFixed(0)
+                            return measure + "." + beatInMeasure
                         }
-                        // Для групп по 4 бита
-                        var seconds = beatIndex * (60 / viewModel.bpm)
-                        if (seconds >= 60) {
-                            var minutes = Math.floor(seconds / 60)
-                            seconds = Math.round(seconds % 60)
-                            return minutes + ":" + (seconds < 10 ? "0" : "") + seconds
-                        }
-                        return beatIndex
+                        var subBeat = Math.round((beatIndex % 1) / groupSize) + 1
+                        return measure + "." + beatInMeasure + "." + subBeat
                     }
-                    color: "#FFFFFF"
+                    color: "#AAAAAA"
                     font.pixelSize: flickableArea.beatWidth * flickableArea.cachedGroupSize > 20 ? 12 : 8
-                    visible: flickableArea.beatWidth * flickableArea.cachedGroupSize > 10
+                    visible: {
+                        var groupSize = flickableArea.cachedGroupSize
+                        var beatIndex = index * groupSize
+                        return flickableArea.beatWidth * flickableArea.cachedGroupSize > 10 &&
+                               (beatIndex % 1 < 0.001 || groupSize >= 1)
+                    }
                     z: 2
+                    background: Rectangle {
+                        color: "#333333"
+                        opacity: 0.7
+                        anchors.fill: parent
+                        anchors.leftMargin: -2
+                        anchors.rightMargin: -2
+                    }
                 }
             }
         }
@@ -453,20 +471,34 @@ Flickable {
 
         Repeater {
             model: visibleBeatsModel
-            Rectangle {
+            Item {
                 width: flickableArea.cachedGroupSize * flickableArea.beatWidth
                 height: timelineGrid.height
                 x: index * width
-                color: "transparent"
-                Rectangle {
-                    width: 1
-                    height: parent.height
-                    color: "#000000"
-                    antialiasing: true
-                }
                 visible: {
                     var itemX = x - flickableArea.contentX
                     return itemX > -width * 2 && itemX < flickableArea.width + width * 2
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        return measure % 2 === 0 ? "#444444" : "#333333"
+                    }
+                    z: 0
+                }
+
+                Rectangle {
+                    height: parent.height
+                    color: "#000000"
+                    antialiasing: true
+                    z: 1
+                    width: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        return beatIndex % 4 < 0.001 ? 2 : 1
+                    }
                 }
             }
         }
@@ -485,7 +517,21 @@ Flickable {
             id: tracksAndClipsContainer
             anchors.fill: parent
 
-            // Горизонтальные линии
+            Repeater {
+                model: visibleBeatsModel
+                Rectangle {
+                    width: flickableArea.cachedGroupSize * flickableArea.beatWidth
+                    height: contentGrid.height
+                    x: index * width
+                    color: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        return measure % 2 === 0 ? "#444444" : "#333333"
+                    }
+                    z: 0
+                }
+            }
+
             Repeater {
                 model: viewModel.trackModel
                 delegate: Item {
@@ -516,6 +562,25 @@ Flickable {
                         layer.enabled: true
                         visible: index === viewModel.trackModel.countOfTracks - 1
                         Component.onCompleted: console.log("Bottom horizontal line drawn at track:", index, "y:", parent.y + height)
+                    }
+                }
+            }
+
+            Repeater {
+                model: visibleBeatsModel
+                Rectangle {
+                    height: contentGrid.height
+                    x: index * flickableArea.cachedGroupSize * flickableArea.beatWidth
+                    color: "#000000"
+                    antialiasing: true
+                    z: 1
+                    width: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        return beatIndex % 4 < 0.001 ? 2 : 1
+                    }
+                    visible: {
+                        var itemX = x - flickableArea.contentX
+                        return itemX > -width * 2 && itemX < flickableArea.width + width * 2
                     }
                 }
             }
