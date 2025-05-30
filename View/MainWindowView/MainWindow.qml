@@ -282,7 +282,7 @@ Window {
                         // Прокручиваемая область
 Flickable {
     id: flickableArea
-    property int countOfBeats: 1000
+    property int countOfBeats: 10000
     property real baseBeatWidth: 40
     property real zoomLevel: 1.0
     property real beatWidth: baseBeatWidth * zoomLevel
@@ -298,8 +298,8 @@ Flickable {
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.HorizontalFlick
-    maximumFlickVelocity: 2000 // Для плавной прокрутки
-    flickDeceleration: 1000 // Мягкое замедление
+    maximumFlickVelocity: 2000
+    flickDeceleration: 1000
 
     Timer {
         id: updateDebounceTimer
@@ -317,7 +317,7 @@ Flickable {
         contentX = Math.max(0, Math.min(contentX, contentWidth - width))
         cachedGroupSize = getGroupSize()
         needsUpdate = true
-        console.log("Zoom level changed to:", zoomLevel, "contentX:", contentX)
+        console.log("Zoom level changed to:", zoomLevel, "contentX:", contentX, "groupSize:", cachedGroupSize)
     }
 
     onContentXChanged: {
@@ -340,15 +340,16 @@ Flickable {
         for (var i = startIndex; i < endIndex; i++) {
             visibleBeatsModel.append({"index": i})
         }
+        console.log("Updated visible beats: startIndex:", startIndex, "endIndex:", endIndex, "groupSize:", groupSize)
     }
 
     function getGroupSize() {
-        if (beatWidth > 80) return 0.5
-        if (beatWidth > 60) return 0.75
-        if (beatWidth > 40) return 1
-        if (beatWidth > 20) return 2
-        if (beatWidth > 10) return 4
-        return 8
+        // Определяем размер группы в зависимости от zoomLevel
+        if (zoomLevel >= 8.0) return 0.0625 // Делим 0.25 бита на 4 подячейки (0.0625 бита)
+        if (zoomLevel >= 4.0) return 0.25   // Делим 1 бит на 4 подячейки (0.25 бита)
+        if (zoomLevel >= 2.0) return 1      // Делим 4 бита на 4 подячейки (1 бит)
+        if (zoomLevel >= 0.5) return 4      // Базовая группа: 4 бита
+        return 16                           // Для минимального зума: 16 битов
     }
 
     ListModel {
@@ -413,21 +414,27 @@ Flickable {
                     anchors.verticalCenter: parent.verticalCenter
                     text: {
                         var groupSize = flickableArea.cachedGroupSize
-                        var beatIndex = index * groupSize + groupSize
-                        if (flickableArea.beatWidth < flickableArea.baseBeatWidth) {
-                            return beatIndex.toFixed(1)
+                        var beatIndex = index * groupSize
+                        if (groupSize < 1) {
+                            // Для дробных подячеек (например, 0.25 бита)
+                            return beatIndex.toFixed(2)
                         }
+                        if (groupSize === 1) {
+                            // Для целых битов
+                            return beatIndex.toFixed(0)
+                        }
+                        // Для групп по 4 бита
                         var seconds = beatIndex * (60 / viewModel.bpm)
                         if (seconds >= 60) {
                             var minutes = Math.floor(seconds / 60)
                             seconds = Math.round(seconds % 60)
                             return minutes + ":" + (seconds < 10 ? "0" : "") + seconds
                         }
-                        return Math.round(beatIndex)
+                        return beatIndex
                     }
                     color: "#FFFFFF"
-                    font.pixelSize: flickableArea.beatWidth > 10 ? 12 : 8
-                    visible: flickableArea.beatWidth > 5
+                    font.pixelSize: flickableArea.beatWidth * flickableArea.cachedGroupSize > 20 ? 12 : 8
+                    visible: flickableArea.beatWidth * flickableArea.cachedGroupSize > 10
                     z: 2
                 }
             }
