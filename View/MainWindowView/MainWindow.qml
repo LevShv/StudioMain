@@ -290,7 +290,6 @@ Flickable {
     property bool needsUpdate: false
     property real lastContentX: 0
     property real cachedGroupSize: getGroupSize()
-    property bool isZooming: false // Флаг для зума
 
     Layout.fillWidth: true
     Layout.fillHeight: true
@@ -299,14 +298,8 @@ Flickable {
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.HorizontalFlick
-    maximumFlickVelocity: 2000
-    flickDeceleration: 1000
-
-    // Сглаживание прокрутки, но не во время зума
-    Behavior on contentX {
-        enabled: !flickableArea.isZooming
-        SmoothedAnimation { duration: 150; velocity: 1000 }
-    }
+    maximumFlickVelocity: 2000 // Для плавной прокрутки
+    flickDeceleration: 1000 // Мягкое замедление
 
     Timer {
         id: updateDebounceTimer
@@ -324,7 +317,6 @@ Flickable {
         contentX = Math.max(0, Math.min(contentX, contentWidth - width))
         cachedGroupSize = getGroupSize()
         needsUpdate = true
-        isZooming = false // Сбрасываем флаг после зума
         console.log("Zoom level changed to:", zoomLevel, "contentX:", contentX)
     }
 
@@ -369,31 +361,25 @@ Flickable {
         hoverEnabled: true
 
         onWheel: (wheel) => {
-            flickableArea.isZooming = true // Устанавливаем флаг зума
-            // Вычисляем позицию курсора относительно видимой области
-            var cursorX = wheel.x
-            if (isNaN(cursorX) || cursorX < 0 || cursorX > flickableArea.width) {
+            var cursorX = Math.max(0, Math.min(wheel.x - flickableArea.contentX, flickableArea.width))
+            if (isNaN(cursorX)) {
                 cursorX = flickableArea.width / 2
             }
-            // Текущая позиция курсора в контенте
             var contentCursorX = cursorX + flickableArea.contentX
-            // Текущий бит под курсором
-            var currentBeat = contentCursorX / flickableArea.beatWidth
-            // Новый уровень зума
+            var oldBeatWidth = flickableArea.baseBeatWidth * flickableArea.zoomLevel
+            var currentBeat = oldBeatWidth > 0 ? contentCursorX / oldBeatWidth : 0
             var delta = wheel.angleDelta.y / 120
             var newZoom = Math.max(0.2, Math.min(10.0, flickableArea.zoomLevel + delta * 0.1))
-            // Устанавливаем новый зум
             flickableArea.zoomLevel = newZoom
-            // Новый beatWidth
             var newBeatWidth = flickableArea.baseBeatWidth * flickableArea.zoomLevel
-            // Пересчитываем contentX, чтобы курсор остался на месте
+            flickableArea.contentWidth = flickableArea.countOfBeats * newBeatWidth
             flickableArea.contentX = currentBeat * newBeatWidth - cursorX
             flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
             console.log("Wheel zoom: cursorX:", cursorX, "contentCursorX:", contentCursorX, "currentBeat:", currentBeat, "newZoom:", newZoom, "newContentX:", flickableArea.contentX)
         }
     }
 
-    // Ruler (без изменений)
+    // Ruler
     Rectangle {
         id: timeRuler
         width: flickableArea.widthOfAllArea
@@ -448,7 +434,7 @@ Flickable {
         }
     }
 
-    // Grid lines (без изменений)
+    // Grid lines
     Rectangle {
         id: timelineGrid
         width: flickableArea.widthOfAllArea
@@ -492,14 +478,14 @@ Flickable {
             id: tracksAndClipsContainer
             anchors.fill: parent
 
-            // Статические горизонтальные линии с ограниченной шириной
+            // Горизонтальные линии
             Repeater {
                 model: viewModel.trackModel
                 delegate: Item {
                     property int trackIndex: model.trackIndex || 0
-                    width: flickableArea.width // Ограничено видимой областью
+                    width: flickableArea.width
                     height: 50
-                    x: flickableArea.contentX // Синхронизация с прокруткой
+                    x: flickableArea.contentX
                     y: Math.floor(index * 52)
                     z: 2
 
@@ -510,7 +496,7 @@ Flickable {
                         anchors.top: parent.top
                         antialiasing: true
                         z: 2
-                        layer.enabled: true // Включено обратно
+                        layer.enabled: true
                         Component.onCompleted: console.log("Horizontal line drawn at track:", index, "y:", parent.y, "x:", parent.x, "width:", width)
                     }
                     Rectangle {
@@ -520,7 +506,7 @@ Flickable {
                         anchors.bottom: parent.bottom
                         antialiasing: true
                         z: 2
-                        layer.enabled: true // Включено обратно
+                        layer.enabled: true
                         visible: index === viewModel.trackModel.countOfTracks - 1
                         Component.onCompleted: console.log("Bottom horizontal line drawn at track:", index, "y:", parent.y + height)
                     }
