@@ -290,6 +290,7 @@ Flickable {
     property bool needsUpdate: false
     property real lastContentX: 0
     property real cachedGroupSize: getGroupSize()
+    property bool isZooming: false // Флаг для зума
 
     Layout.fillWidth: true
     Layout.fillHeight: true
@@ -298,6 +299,14 @@ Flickable {
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.HorizontalFlick
+    maximumFlickVelocity: 2000
+    flickDeceleration: 1000
+
+    // Сглаживание прокрутки, но не во время зума
+    Behavior on contentX {
+        enabled: !flickableArea.isZooming
+        SmoothedAnimation { duration: 150; velocity: 1000 }
+    }
 
     Timer {
         id: updateDebounceTimer
@@ -315,12 +324,15 @@ Flickable {
         contentX = Math.max(0, Math.min(contentX, contentWidth - width))
         cachedGroupSize = getGroupSize()
         needsUpdate = true
+        isZooming = false // Сбрасываем флаг после зума
+        console.log("Zoom level changed to:", zoomLevel, "contentX:", contentX)
     }
 
     onContentXChanged: {
-        if (Math.abs(contentX - lastContentX) > 5) {
+        if (Math.abs(contentX - lastContentX) > 100) {
             needsUpdate = true
             lastContentX = contentX
+            console.log("ContentX changed, updating visible beats at:", contentX)
         }
     }
 
@@ -357,18 +369,27 @@ Flickable {
         hoverEnabled: true
 
         onWheel: (wheel) => {
-            var cursorX = Math.max(0, Math.min(wheel.x - flickableArea.contentX, flickableArea.width))
-            if (isNaN(cursorX)) cursorX = flickableArea.width / 2
+            flickableArea.isZooming = true // Устанавливаем флаг зума
+            // Вычисляем позицию курсора относительно видимой области
+            var cursorX = wheel.x
+            if (isNaN(cursorX) || cursorX < 0 || cursorX > flickableArea.width) {
+                cursorX = flickableArea.width / 2
+            }
+            // Текущая позиция курсора в контенте
             var contentCursorX = cursorX + flickableArea.contentX
-            var oldBeatWidth = flickableArea.baseBeatWidth * flickableArea.zoomLevel
-            var currentBeat = oldBeatWidth > 0 ? contentCursorX / oldBeatWidth : 0
+            // Текущий бит под курсором
+            var currentBeat = contentCursorX / flickableArea.beatWidth
+            // Новый уровень зума
             var delta = wheel.angleDelta.y / 120
             var newZoom = Math.max(0.2, Math.min(10.0, flickableArea.zoomLevel + delta * 0.1))
+            // Устанавливаем новый зум
             flickableArea.zoomLevel = newZoom
+            // Новый beatWidth
             var newBeatWidth = flickableArea.baseBeatWidth * flickableArea.zoomLevel
-            flickableArea.contentWidth = flickableArea.countOfBeats * newBeatWidth
+            // Пересчитываем contentX, чтобы курсор остался на месте
             flickableArea.contentX = currentBeat * newBeatWidth - cursorX
             flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
+            console.log("Wheel zoom: cursorX:", cursorX, "contentCursorX:", contentCursorX, "currentBeat:", currentBeat, "newZoom:", newZoom, "newContentX:", flickableArea.contentX)
         }
     }
 
@@ -489,7 +510,7 @@ Flickable {
                         anchors.top: parent.top
                         antialiasing: true
                         z: 2
-                        layer.enabled: true
+                        layer.enabled: true // Включено обратно
                         Component.onCompleted: console.log("Horizontal line drawn at track:", index, "y:", parent.y, "x:", parent.x, "width:", width)
                     }
                     Rectangle {
@@ -499,7 +520,7 @@ Flickable {
                         anchors.bottom: parent.bottom
                         antialiasing: true
                         z: 2
-                        layer.enabled: true
+                        layer.enabled: true // Включено обратно
                         visible: index === viewModel.trackModel.countOfTracks - 1
                         Component.onCompleted: console.log("Bottom horizontal line drawn at track:", index, "y:", parent.y + height)
                     }
@@ -539,7 +560,7 @@ Flickable {
                             anchors.topMargin: 1
                             visible: {
                                 var clipX = x - flickableArea.contentX
-                                return clipX > -width && clipX < flickableArea.width + width
+                                return clipX > -width * 3 && clipX < flickableArea.width + width * 3
                             }
 
                             Rectangle {
@@ -562,8 +583,8 @@ Flickable {
 
                                 Timer {
                                     id: imageUpdateTimer
-                                    interval: 1000 // Увеличен интервал
-                                    running: clipItem.visible && model.type === "audio" && waveformImage.source == ""
+                                    interval: 1000
+                                    running: clipItem.visible && model.type === "audio" && waveformImage.source == "" && !flickableArea.moving
                                     onTriggered: {
                                         if (clipItem.visible) {
                                             waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
@@ -597,7 +618,7 @@ Flickable {
                                 Connections {
                                     target: flickableArea
                                     function onContentXChanged() {
-                                        if (clipItem.visible && model.type === "audio" && waveformImage.source == "") {
+                                        if (clipItem.visible && model.type === "audio" && waveformImage.source == "" && !flickableArea.moving) {
                                             imageUpdateTimer.restart()
                                             waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
                                             console.log("ContentX changed, updated waveform:", clipRectangle.width, "source:", waveformImage.source)
