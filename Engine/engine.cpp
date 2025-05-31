@@ -258,7 +258,8 @@ void Engine::Core::addCloneClip(int trackIndex, int masterClipIndex, double star
 
     ClipBase* masterClip = tracks[trackIndex].clips[masterClipIndex].get();
     auto cloneClip = std::make_unique<CloneClip>(masterClip, startBeats);
-    cloneClip->startTime = beatsToSeconds(startBeats);
+    cloneClip->startTime = beatsToSeconds(startBeats);    
+    cloneClip->clipID = cloneClip->generateClipID();
     tracks[trackIndex].clips.push_back(std::move(cloneClip));
     LOG("Added clone clip with startBeats: " << startBeats);
     updateActiveClips();
@@ -593,6 +594,7 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
     newClip->midiSequence = sequence;
     newClip->startTime = beatsToSeconds(startBeats); // ѕереводим биты в секунды
     newClip->startBeats = startBeats;
+    newClip->clipID = newClip->generateClipID();
     LOG("StartBeat for new clip set: " << startBeats);
     LOG("StartTime for new clip set: " << newClip->startTime);
 
@@ -1073,14 +1075,71 @@ void Engine::DeleteTrack(int trackIndex) {
     }
 }
 
-void::Engine::DeleteClip(int trackIndex, int clipIndex) {
+void Engine::DeleteClip(int trackIndex, int clipIndex) {
     juce::ScopedLock sl(core.lock);
-    if (trackIndex < core.tracks.size() && clipIndex < core.tracks[trackIndex].clips.size()) {
-        core.tracks[trackIndex].clips.erase(core.tracks[trackIndex].clips.begin() + clipIndex);
+
+    if (trackIndex < 0 || trackIndex >= core.tracks.size() ||
+        clipIndex < 0 || clipIndex >= core.tracks[trackIndex].clips.size()) {
+        LOG_ERROR("Index out of range: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex);
+        return;
+    }
+
+    auto& track = core.tracks[trackIndex];
+    auto& clipToDelete = track.clips[clipIndex];
+
+    // ѕровер€ем, €вл€етс€ ли клип мастер-клипом (не клоном)
+    if (dynamic_cast<Engine::CloneClip*>(clipToDelete.get())) {
+        // ≈сли это клон, просто удал€ем его
+        track.clips.erase(track.clips.begin() + clipIndex);
+        LOG("Deleted clone clip at trackIndex=" << trackIndex << ", clipIndex=" << clipIndex);
     }
     else {
-        LOG_ERROR("Index out of range");
+        // Ёто мастер-клип, ищем его клоны по clipID
+        std::string masterClipID = clipToDelete->clipID;
+        std::vector<int> cloneIndices;
+        for (int i = 0; i < track.clips.size(); ++i) {
+            if (i == clipIndex) continue; // ѕропускаем сам клип
+            if (auto* cloneClip = dynamic_cast<Engine::CloneClip*>(track.clips[i].get())) {
+                if (cloneClip->masterClipID == masterClipID) {
+                    cloneIndices.push_back(i);
+                }
+            }
+        }
+
+        if (!cloneIndices.empty()) {
+            // ≈сли есть клоны, переносим startTime и startBeats первого клона на мастер-клип
+            int firstCloneIndex = cloneIndices[0];
+            auto& firstClone = track.clips[firstCloneIndex];
+
+            clipToDelete->startTime = firstClone->startTime;
+            clipToDelete->startBeats = firstClone->startBeats;
+            LOG("Transferred startTime=" << firstClone->startTime << " and startBeats=" << firstClone->startBeats
+                << " from clone at index " << firstCloneIndex << " to master at index " << clipIndex
+                << " (clipID: " << masterClipID << ")");
+
+            // ”дал€ем первый клон
+            track.clips.erase(track.clips.begin() + firstCloneIndex);
+            LOG("Deleted clone clip at index " << firstCloneIndex);
+
+            // ќбновл€ем индексы оставшихс€ клонов, если они были после удаленного клона
+            for (size_t i = 1; i < cloneIndices.size(); ++i) {
+                int cloneIndex = cloneIndices[i];
+                if (cloneIndex > firstCloneIndex) {
+                    --cloneIndex; // ”читываем сдвиг после удалени€ первого клона
+                }
+                LOG("Clone at index " << cloneIndex << " continues to reference master with clipID: " << masterClipID);
+            }
+        }
+        else {
+            // ≈сли клонов нет, удал€ем мастер-клип
+            track.clips.erase(track.clips.begin() + clipIndex);
+            LOG("Deleted master clip at trackIndex=" << trackIndex << ", clipIndex=" << clipIndex
+                << " (clipID: " << masterClipID << ") with no clones");
+        }
     }
+
+    // ќбновл€ем активные клипы
+    core.updateActiveClips();
 }
 
 void Engine::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats)
