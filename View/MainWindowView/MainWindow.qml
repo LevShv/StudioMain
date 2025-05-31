@@ -601,6 +601,10 @@ Window {
                                             id: trackItem
                                             property int trackIndex: model.trackIndex
                                             property var clipsModel: model.clipsModel
+
+                                            property var lastCopiedClip: null
+                                            property real lastCopiedPosition: -1
+
                                             width: contentGrid.width
                                             height: 50
                                             y: Math.floor(index * 52)
@@ -614,6 +618,50 @@ Window {
                                                     }
                                                 }
                                             }
+
+                                            function findFreePosition(startBeat, duration) {
+            var clips = []
+            
+            // Получаем данные всех клипов из модели
+            for (var i = 0; i < clipsModel.count; i++) {
+                var clipData = clipsModel.get(i)
+                clips.push({
+                    start: clipData.startBeats,
+                    end: clipData.startBeats + clipData.durationBeats
+                })
+            }
+            
+            // Если это копия последнего созданного клипа, начинаем поиск от его конца
+            var searchStart = (lastCopiedClip === this && lastCopiedPosition >= 0) ? 
+                            lastCopiedPosition : startBeat
+            
+            // Сортируем клипы по позиции
+            clips.sort((a, b) => a.start - b.start)
+            
+            // Ищем свободное место
+            var searchPosition = searchStart
+            while (true) {
+                var positionFree = true
+                
+                for (var j = 0; j < clips.length; j++) {
+                    var clip = clips[j]
+                    if (searchPosition < clip.end && (searchPosition + duration) > clip.start) {
+                        positionFree = false
+                        searchPosition = clip.end
+                        break
+                    }
+                }
+                
+                if (positionFree) {
+                    // Запоминаем последнюю позицию копирования
+                    lastCopiedClip = this
+                    lastCopiedPosition = searchPosition + duration
+                    return searchPosition
+                }
+                
+                if (searchPosition > 10000) return searchStart + duration
+            }
+        }
 
                                             Connections {
                                                 target: viewModel.trackModel
@@ -785,11 +833,15 @@ Window {
                                                     Keys.onPressed: (event) => {
                                                         if (isSelected) {
                                                             if (event.key === Qt.Key_C) {
-                                                                var newPosition = model.startBeats + model.durationBeats
+                                                                var duration = model.durationBeats
+                                                                var newPosition = trackItem.findFreePosition(
+                                                                    model.startBeats + duration, 
+                                                                    duration
+                                                                )
                                                                 if (model.type === "audio") {
                                                                     viewModel.addAudioClip(trackIndex, model.file, newPosition)
                                                                 } else {
-                                                                    viewModel.addMidiClip(trackIndex, newPosition, model.durationBeats)
+                                                                    viewModel.addMidiClip(trackIndex, newPosition, 50)
                                                                 }
                                                                 console.log("Clip copied: trackIndex:", trackIndex, "newPosition:", newPosition)
                                                                 event.accepted = true
