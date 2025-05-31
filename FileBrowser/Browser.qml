@@ -255,26 +255,26 @@ Item {
                 // Элемент для перетаскивания
                 Rectangle {
                     id: dragItem
-                    width: 40
-                    height: 40
+                    width: Math.min(150, dragText.implicitWidth + 20)  // Автоподбор ширины с ограничением
+                    height: dragText.implicitHeight + 10  // Автоподбор высоты
                     visible: false
                     color: "#4C566A"
-                    radius: 20
+                    radius: 6  // Более скругленные углы
                     opacity: 0.9
                     z: 9999
-
-                    Image {
+    
+                    Text {
+                        id: dragText
                         anchors.centerIn: parent
-                        width: 24
-                        height: 24
-                        source: {
-                            if (fileName.endsWith(".mp3")) "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/mp3.png";
-                            else if (fileName.endsWith(".wav")) "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/wav.png";
-                            else if (fileName.endsWith(".mp4")) "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/mp4.png";
-                            else "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/file.png";
-                        }
-                        sourceSize.width: 24
-                        sourceSize.height: 24
+                        width: parent.width - 12  // Отступы от краев
+                        text: fileName
+                        color: "white"
+                        font.pixelSize: 12  // Увеличенный размер текста
+                        font.bold: true  // Полужирный шрифт
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideMiddle
+                        wrapMode: Text.NoWrap  // Текст в одну строку
                     }
                 }
 
