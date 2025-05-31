@@ -91,11 +91,19 @@ Item {
                     sourceSize.width: 24
                     sourceSize.height: 24
                 }
-
                 onClicked: {
-                    console.log("Navigating home")
-                    var homefolder = browser.homeFolder()
-                    browser.setCurrentFolder(homefolder)
+                    // Получаем текущий путь
+                    var currentPath = browser.currentFolder.toString();
+        
+                    // Находим индекс StudioMain в пути
+                    var studioMainIndex = currentPath.indexOf("StudioMain");
+        
+                    if (studioMainIndex >= 0) {
+                        // Берем часть пути до StudioMain и добавляем HomeLeTo
+                        var homePath = currentPath.substring(0, studioMainIndex) + "StudioMain/HomeLeTo";
+                        console.log("Navigating to home folder:", homePath);
+                        browser.setCurrentFolder(homePath);
+                    } 
                 }
             }
 
