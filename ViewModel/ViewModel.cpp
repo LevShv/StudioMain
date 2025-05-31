@@ -69,6 +69,15 @@ void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double sta
     emit clipAdded(trackIndex);
 }
 
+void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats) {
+    engine.AddCloneClip(trackIndex, masterClipIndex, startBeats);
+    ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
+    if (clipModel) {
+        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
+    }
+    emit clipAdded(trackIndex);
+}
+
 void ViewModel::addPlugin(int trackIndex, const QString& pluginPath) {
     engine.AddPluginToTrack(trackIndex, pluginPath.toStdString());
     emit pluginAdded(trackIndex);
@@ -216,15 +225,6 @@ Q_INVOKABLE void ViewModel::OpenProject(QString path)
     }
     
 
-}
-
-Q_INVOKABLE void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats) {
-    engine.AddCloneClip(trackIndex, masterClipIndex, startBeats);
-    ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
-    if (clipModel) {
-        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
-    }
-    emit clipAdded(trackIndex);
 }
 
 void ViewModel::addMidiTrack() {

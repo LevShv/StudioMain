@@ -602,8 +602,8 @@ Window {
                                             property int trackIndex: model.trackIndex
                                             property var clipsModel: model.clipsModel
 
-                                                    property var lastCopiedSourceIndex: -1  // Индекс исходного клипа
-        property real lastCopiedPosition: -1
+                                            property var lastCopiedSourceIndex: -1  // Индекс исходного клипа
+                                            property real lastCopiedPosition: -1
 
                                             width: contentGrid.width
                                             height: 50
@@ -620,41 +620,41 @@ Window {
                                             }
 
                                             function findFreePosition(startBeat, duration, sourceIndex) {
-            var clips = []
-            for (var i = 0; i < clipsModel.count; i++) {
-                var clipData = clipsModel.get(i)
-                clips.push({
-                    start: clipData.startBeats,
-                    end: clipData.startBeats + clipData.durationBeats
-                })
-            }
-            
-            clips.sort((a, b) => a.start - b.start)
-            
-            // Если копируем тот же клип - продолжаем с последней позиции
-            var searchPosition = (lastCopiedSourceIndex === sourceIndex && lastCopiedPosition >= startBeat) 
-                              ? lastCopiedPosition : startBeat
-            
-            while (true) {
-                var positionFree = true
-                for (var j = 0; j < clips.length; j++) {
-                    var clip = clips[j]
-                    if (searchPosition < clip.end && (searchPosition + duration) > clip.start) {
-                        positionFree = false
-                        searchPosition = clip.end
-                        break
-                    }
-                }
-                
-                if (positionFree) {
-                    lastCopiedSourceIndex = sourceIndex
-                    lastCopiedPosition = searchPosition + duration
-                    return searchPosition
-                }
-                
-                if (searchPosition > 10000) return startBeat + duration
-            }
-        }
+                                            var clips = []
+                                            for (var i = 0; i < clipsModel.count; i++) {
+                                                var clipData = clipsModel.get(i)
+                                                clips.push({
+                                                    start: clipData.startBeats,
+                                                    end: clipData.startBeats + clipData.durationBeats
+                                                })
+                                            }
+                                            
+                                            clips.sort((a, b) => a.start - b.start)
+                                            
+                                            // Если копируем тот же клип - продолжаем с последней позиции
+                                            var searchPosition = (lastCopiedSourceIndex === sourceIndex && lastCopiedPosition >= startBeat) 
+                                                            ? lastCopiedPosition : startBeat
+                                            
+                                            while (true) {
+                                                var positionFree = true
+                                                for (var j = 0; j < clips.length; j++) {
+                                                    var clip = clips[j]
+                                                    if (searchPosition < clip.end && (searchPosition + duration) > clip.start) {
+                                                        positionFree = false
+                                                        searchPosition = clip.end
+                                                        break
+                                                    }
+                                                }
+                                                
+                                                if (positionFree) {
+                                                    lastCopiedSourceIndex = sourceIndex
+                                                    lastCopiedPosition = searchPosition + duration
+                                                    return searchPosition
+                                                }
+                                                
+                                                if (searchPosition > 10000) return startBeat + duration
+                                            }
+                                        }
 
                                             Connections {
                                                 target: viewModel.trackModel
@@ -843,11 +843,25 @@ Window {
                                                                 if (model.type === "audio") {
                                                                     viewModel.addAudioClip(trackIndex, model.file, newPosition)
                                                                 } else {
-                                                                    viewModel.addMidiClip(trackIndex, newPosition, 50)
+                                                                    viewModel.addMidiClip(trackIndex, newPosition, model.durationBeats)
                                                                 }
                                                                 console.log("Clip copied: trackIndex:", trackIndex, "newPosition:", newPosition)
                                                                 event.accepted = true
-                                                            } else if (event.key === Qt.Key_D) {
+                                                            }
+                                                            else if (event.key === Qt.Key_B) {
+                                                                var duration = model.durationBeats
+                                                                var newPosition = trackItem.findFreePosition(
+                                                                    model.startBeats + duration, 
+                                                                    duration,
+                                                                    sourceIndex
+                                                                )
+                                                                console.log("Pressed B")
+                                                                viewModel.AddCloneClip(trackIndex, sourceIndex, newPosition)
+
+                                                                console.log("Clip copied: trackIndex:", sourceIndex, "newPosition:", newPosition)
+                                                                event.accepted = true                                                                                                                   
+                                                            } 
+                                                            else if (event.key === Qt.Key_D) {
                                                                 viewModel.deleteClip(trackIndex, index)
                                                                 console.log("Clip deleted: trackIndex:", trackIndex, "clipIndex:", index)
                                                                 event.accepted = true
