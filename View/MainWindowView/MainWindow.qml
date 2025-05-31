@@ -602,8 +602,8 @@ Window {
                                             property int trackIndex: model.trackIndex
                                             property var clipsModel: model.clipsModel
 
-                                            property var lastCopiedClip: null
-                                            property real lastCopiedPosition: -1
+                                                    property var lastCopiedSourceIndex: -1  // Индекс исходного клипа
+        property real lastCopiedPosition: -1
 
                                             width: contentGrid.width
                                             height: 50
@@ -619,10 +619,8 @@ Window {
                                                 }
                                             }
 
-                                            function findFreePosition(startBeat, duration) {
+                                            function findFreePosition(startBeat, duration, sourceIndex) {
             var clips = []
-            
-            // Получаем данные всех клипов из модели
             for (var i = 0; i < clipsModel.count; i++) {
                 var clipData = clipsModel.get(i)
                 clips.push({
@@ -631,18 +629,14 @@ Window {
                 })
             }
             
-            // Если это копия последнего созданного клипа, начинаем поиск от его конца
-            var searchStart = (lastCopiedClip === this && lastCopiedPosition >= 0) ? 
-                            lastCopiedPosition : startBeat
-            
-            // Сортируем клипы по позиции
             clips.sort((a, b) => a.start - b.start)
             
-            // Ищем свободное место
-            var searchPosition = searchStart
+            // Если копируем тот же клип - продолжаем с последней позиции
+            var searchPosition = (lastCopiedSourceIndex === sourceIndex && lastCopiedPosition >= startBeat) 
+                              ? lastCopiedPosition : startBeat
+            
             while (true) {
                 var positionFree = true
-                
                 for (var j = 0; j < clips.length; j++) {
                     var clip = clips[j]
                     if (searchPosition < clip.end && (searchPosition + duration) > clip.start) {
@@ -653,13 +647,12 @@ Window {
                 }
                 
                 if (positionFree) {
-                    // Запоминаем последнюю позицию копирования
-                    lastCopiedClip = this
+                    lastCopiedSourceIndex = sourceIndex
                     lastCopiedPosition = searchPosition + duration
                     return searchPosition
                 }
                 
-                if (searchPosition > 10000) return searchStart + duration
+                if (searchPosition > 10000) return startBeat + duration
             }
         }
 
@@ -689,6 +682,7 @@ Window {
 
                                                     // Свойство для выделения
                                                     property bool isSelected: false
+                                                    property int sourceIndex: index  
 
                                                     Rectangle {
                                                         id: clipRectangle
@@ -773,6 +767,13 @@ Window {
                                                         drag.minimumX: 0
                                                         drag.maximumX: Math.max(0, contentGrid.width - clipItem.width)
 
+                                                        onClicked: {
+                                                            trackItem.resetTrackSelections()
+                                                            clipItem.isSelected = true
+                                                            // Сбрасываем при выборе нового клипа
+                                                            trackItem.lastCopiedSourceIndex = -1
+                                                        }
+
                                                         onPressed: {
                                                             // Сбрасываем выделение в текущем треке
                                                             for (var t = 0; t < tracksRepeater.count; t++) {
@@ -836,7 +837,8 @@ Window {
                                                                 var duration = model.durationBeats
                                                                 var newPosition = trackItem.findFreePosition(
                                                                     model.startBeats + duration, 
-                                                                    duration
+                                                                    duration,
+                                                                    sourceIndex
                                                                 )
                                                                 if (model.type === "audio") {
                                                                     viewModel.addAudioClip(trackIndex, model.file, newPosition)
