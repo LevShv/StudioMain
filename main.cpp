@@ -5,6 +5,7 @@
 #include <MainWindowView.h>
 #include <ViewModel.h>
 #include "filebrowser.h"
+#include "TimelinePainter.h"
 
 #include <iostream>
 #include <windows.h>
@@ -34,6 +35,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
 	qmlRegisterType<FileBrowser>("FileBrowser", 1, 0, "FileBrowser");
+	qmlRegisterType<TimelinePainter>("CustomComponents", 1, 0, "TimelinePainter");
 
     QQmlApplicationEngine engine;
 

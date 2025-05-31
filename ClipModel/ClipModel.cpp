@@ -1,5 +1,11 @@
 #include "ClipModel.h"
 #include <QDebug>
+#include <QImage>
+#include <QPainterPath>
+#include <QPainter>
+#include <QDir>
+#include <QStandardPaths>
+#include <QUrl>
 
 ClipModel::ClipModel(Engine& engine, int trackIndex, QObject* parent)
     : QAbstractListModel(parent), m_engine(engine), m_trackIndex(trackIndex) {
@@ -10,9 +16,10 @@ int ClipModel::rowCount(const QModelIndex& parent) const {
     const auto& tracks = m_engine.GetdataBase();
     if (m_trackIndex < 0 || m_trackIndex >= tracks.size()) return 0;
     int count = static_cast<int>(tracks[m_trackIndex].clips.size());
-    qDebug() << "ClipModel rowCount for track" << m_trackIndex << ": " << count;
     return count;
 }
+
+
 
 QVariant ClipModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid()) return QVariant();
@@ -44,6 +51,15 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
             );
         }
         return QVariant();
+    case WaveformDataRole:
+        if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
+            QVariantList waveformData;
+            for (float amplitude : audioClip->waveformData) {
+                waveformData.append(amplitude);
+            }
+            return waveformData;
+        }
+        return QVariant();
     default:
         return QVariant();
     }
@@ -55,38 +71,137 @@ QHash<int, QByteArray> ClipModel::roleNames() const {
     roles[DurationBeatsRole] = "durationBeats";
     roles[ClipTypeRole] = "type";
     roles[FilePathRole] = "file";
+    roles[WaveformDataRole] = "waveformData";
     return roles;
 }
 
 void ClipModel::addClip(const Engine::ClipPtr& clip) {
-    int newIndex = m_engine.GetdataBase()[m_trackIndex].clips.size() - 1; // Новый клип добавлен в конец
+    int newIndex = m_engine.GetdataBase()[m_trackIndex].clips.size() - 1;
     beginInsertRows(QModelIndex(), newIndex, newIndex);
-    // Данные уже добавлены в Engine, просто уведомляем QML
     endInsertRows();
 }
 
 void ClipModel::updateClip(int clipIndex) {
+    // Очищаем кэш для обновлённого клипа
+    m_waveformDataCache.remove(clipIndex);
     QModelIndex idx = createIndex(clipIndex, 0);
-    emit dataChanged(idx, idx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole });
+    emit dataChanged(idx, idx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole, WaveformDataRole });
 }
 
 void ClipModel::setTrackIndex(int trackIndex)
 {
     if (m_trackIndex != trackIndex) {
         m_trackIndex = trackIndex;
+        m_waveformDataCache.clear(); // Очищаем кэш вейвформ
         qDebug() << "ClipModel trackIndex changed to:" << m_trackIndex;
 
-        // Перестраиваем модель, чтобы синхронизировать данные
-        beginResetModel();
-        endResetModel();
-        qDebug() << "ClipModel reset for trackIndex:" << m_trackIndex;
+        // Уведомляем QML об изменении данных для всех клипов в этой дорожке
+        if (rowCount() > 0) {
+            QModelIndex topLeft = createIndex(0, 0);
+            QModelIndex bottomRight = createIndex(rowCount() - 1, 0);
+            emit dataChanged(topLeft, bottomRight, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole, WaveformDataRole });
+        }
     }
 }
 
-void ClipModel::deleteClip(int clipIndex)
-{
-	beginRemoveRows(QModelIndex(), clipIndex, clipIndex);
+void ClipModel::deleteClip(int clipIndex) {
+    m_waveformDataCache.remove(clipIndex); // Удаляем из кэша
+    beginRemoveRows(QModelIndex(), clipIndex, clipIndex);
     endRemoveRows();
-	qDebug() << "ClipModel deleted clip at index:" << clipIndex;
+    qDebug() << "ClipModel deleted clip at index:" << clipIndex;
+}
 
+QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
+    const auto& tracks = m_engine.GetdataBase();
+    if (m_trackIndex < 0 || m_trackIndex >= tracks.size() || clipIndex < 0 || clipIndex >= tracks[m_trackIndex].clips.size()) {
+        qDebug() << "Invalid track or clip index:" << m_trackIndex << clipIndex;
+        return "";
+    }
+
+    const auto& clip = tracks[m_trackIndex].clips[clipIndex];
+    if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
+        if (audioClip->waveformData.empty()) {
+            qDebug() << "No waveform data for clip:" << clipIndex;
+            return "";
+        }
+
+        // Предопределённые ширины
+        const std::vector<int> targetWidths = { 100, 200, 400, 800, 1600 };
+        int targetWidth = targetWidths[0];
+        int minDiff = std::abs(width - targetWidth);
+        for (int w : targetWidths) {
+            int diff = std::abs(width - w);
+            if (diff < minDiff) {
+                minDiff = diff;
+                targetWidth = w;
+            }
+        }
+
+        QDir projectDir(QDir::currentPath() + "/waveforms");
+        if (!projectDir.exists()) {
+            if (!projectDir.mkpath(".")) {
+                qDebug() << "Failed to create waveforms directory:" << projectDir.absolutePath();
+                return "";
+            }
+            qDebug() << "Created waveforms directory:" << projectDir.absolutePath();
+        }
+
+        QString fileName = QString("waveform_%1_%2.png").arg(QString::fromStdString(audioClip->clipID)).arg(targetWidth);
+        QString filePath = projectDir.absoluteFilePath(fileName);
+
+        QFileInfo fileInfo(filePath);
+        if (fileInfo.exists()) {
+            qDebug() << "Using existing waveform image for clip ID:" << audioClip->clipID.c_str() << "at" << filePath;
+            return QUrl::fromLocalFile(filePath).toString();
+        }
+
+        // Ограничиваем до 5 файлов
+        QStringList existingFiles = projectDir.entryList(
+            QStringList() << QString("waveform_%1_*.png").arg(QString::fromStdString(audioClip->clipID)),
+            QDir::Files, QDir::Name
+        );
+        if (existingFiles.size() >= 5) {
+            QString oldestFile = projectDir.absoluteFilePath(existingFiles.first());
+            QFile::remove(oldestFile);
+            qDebug() << "Removed oldest waveform image:" << oldestFile;
+        }
+
+        QImage image(targetWidth, height, QImage::Format_ARGB32);
+        image.fill(Qt::transparent);
+
+        QPainter painter(&image);
+        painter.setPen(QPen(Qt::white, 1));
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        int numPoints = std::min((int)audioClip->waveformData.size(), targetWidth);
+        float step = numPoints > 1 ? static_cast<float>(targetWidth) / (numPoints - 1) : targetWidth;
+        float centerY = height / 2.0f;
+        float maxHeight = height * 0.8f / 2.0f;
+
+        QPainterPath waveformPath;
+        waveformPath.moveTo(0, centerY);
+        for (int i = 0; i < numPoints; ++i) {
+            float x = i * step;
+            float amplitude = audioClip->waveformData[i * audioClip->waveformData.size() / numPoints] * maxHeight * 2;
+            waveformPath.lineTo(x, centerY - amplitude);
+        }
+        for (int i = numPoints - 1; i >= 0; --i) {
+            float x = i * step;
+            float amplitude = audioClip->waveformData[i * audioClip->waveformData.size() / numPoints] * maxHeight * 2;
+            waveformPath.lineTo(x, centerY + amplitude);
+        }
+        waveformPath.closeSubpath();
+        painter.drawPath(waveformPath);
+
+        if (!image.save(filePath)) {
+            qDebug() << "Failed to save waveform image for clip ID:" << audioClip->clipID.c_str() << "at" << filePath;
+            return "";
+        }
+
+        qDebug() << "Waveform image saved for clip ID:" << audioClip->clipID.c_str() << "at" << filePath;
+        QString url = QUrl::fromLocalFile(filePath).toString();
+        qDebug() << "Returning URL for clip ID:" << audioClip->clipID.c_str() << "url:" << url;
+        return url;
+    }
+    return "";
 }

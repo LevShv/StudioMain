@@ -37,6 +37,7 @@ public:
     // Const метод для получения ClipModel
     ClipModel* getClipModel(int trackIndex) const;
 
+
 signals:
     void countChanged();
 

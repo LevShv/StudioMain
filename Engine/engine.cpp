@@ -1,8 +1,9 @@
 
 #include "engine.h"
 #include "JuceHeader.h"
-#include <juce_audio_processors/juce_audio_processors.h>
-#include <juce_audio_processors/format_types/juce_VST3PluginFormat.h>
+#include <thread>
+#include <mutex>
+#include <algorithm>
 // Core implementation
 
 #pragma region Core
@@ -502,30 +503,69 @@ void Engine::Core::setPosition(double newPosition) {
     LOG("Playhead moved to: " << position << " seconds, all notes off sent");
 }
 
-void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file,
-    double startBeats, bool loadToRAM) {
-    if (trackIndex < 0 || trackIndex >= tracks.size() || tracks[trackIndex].isMidiTrack) {
-        LOG_ERROR("Invalid track index or MIDI track");
-        return;
-    }
 
-    auto newClip = std::make_unique<AudioClip>();
-    newClip->file = file;
-    newClip->startBeats = startBeats;
-    newClip->startTime = beatsToSeconds(startBeats); // ѕереводим биты в секунды //// начало бит
-    newClip->useRAM = loadToRAM;
 
-    if (auto reader = formatManager.createReaderFor(file)) {
-        newClip->duration = reader->lengthInSamples / reader->sampleRate;
-        newClip->durationBeats = secondsToBeats(newClip->duration); /// задали длину в битах
+void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file, double startBeats, bool loadToRAM) {
+    if (trackIndex < 0 || trackIndex >= tracks.size()) return;
+
+    auto clip = std::make_unique<AudioClip>();
+    clip->file = file;
+    clip->startBeats = startBeats;
+    clip->startTime = beatsToSeconds(startBeats);
+    clip->clipID = clip->generateClipID(); // ”никальный ID
+
+    juce::AudioFormatReader* reader = formatManager.createReaderFor(file);
+    if (reader) {
+        clip->duration = reader->lengthInSamples / reader->sampleRate;
+        clip->durationBeats = secondsToBeats(clip->duration);
 
         if (loadToRAM) {
-            newClip->buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
-            reader->read(&newClip->buffer, 0, (int)reader->lengthInSamples, 0, true, true);
+            clip->buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
+            reader->read(&clip->buffer, 0, (int)reader->lengthInSamples, 0, true, true);
+            clip->useRAM = true;
+
+            std::thread([clip = clip.get()]() {
+                int numSamples = clip->buffer.getNumSamples();
+                int numChannels = clip->buffer.getNumChannels();
+
+                const int minSamplesPerPoint = 100;
+                const int maxSamplesPerPoint = 1000;
+                const int maxSampleCount = 10000;
+                int sampleCount = numSamples / minSamplesPerPoint;
+                sampleCount = std::max(1, std::min(sampleCount, maxSampleCount));
+                if (numSamples / sampleCount > maxSamplesPerPoint) {
+                    sampleCount = numSamples / maxSamplesPerPoint;
+                }
+
+                int step = numSamples / sampleCount;
+                if (step < 1) step = 1;
+
+                std::vector<float> waveformData(sampleCount);
+                for (int i = 0; i < sampleCount && i * step < numSamples; ++i) {
+                    float maxAmplitude = 0.0f;
+                    for (int j = 0; j < step; ++j) {
+                        int sampleIdx = i * step + j;
+                        float amplitude = 0.0f;
+                        for (int c = 0; c < numChannels; ++c) {
+                            if (sampleIdx < numSamples) {
+                                amplitude += std::abs(clip->buffer.getSample(c, sampleIdx));
+                            }
+                        }
+                        amplitude /= numChannels;
+                        maxAmplitude = std::max(maxAmplitude, amplitude);
+                    }
+                    waveformData[i] = maxAmplitude;
+                }
+
+                juce::CriticalSection lock;
+                const juce::ScopedLock sl(lock);
+                clip->waveformData = std::move(waveformData);
+                }).detach();
         }
+        delete reader;
     }
 
-    tracks.at(trackIndex).clips.push_back(std::move(newClip));
+    tracks[trackIndex].clips.push_back(std::move(clip));
 }
 
 void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence,
@@ -943,7 +983,7 @@ void Engine::configureMidiDevices() {
 }
 
 double& Engine::Position() {
-    return core.position;  
+    return core.positionInBeats;  
 }
 
 void Engine::RenderToFile(std::string& Path)

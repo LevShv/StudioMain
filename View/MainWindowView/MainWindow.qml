@@ -150,24 +150,6 @@ Window {
                         Row {
                             Layout.alignment: Qt.AlignRight
                             spacing: 10
-                            Label { text: "Zoom:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
-                            Slider {
-                                id: zoomSlider
-                                width: 150
-                                from: 0.5
-                                to: 2.0
-                                value: 1.0
-                                onValueChanged: {
-                                    // Сохраняем пропорциональную прокрутку
-                                    var oldContentWidth = flickableArea.contentWidth
-                                    var oldContentX = flickableArea.contentX
-                                    var ratio = (oldContentX + flickableArea.width / 2) / oldContentWidth
-                                    flickableArea.zoomLevel = value
-                                    flickableArea.contentX = ratio * flickableArea.contentWidth - flickableArea.width / 2
-                                    flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
-                                    
-                                }
-                            }
                             Label { text: "BPM:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
                             Slider {
                                 width: 150
@@ -217,20 +199,28 @@ Window {
 
                         onFileDropped: (filePath, globalX, globalY) => {
                             var localPos = contentGrid.mapFromItem(mainWindow.dragParent, globalX, globalY)
+                            console.log("File dropped: filePath:", filePath, "localPos.x:", localPos.x, "localPos.y:", localPos.y)
                             if (localPos.x >= 0 && localPos.x <= contentGrid.width &&
                                 localPos.y >= 0 && localPos.y <= contentGrid.height) {
-                                var trackIndex = Math.floor((localPos.y - timeRuler.height) / 50)
+                                var trackIndex = Math.floor(localPos.y / 50) // Adjusted calculation
                                 var position = Math.floor(localPos.x / flickableArea.beatWidth)
+                                console.log("Calculated trackIndex:", trackIndex, "position:", position, "countOfTracks:", countOfTracks)
                                 if (trackIndex >= 0 && trackIndex < countOfTracks && position >= 0) {
-                                    var fileExt = filePath.toLowerCase().split('.').pop();
+                                    var fileExt = filePath.toLowerCase().split('.').pop()
                                     if (["mp3", "wav", "aiff", "flac"].indexOf(fileExt) !== -1) {
                                         viewModel.addAudioClip(trackIndex, filePath, position)
+                                        console.log("Added audio clip: trackIndex:", trackIndex, "filePath:", filePath, "position:", position)
                                     } else if (["dll", "vst3"].indexOf(fileExt) !== -1) {
                                         viewModel.addPlugin(trackIndex, filePath)
+                                        console.log("Added plugin: trackIndex:", trackIndex, "filePath:", filePath)
                                     } else {
                                         console.log("Invalid file type:", filePath)
                                     }
+                                } else {
+                                    console.log("Invalid drop: trackIndex:", trackIndex, "position:", position, "countOfTracks:", countOfTracks)
                                 }
+                            } else {
+                                console.log("Drop outside contentGrid: localPos.x:", localPos.x, "localPos.y:", localPos.y, "contentGrid.width:", contentGrid.width, "contentGrid.height:", contentGrid.height)
                             }
                         }
                     }
@@ -256,7 +246,7 @@ Window {
                                 model: viewModel.trackModel
                                 Rectangle {
                                     width: 150
-                                    height: 50
+                                    height: 52
                                     color: "#2D2D2D"
                                     border.color: "#444"
                                     Label {
@@ -289,308 +279,555 @@ Window {
                         }
 
                         // Прокручиваемая область
-                        Flickable {
-                            id: flickableArea
-                            property int countOfBeats: 100
-                            property real baseBeatWidth: 40
-                            property real zoomLevel: 1.0
-                            property real beatWidth: baseBeatWidth * zoomLevel
-                            property real widthOfAllArea: countOfBeats * beatWidth
+                        // Прокручиваемая область
+Flickable {
+    id: flickableArea
+    property int countOfBeats: 1000
+    property real baseBeatWidth: 40
+    property real zoomLevel: 1.0
+    property real beatWidth: baseBeatWidth * zoomLevel
+    property real widthOfAllArea: countOfBeats * beatWidth
+    property bool needsUpdate: false
+    property real lastContentX: 0
+    property real cachedGroupSize: getGroupSize()
 
-                            Component.onCompleted: {
-                                console.log("Initial widthOfAllArea:", widthOfAllArea)
+    Layout.fillWidth: true
+    Layout.fillHeight: true
+    contentWidth: widthOfAllArea
+    contentHeight: timeRuler.height + contentGrid.height
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
+    flickableDirection: Flickable.HorizontalFlick
+    maximumFlickVelocity: 2000
+    flickDeceleration: 1000
+
+    Timer {
+        id: updateDebounceTimer
+        interval: 50
+        running: flickableArea.needsUpdate
+        onTriggered: {
+            flickableArea.updateVisibleBeats()
+            flickableArea.needsUpdate = false
+        }
+    }
+
+    onZoomLevelChanged: {
+        beatWidth = baseBeatWidth * zoomLevel
+        contentWidth = countOfBeats * beatWidth
+        contentX = Math.max(0, Math.min(contentX, contentWidth - width))
+        cachedGroupSize = getGroupSize()
+        needsUpdate = true
+        console.log("Zoom level changed to:", zoomLevel, "contentX:", contentX, "groupSize:", cachedGroupSize)
+    }
+
+    onContentXChanged: {
+        if (Math.abs(contentX - lastContentX) > 100) {
+            needsUpdate = true
+            lastContentX = contentX
+            console.log("ContentX changed, updating visible beats at:", contentX)
+        }
+    }
+
+    function updateVisibleBeats() {
+        var startBeat = Math.floor(contentX / beatWidth)
+        var endBeat = Math.ceil((contentX + width) / beatWidth)
+        var groupSize = cachedGroupSize
+        var startIndex = Math.floor(startBeat / groupSize) - 2
+        var endIndex = Math.ceil(endBeat / groupSize) + 2
+        startIndex = Math.max(0, startIndex)
+        endIndex = Math.min(Math.ceil(countOfBeats / groupSize), endIndex)
+        visibleBeatsModel.clear()
+        for (var i = startIndex; i < endIndex; i++) {
+            visibleBeatsModel.append({"index": i})
+        }
+        console.log("Updated visible beats: startIndex:", startIndex, "endIndex:", endIndex, "groupSize:", groupSize)
+    }
+
+    function getGroupSize() {
+        if (zoomLevel >= 8.0) return 0.0625
+        if (zoomLevel >= 4.0) return 0.25
+        if (zoomLevel >= 2.0) return 1
+        if (zoomLevel >= 0.5) return 4
+        return 16
+    }
+
+    ListModel {
+        id: visibleBeatsModel
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.NoButton
+        hoverEnabled: true
+
+        onWheel: (wheel) => {
+            var cursorX = Math.max(0, Math.min(wheel.x - flickableArea.contentX, flickableArea.width))
+            if (isNaN(cursorX)) {
+                cursorX = flickableArea.width / 2
+            }
+            var contentCursorX = cursorX + flickableArea.contentX
+            var oldBeatWidth = flickableArea.baseBeatWidth * flickableArea.zoomLevel
+            var currentBeat = oldBeatWidth > 0 ? contentCursorX / oldBeatWidth : 0
+            var delta = wheel.angleDelta.y / 120
+            var newZoom = Math.max(0.2, Math.min(10.0, flickableArea.zoomLevel + delta * 0.1))
+            flickableArea.zoomLevel = newZoom
+            var newBeatWidth = flickableArea.baseBeatWidth * flickableArea.zoomLevel
+            flickableArea.contentWidth = flickableArea.countOfBeats * newBeatWidth
+            flickableArea.contentX = currentBeat * newBeatWidth - cursorX
+            flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
+            console.log("Wheel zoom: cursorX:", cursorX, "contentCursorX:", contentCursorX, "currentBeat:", currentBeat, "newZoom:", newZoom, "newContentX:", flickableArea.contentX)
+        }
+    }
+
+    // Ruler
+    Rectangle {
+        id: timeRuler
+        width: flickableArea.widthOfAllArea
+        height: 50
+        color: "#333333"
+        z: 3
+
+        Repeater {
+            model: visibleBeatsModel
+            Item {
+                width: flickableArea.cachedGroupSize * flickableArea.beatWidth
+                height: 50
+                x: index * width
+                visible: {
+                    var itemX = x - flickableArea.contentX
+                    return itemX > -width * 2 && itemX < flickableArea.width + width * 2
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        return measure % 2 === 0 ? "#444444" : "#333333"
+                    }
+                    z: 0
+                }
+
+                Rectangle {
+                    height: parent.height
+                    x: 0
+                    color: "#000000"
+                    z: 1
+                    antialiasing: true
+                    width: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        return beatIndex % 4 < 0.001 ? 1 : 0.5
+                    }
+                }
+
+                Label {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: {
+                        var groupSize = flickableArea.cachedGroupSize
+                        var beatIndex = index * groupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        if (groupSize >= 4) {
+                            return measure
+                        }
+                        var beatInMeasure = Math.floor(beatIndex % 4) + 1
+                        if (groupSize === 1) {
+                            return measure + "." + beatInMeasure
+                        }
+                        var subBeat = Math.round((beatIndex % 1) / groupSize) + 1
+                        return measure + "." + beatInMeasure + "." + subBeat
+                    }
+                    color: "#AAAAAA"
+                    font.pixelSize: flickableArea.beatWidth * flickableArea.cachedGroupSize > 20 ? 12 : 8
+                    visible: {
+                        var groupSize = flickableArea.cachedGroupSize
+                        var beatIndex = index * groupSize
+                        return flickableArea.beatWidth * flickableArea.cachedGroupSize > 10 &&
+                               (beatIndex % 1 < 0.001 || groupSize >= 1)
+                    }
+                    z: 2
+                    background: Rectangle {
+                        color: "#333333"
+                        opacity: 0.7
+                        anchors.fill: parent
+                        anchors.leftMargin: -2
+                        anchors.rightMargin: -2
+                    }
+                }
+            }
+        }
+    }
+
+    // Grid lines
+    Rectangle {
+        id: timelineGrid
+        width: flickableArea.widthOfAllArea
+        height: contentGrid.height
+        anchors.top: timeRuler.bottom
+        color: "#333333"
+        z: 1
+        clip: true
+
+        Repeater {
+            model: visibleBeatsModel
+            Item {
+                width: flickableArea.cachedGroupSize * flickableArea.beatWidth
+                height: timelineGrid.height
+                x: index * width
+                visible: {
+                    var itemX = x - flickableArea.contentX
+                    return itemX > -width * 2 && itemX < flickableArea.width + width * 2
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        return measure % 2 === 0 ? "#444444" : "#333333"
+                    }
+                    z: 0
+                }
+
+                Rectangle {
+                    height: parent.height
+                    color: "#000000"
+                    antialiasing: true
+                    z: 1
+                    width: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        return beatIndex % 4 < 0.001 ? 1 : 0.5
+                    }
+                }
+            }
+        }
+    }
+
+    // Tracks and clips
+    Item {
+        id: contentGrid
+        anchors.top: timeRuler.bottom
+        width: flickableArea.widthOfAllArea
+        height: viewModel.trackModel.countOfTracks * 52
+        z: 2
+        clip: true
+
+        Item {
+            id: tracksAndClipsContainer
+            anchors.fill: parent
+
+            Repeater {
+                model: visibleBeatsModel
+                Rectangle {
+                    width: flickableArea.cachedGroupSize * flickableArea.beatWidth
+                    height: contentGrid.height
+                    x: index * width
+                    color: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        return measure % 2 === 0 ? "#444444" : "#333333"
+                    }
+                    z: 0
+                }
+            }
+
+            Repeater {
+                model: viewModel.trackModel
+                delegate: Item {
+                    property int trackIndex: model.trackIndex || 0
+                    width: flickableArea.width
+                    height: 50
+                    x: flickableArea.contentX
+                    y: Math.floor(index * 52)
+                    z: 2
+
+                    Rectangle {
+                        width: parent.width
+                        height: 2
+                        color: "#000000"
+                        anchors.top: parent.top
+                        antialiasing: true
+                        z: 2
+                        layer.enabled: true
+                        Component.onCompleted: console.log("Horizontal line drawn at track:", index, "y:", parent.y, "x:", parent.x, "width:", width)
+                    }
+                    Rectangle {
+                        width: parent.width
+                        height: 2
+                        color: "#000000"
+                        anchors.bottom: parent.bottom
+                        antialiasing: true
+                        z: 2
+                        layer.enabled: true
+                        visible: index === viewModel.trackModel.countOfTracks - 1
+                        Component.onCompleted: console.log("Bottom horizontal line drawn at track:", index, "y:", parent.y + height)
+                    }
+                }
+            }
+
+            Repeater {
+                model: visibleBeatsModel
+                Rectangle {
+                    height: contentGrid.height
+                    x: index * flickableArea.cachedGroupSize * flickableArea.beatWidth
+                    color: "#000000"
+                    antialiasing: true
+                    z: 1
+                    width: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        return beatIndex % 4 < 0.001 ? 1 : 0.5
+                    }
+                    visible: {
+                        var itemX = x - flickableArea.contentX
+                        return itemX > -width * 2 && itemX < flickableArea.width + width * 2
+                    }
+                }
+            }
+
+            Repeater {
+                id: tracksRepeater
+                model: viewModel.trackModel
+                delegate: Item {
+                    id: trackItem
+                    property int trackIndex: model.trackIndex
+                    property var clipsModel: model.clipsModel
+                    width: contentGrid.width
+                    height: 50
+                    y: Math.floor(index * 52)
+                    z: 3
+
+                    Connections {
+                        target: viewModel.trackModel
+                        function onDataChanged(topLeft, bottomRight, roles) {
+                            if (index >= topLeft.row && index <= bottomRight.row && roles.includes(viewModel.trackModel.TrackIndexRole)) {
+                                trackIndex = model.trackIndex
+                            }
+                        }
+                    }
+
+                    Repeater {
+                        id: clipsRepeater
+                        model: clipsModel
+                        delegate: Item {
+                            id: clipItem
+                            x: model.startBeats * flickableArea.beatWidth
+                            width: model.durationBeats * flickableArea.beatWidth
+                            height: 48
+                            anchors.top: parent.top
+                            anchors.topMargin: 1
+                            visible: {
+                                var clipX = x - flickableArea.contentX
+                                return clipX > -width * 3 && clipX < flickableArea.width + width * 3
                             }
 
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            contentWidth: widthOfAllArea
-                            contentHeight: timeRuler.height + contentGrid.height
-                            clip: true
-                            boundsBehavior: Flickable.StopAtBounds
-                            flickableDirection: Flickable.HorizontalFlick
-
-                            // Обработка колеса мыши для зума с фокусировкой на курсоре
-                            MouseArea {
+                            Rectangle {
+                                id: clipRectangle
                                 anchors.fill: parent
-                                acceptedButtons: Qt.NoButton
-                                onWheel: (wheel) => {
-                                    // Позиция курсора
-                                    var cursorX = wheel.x
-                                    var contentCursorX = cursorX + flickableArea.contentX
-                                    var cursorBeat = contentCursorX / flickableArea.beatWidth
+                                color: model.type === "audio" ? "#FF5722" : "#4CAF50"
+                                radius: 3
+                                border.width: 1
+                                border.color: Qt.darker(color, 1.2)
+                                z: 4
 
-                                    // Изменяем zoomLevel
-                                    var delta = wheel.angleDelta.y / 120
-                                    var newZoom = Math.max(0.5, Math.min(2.0, flickableArea.zoomLevel + delta * 0.1))
-                                    flickableArea.zoomLevel = newZoom
-                                    zoomSlider.value = newZoom
-
-                                    // Корректируем contentX для фокусировки на курсоре
-                                    var newContentCursorX = cursorBeat * flickableArea.beatWidth
-                                    flickableArea.contentX = newContentCursorX - cursorX
-                                    flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
-
-                                    console.log("Zoom (wheel) changed to:", flickableArea.zoomLevel, 
-                                               "contentX:", flickableArea.contentX, 
-                                               "greenline.x:", greenline.x, 
-                                               "playheadPosition:", viewModel.playheadPosition, 
-                                               "isPlaying:", viewModel.isPlaying)
-                                }
-                            }
-
-                            // Временная линейка
-                            Rectangle {
-                                id: timeRuler
-                                width: flickableArea.widthOfAllArea
-                                height: 50
-                                color: "#1E1E1E"
-                                z: 2
-
-                                Row {
+                                Image {
+                                    id: waveformImage
                                     anchors.fill: parent
-                                    spacing: 0
-                                    Repeater {
-                                        model: flickableArea.countOfBeats
-                                        Rectangle {
-                                            width: flickableArea.beatWidth
-                                            height: parent.height
-                                            color: "transparent"
-                                            border.color: "#444"
-                                            Label {
-                                                anchors.centerIn: parent
-                                                //  text: index % 4 === 0 ? Math.floor(index/4) + 1 : ""
-                                                text: index 
-                                                color: "#CCC"
-                                                font.pixelSize: 10
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Сетка треков
-                            Item {
-                                id: contentGrid
-                                anchors.top: timeRuler.bottom
-                                width: flickableArea.widthOfAllArea
-                                height: 15 * 50 // Высота не зависит от зума
-
-                                Item {
-                                    id: tracksAndClipsContainer
-                                    anchors.fill: parent
-
-                                    // Фоновые прямоугольники треков
-                                    Repeater {
-                                        model:  viewModel.trackModel
-                                        delegate: Rectangle {
-                                            property int trackIndex: model.trackIndex || 0
-                                            width: contentGrid.width
-                                            height: 50
-                                            y: index * 50
-                                            z: 0
-                                            color: "#2D2D2D"
-                                            border { width: 1; color: "#444" }
-                                        }
-                                    }
-
-                                    // Вертикальные полосы
-                                    Row {
-                                        anchors.fill: parent
-                                        spacing: 0
-                                        z: 1
-                                        Repeater {
-                                            model: flickableArea.countOfBeats
-                                            Rectangle {
-                                                width: flickableArea.beatWidth
-                                                height: parent.height
-                                                color: "transparent"
-                                                border.width: 1
-                                                border.color: "#444"
-                                            }
-                                        }
-                                    }
-
-                                    // Клипы
-                                    Repeater {
-                                        id: tracksRepeater
-                                        model: viewModel.trackModel
-                                        delegate: Item {
-                                            id: trackItem
-                                            property int trackIndex: model.trackIndex
-                                            property var clipsModel: model.clipsModel
-                                            width: contentGrid.width
-                                            height: 50
-                                            y: index * 50
-                                            z: 2
-
-                                            Component.onCompleted: {
-                                                console.log("Track index:", trackIndex, "clipsModel:", clipsModel);
-                                            }
-
-                                            Repeater {
-                                                id: clipsRepeater
-                                                model: clipsModel
-                                                delegate: Rectangle {
-                                                    id: clipRectangle
-                                                    x: model.startBeats * flickableArea.beatWidth
-                                                    width: model.durationBeats * flickableArea.beatWidth
-                                                    height: 48
-                                                    color: model.type === "audio" ? "#FF5722" : "#4CAF50"
-                                                    radius: 3
-                                                    border.width: 1
-                                                    border.color: Qt.darker(color, 1.2)
-
-                                                    Component.onCompleted: {
-                                                        console.log("Clip created at x:", model.startBeats, "type:", model.type, "file:", model.file);
-                                                    }
-
-                                                    ToolButton {
-                                                        anchors.right: parent.right
-                                                        anchors.top: parent.top
-                                                        anchors.margins: 2
-                                                        z: 10  // Гарантированно выше других элементов
-                                                        text: "🗑"
-                                                        onClicked: {
-                                                            console.log("Deleting clip:", index, "from track:", trackIndex);
-                                                            viewModel.deleteClip(trackIndex, index);
-                                                        }
-                                                    }
-
-                                                    Label {
-                                                        anchors.fill: parent
-                                                        text: model.file ? model.file.split("/").pop() : "MIDI Clip"
-                                                        color: "white"
-                                                        font.pixelSize: 10
-                                                        padding: 5
-                                                        elide: Text.ElideRight
-                                                        verticalAlignment: Text.AlignVCenter
-
-                                                    }
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        drag.target: clipRectangle
-                                                        drag.axis: Drag.XAxis
-                                                        drag.minimumX: 0
-                                                        drag.maximumX: Math.max(0, contentGrid.width - clipRectangle.width)
-
-                                                        onPressed: {
-                                                            console.log("Drag started at:", clipRectangle.x)
-                                                            clipRectangle.z = 3
-                                                        }
-
-                                                        onReleased: {
-                                                            var snappedX = Math.round(clipRectangle.x / flickableArea.beatWidth) * flickableArea.beatWidth
-                                                            clipRectangle.x = snappedX
-                                                            clipRectangle.z = 2
-                                                            var newPosition = snappedX / flickableArea.beatWidth
-                                                            viewModel.moveClip(trackIndex, index, newPosition)
-                                                        }
-                                                    }
-                                                }
-                                            }
-
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Линия воспроизведения
-                            Rectangle {
-                                id: greenline
-                                width: 2
-                                height: contentGrid.height
-                                color: "green"
-                                z: 10
-                                x: viewModel.playheadPosition * flickableArea.beatWidth
-                                anchors.top: contentGrid.top
-
-                                // Шлейф (основной слой)
-                                Rectangle {
-                                    id: trail
-                                    width: 10
-                                    height: parent.height
-                                    color: Qt.rgba(0, 1, 0, 0.5)
-                                    anchors.right: parent.left
-                                    visible: viewModel.isPlaying
-                                    opacity: 0
-
-                                    SequentialAnimation {
-                                        running: viewModel.isPlaying
-                                        loops: Animation.Infinite
-                                        NumberAnimation {
-                                            target: trail
-                                            property: "opacity"
-                                            from: 0.5
-                                            to: 0
-                                            duration: 600
-                                        }
-                                        PauseAnimation { duration: 200 }
-                                    }
+                                    source: ""
+                                    asynchronous: true
+                                    cache: false
+                                    visible: model.type === "audio" && source != ""
                                 }
 
-                                // Вторичный шлейф
-                                Rectangle {
-                                    id: trailSecondary
-                                    width: 20
-                                    height: parent.height
-                                    color: Qt.rgba(0, 1, 0, 0.3)
-                                    anchors.right: parent.left
-                                    visible: viewModel.isPlaying
-                                    opacity: 0
-
-                                    SequentialAnimation {
-                                        running: viewModel.isPlaying
-                                        loops: Animation.Infinite
-                                        NumberAnimation {
-                                            target: trailSecondary
-                                            property: "opacity"
-                                            from: 0.3
-                                            to: 0
-                                            duration: 800
+                                Timer {
+                                    id: imageUpdateTimer
+                                    interval: 1000
+                                    running: clipItem.visible && model.type === "audio" && waveformImage.source == "" && !flickableArea.moving
+                                    onTriggered: {
+                                        if (clipItem.visible) {
+                                            waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
+                                            console.log("Waveform updated via timer for clip:", index, "width:", clipRectangle.width, "source:", waveformImage.source)
                                         }
-                                        PauseAnimation { duration: 300 }
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: greenlineMouseArea
-                                    anchors.fill: parent
-                                    anchors.leftMargin: -14
-                                    anchors.rightMargin: -14
-                                    width: 30
-                                    drag.target: greenline
-                                    drag.axis: Drag.XAxis
-                                    drag.minimumX: 0
-                                    drag.maximumX: Math.max(0, contentGrid.width - greenline.width)
-
-                                    onPressed: {
-                                        console.log("Greenline drag started at:", greenline.x)
-                                    }
-
-                                    onReleased: {
-                                        var snappedX = Math.round(greenline.x / flickableArea.beatWidth) * flickableArea.beatWidth
-                                        greenline.x = snappedX
-                                        var newPosition = snappedX / flickableArea.beatWidth
-
-                                    //    var newPosition = greenline.x
-                                        viewModel.setPlayheadPosition(newPosition)
-                                        console.log("Greenline dropped at:", snappedX, "position:", newPosition)
                                     }
                                 }
 
                                 Connections {
-                                    target: viewModel
-                                    function onPlayheadPositionChanged(position) {
-                                        if (!greenlineMouseArea.drag.active) {
-                                            greenline.x = position * flickableArea.beatWidth
-                                            greenline.x = Math.max(0, Math.min(greenline.x, contentGrid.width - greenline.width))
-                                           // console.log("Greenline updated to position:", position, "x:", greenline.x)
+                                    target: clipItem
+                                    function onWidthChanged() {
+                                        if (clipItem.visible && model.type === "audio") {
+                                            imageUpdateTimer.restart()
+                                            waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
+                                            console.log("Clip width changed, updated waveform:", clipRectangle.width, "source:", waveformImage.source)
                                         }
                                     }
                                 }
+
+                                Connections {
+                                    target: flickableArea
+                                    function onZoomLevelChanged() {
+                                        if (clipItem.visible && model.type === "audio") {
+                                            imageUpdateTimer.restart()
+                                            waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
+                                            console.log("Zoom level changed, updated waveform:", clipRectangle.width, "source:", waveformImage.source)
+                                        }
+                                    }
+                                }
+
+                                Connections {
+                                    target: flickableArea
+                                    function onContentXChanged() {
+                                        if (clipItem.visible && model.type === "audio" && waveformImage.source == "" && !flickableArea.moving) {
+                                            imageUpdateTimer.restart()
+                                            waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
+                                            console.log("ContentX changed, updated waveform:", clipRectangle.width, "source:", waveformImage.source)
+                                        }
+                                    }
+                                }
+
+                                ToolButton {
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.margins: 2
+                                    z: 5
+                                    text: "🗑"
+                                    onClicked: viewModel.deleteClip(trackIndex, index)
+                                }
+
+                                Label {
+                                    anchors.fill: parent
+                                    text: model.file ? model.file.split("/").pop() : "MIDI Clip"
+                                    color: "white"
+                                    font.pixelSize: 10
+                                    padding: 5
+                                    elide: Text.ElideRight
+                                    verticalAlignment: Text.AlignVCenter
+                                    opacity: model.type === "audio" ? 0.5 : 1.0
+                                    visible: !waveformImage.visible
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                drag.target: clipItem
+                                drag.axis: Drag.XAxis
+                                drag.minimumX: 0
+                                drag.maximumX: Math.max(0, contentGrid.width - clipItem.width)
+
+                                onPressed: {
+                                    clipRectangle.z = 6
+                                }
+
+                                onReleased: {
+                                    var snappedX = Math.round(clipItem.x / flickableArea.beatWidth) * flickableArea.beatWidth
+                                    var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
+                                    clipRectangle.z = 4
+                                    viewModel.moveClip(trackIndex, index, newPosition)
+                                }
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        id: greenline
+        width: 2
+        height: contentGrid.height
+        color: "green"
+        z: 7
+        x: Math.max(0, Math.min(viewModel.playheadPosition * flickableArea.beatWidth, flickableArea.contentWidth - width))
+        anchors.top: timeRuler.bottom
+
+        Rectangle {
+            id: trail
+            width: 10
+            height: parent.height
+            color: Qt.rgba(0, 1, 0, 0.5)
+            anchors.right: parent.left
+            visible: viewModel.isPlaying
+            opacity: 0
+            SequentialAnimation {
+                running: viewModel.isPlaying
+                loops: Animation.Infinite
+                NumberAnimation {
+                    target: trail
+                    property: "opacity"
+                    from: 0.5
+                    to: 0
+                    duration: 600
+                }
+                PauseAnimation { duration: 200 }
+            }
+        }
+
+        Rectangle {
+            id: trailSecondary
+            width: 20
+            height: parent.height
+            color: Qt.rgba(0, 1, 0, 0.3)
+            anchors.right: parent.left
+            visible: viewModel.isPlaying
+            opacity: 0
+            SequentialAnimation {
+                running: viewModel.isPlaying
+                loops: Animation.Infinite
+                NumberAnimation {
+                    target: trailSecondary
+                    property: "opacity"
+                    from: 0.3
+                    to: 0
+                    duration: 800
+                }
+                PauseAnimation { duration: 300 }
+            }
+        }
+
+        MouseArea {
+            id: greenlineMouseArea
+            anchors.fill: parent
+            anchors.leftMargin: -14
+            anchors.rightMargin: -14
+            width: 30
+            drag.target: greenline
+            drag.axis: Drag.XAxis
+            drag.minimumX: 0
+            drag.maximumX: Math.max(0, flickableArea.contentWidth - greenline.width)
+
+            onReleased: {
+                var snappedX = Math.round(greenline.x / flickableArea.beatWidth) * flickableArea.beatWidth
+                greenline.x = snappedX
+                var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
+                viewModel.setPlayheadPosition(newPosition)
+            }
+
+            Connections {
+                target: viewModel
+                function onPlayheadPositionChanged(position) {
+                    if (!greenlineMouseArea.drag.active) {
+                        greenline.x = position * flickableArea.beatWidth
+                        greenline.x = Math.max(0, Math.min(greenline.x, flickableArea.contentWidth - greenline.width))
+                    }
+                }
+            }
+
+            Connections {
+                target: flickableArea
+                function onBeatWidthChanged() {
+                    if (!viewModel.isPlaying && !greenlineMouseArea.drag.active) {
+                        greenline.x = viewModel.playheadPosition * flickableArea.beatWidth
+                        greenline.x = Math.max(0, Math.min(greenline.x, flickableArea.contentWidth - greenline.width))
+                    }
+                }
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        flickableArea.updateVisibleBeats()
+    }
+}
                     }
                 }
             }

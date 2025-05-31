@@ -153,28 +153,38 @@ void TrackModel::deleteTrack(int trackIndex)
 {
     beginRemoveRows(QModelIndex(), trackIndex, trackIndex);
 
+    // Удаляем ClipModel для удаляемой дорожки
     if (m_clipModels.contains(trackIndex)) {
         delete m_clipModels.take(trackIndex);
         qDebug() << "Deleted ClipModel for track" << trackIndex;
     }
 
+    // Обновляем индексы для всех ClipModel с индексами > trackIndex
     QMap<int, ClipModel*> updatedClipModels;
     for (auto it = m_clipModels.constBegin(); it != m_clipModels.constEnd(); ++it) {
         int oldIndex = it.key();
         ClipModel* clipModel = it.value();
         if (oldIndex > trackIndex) {
-            updatedClipModels[oldIndex - 1] = clipModel;
-            clipModel->setTrackIndex(oldIndex - 1); // Обновляем индекс в ClipModel
-            qDebug() << "Updated ClipModel index from" << oldIndex << "to" << (oldIndex - 1);
+            int newIndex = oldIndex - 1;
+            updatedClipModels[newIndex] = clipModel;
+            clipModel->setTrackIndex(newIndex);
+            qDebug() << "Updated ClipModel index from" << oldIndex << "to" << newIndex;
         }
-        else if (oldIndex < trackIndex) {
+        else {
             updatedClipModels[oldIndex] = clipModel;
         }
     }
     m_clipModels = updatedClipModels;
 
     m_rowCount--;
-    
     endRemoveRows();
     emit countChanged();
+
+    // Уведомляем QML об изменении всех дорожек
+    if (m_rowCount > 0) {
+        QModelIndex topLeft = createIndex(0, 0);
+        QModelIndex bottomRight = createIndex(m_rowCount - 1, 0);
+        emit dataChanged(topLeft, bottomRight, { TrackIndexRole, ClipsModelRole, TrackTypeRole });
+    }
+ 
 }

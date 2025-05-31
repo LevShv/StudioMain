@@ -11,12 +11,14 @@ class ViewModel : public QObject {
     Q_OBJECT
         Q_PROPERTY(bool isPlaying READ isPlaying NOTIFY isPlayingChanged)
         Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged)
+        Q_PROPERTY(double playheadPosition READ playheadPosition NOTIFY playheadPositionChanged)
         Q_PROPERTY(TrackModel* trackModel READ trackModel CONSTANT)
 
 public:
     explicit ViewModel(QObject* parent = nullptr);
 
     TrackModel* trackModel() const { return m_trackModel; }
+    double playheadPosition() const { return m_playheadPosition; }
 
     Q_INVOKABLE void togglePlayback();
     Q_INVOKABLE void setPlayheadPosition(double position);
