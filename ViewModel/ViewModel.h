@@ -41,6 +41,8 @@ public:
     Q_INVOKABLE void SaveProject(QString path);
     Q_INVOKABLE void OpenProject(QString);
 
+    Q_INVOKABLE void AddCloneClip(int trackIndex, int masterClipIndex, double startBeats);
+
     bool isPlaying() const;
     int volume() const;
 

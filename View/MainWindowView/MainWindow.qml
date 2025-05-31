@@ -542,6 +542,15 @@ Window {
                                             y: Math.floor(index * 52)
                                             z: 2
 
+                                            function resetTrackSelections() {
+                                                for (var i = 0; i < clipsRepeater.count; i++) {
+                                                    var clip = clipsRepeater.itemAt(i)
+                                                    if (clip) {
+                                                        clip.isSelected = false
+                                                    }
+                                                }
+                                            }
+
                                             Rectangle {
                                                 width: parent.width
                                                 height: 2
@@ -597,6 +606,15 @@ Window {
                                             y: Math.floor(index * 52)
                                             z: 3
 
+                                            function resetTrackSelections() {
+                                                for (var i = 0; i < clipsRepeater.count; i++) {
+                                                    var clip = clipsRepeater.itemAt(i)
+                                                    if (clip) {
+                                                        clip.isSelected = false
+                                                    }
+                                                }
+                                            }
+
                                             Connections {
                                                 target: viewModel.trackModel
                                                 function onDataChanged(topLeft, bottomRight, roles) {
@@ -621,13 +639,16 @@ Window {
                                                         return clipX > -width * 3 && clipX < flickableArea.width + width * 3
                                                     }
 
+                                                    // Свойство для выделения
+                                                    property bool isSelected: false
+
                                                     Rectangle {
                                                         id: clipRectangle
                                                         anchors.fill: parent
                                                         color: model.type === "audio" ? "#FF5722" : "#4CAF50"
                                                         radius: 3
-                                                        border.width: 1
-                                                        border.color: Qt.darker(color, 1.2)
+                                                        border.width: isSelected ? 3 : 1 // Жёлтая рамка при выделении
+                                                        border.color: isSelected ? "#FFFF00" : Qt.darker(color, 1.2)
                                                         z: 4
 
                                                         Image {
@@ -684,15 +705,6 @@ Window {
                                                             }
                                                         }
 
-                                                        ToolButton {
-                                                            anchors.right: parent.right
-                                                            anchors.top: parent.top
-                                                            anchors.margins: 2
-                                                            z: 5
-                                                            text: "🗑"
-                                                            onClicked: viewModel.deleteClip(trackIndex, index)
-                                                        }
-
                                                         Label {
                                                             anchors.fill: parent
                                                             text: model.file ? model.file.split("/").pop() : "MIDI Clip"
@@ -706,7 +718,7 @@ Window {
                                                         }
                                                     }
 
-                                                   MouseArea {
+                                                    MouseArea {
                                                         anchors.fill: parent
                                                         drag.target: clipItem
                                                         drag.axis: Drag.XAxis
@@ -714,22 +726,83 @@ Window {
                                                         drag.maximumX: Math.max(0, contentGrid.width - clipItem.width)
 
                                                         onPressed: {
+                                                            // Сбрасываем выделение в текущем треке
+                                                            for (var t = 0; t < tracksRepeater.count; t++) {
+                                                                var track = tracksRepeater.itemAt(t)
+                                                                if (track && track.resetTrackSelections) {
+                                                                    track.resetTrackSelections()
+                                                                }
+                                                            }
+                                                            
+                                                            // Выделяем текущий клип
+                                                            clipItem.isSelected = true
                                                             clipRectangle.z = 6
+                                                            
+                                                            // Устанавливаем фокус
+                                                            clipItem.forceActiveFocus()
+                                                            
+                                                            // Сохраняем позицию для корректного перемещения
+                                                            mouse.accepted = true
                                                         }
 
                                                         onReleased: {
                                                             var groupSize = flickableArea.cachedGroupSize
                                                             var snapStep = groupSize * flickableArea.beatWidth
                                                             var nearestGridX = Math.round(clipItem.x / snapStep) * snapStep
-                                                            var threshold = 8 // Порог в пикселях для прилипания
+                                                            var threshold = 8
                                                             var snappedX = Math.abs(clipItem.x - nearestGridX) <= threshold ? nearestGridX : clipItem.x
                                                             var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
-                                                           // clipItem.x = snappedX
+                                                            
+                                                            // Обновляем позицию
+                                                        
                                                             clipRectangle.z = 4
+                                                            
+                                                            // Сообщаем модели о перемещении
                                                             viewModel.moveClip(trackIndex, index, newPosition)
-                                                            console.log("Clip snapped to position:", newPosition, "snappedX:", snappedX, "groupSize:", groupSize, "within threshold:", Math.abs(clipItem.x - nearestGridX) <= threshold)
+                                                        }
+                                                        
+
+                                                        function resetAllClipSelections() {
+                                                        for (var t = 0; t < tracksRepeater.count; t++) {
+                                                            var trackItem = tracksRepeater.itemAt(t);
+                                                            if (trackItem) {
+                                                                var clipsRepeater = trackItem.children[1]; // clipsRepeater
+                                                                if (clipsRepeater) {
+                                                                    for (var i = 0; i < clipsRepeater.count; i++) {
+                                                                        var clip = clipsRepeater.itemAt(i);
+                                                                        if (clip) {
+                                                                            clip.isSelected = false;
+                                                                            clip.opacity = clip.opacity; // Принудительное обновление
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
                                                         }
                                                     }
+                                                    }
+
+                                                    // Обработка клавиш C и D
+                                                    Keys.onPressed: (event) => {
+                                                        if (isSelected) {
+                                                            if (event.key === Qt.Key_C) {
+                                                                var newPosition = model.startBeats + model.durationBeats
+                                                                if (model.type === "audio") {
+                                                                    viewModel.addAudioClip(trackIndex, model.file, newPosition)
+                                                                } else {
+                                                                    viewModel.addMidiClip(trackIndex, newPosition, model.durationBeats)
+                                                                }
+                                                                console.log("Clip copied: trackIndex:", trackIndex, "newPosition:", newPosition)
+                                                                event.accepted = true
+                                                            } else if (event.key === Qt.Key_D) {
+                                                                viewModel.deleteClip(trackIndex, index)
+                                                                console.log("Clip deleted: trackIndex:", trackIndex, "clipIndex:", index)
+                                                                event.accepted = true
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Включаем фокус для обработки клавиш
+                                                    focus: isSelected
                                                 }
                                             }
                                         }

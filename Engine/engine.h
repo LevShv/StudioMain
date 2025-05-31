@@ -58,6 +58,30 @@ public:
         juce::MidiMessageSequence midiSequence;
     };
 
+    struct CloneClip : public ClipBase {
+        ClipBase* masterClip = nullptr; // Указатель на мастер-клип
+
+        CloneClip(ClipBase* master, double startBeats) {
+            masterClip = master;
+            startBeats = startBeats;
+            startTime = master->startTime; // Время будет задаваться отдельно
+            duration = master->duration;
+            durationBeats = master->durationBeats;
+            gain = master->gain;
+            muted = master->muted;
+        }
+
+        bool isActive(double time) const override {
+            return time >= startTime && time < startTime + duration;
+        }
+
+        bool isActiveInRange(double startTime, double endTime) const override {
+            const double epsilon = 0.0001;
+            return (this->startTime <= endTime + epsilon) &&
+                (this->startTime + this->duration >= startTime - epsilon);
+        }
+    };
+
     struct PluginInstance {
         std::unique_ptr<juce::AudioPluginInstance> plugin;
         juce::AudioProcessorEditor* editor = nullptr; // Для GUI плагина
@@ -116,6 +140,8 @@ public:
 
     void DeleteTrack(int trackIndex);
     void DeleteClip(int trackIndex, int clipIndex);
+
+    void AddCloneClip(int trackIndex, int masterClipIndex, double startBeats);
 
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;
@@ -186,6 +212,7 @@ private:
         void getNextAudioBlock(const juce::AudioSourceChannelInfo&) override;
         void handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& message) override;
 
+        void addCloneClip(int trackIndex, int masterClipIndex, double startBeats);
 
 		void RenderToFile(std::string& Path);
 
