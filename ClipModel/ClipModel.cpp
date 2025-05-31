@@ -19,8 +19,6 @@ int ClipModel::rowCount(const QModelIndex& parent) const {
     return count;
 }
 
-
-
 QVariant ClipModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid()) return QVariant();
 
@@ -35,12 +33,18 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
 
     switch (role) {
     case StartBeatsRole:
+        qDebug() << "ClipModel::data: trackIndex:" << m_trackIndex << "clipIndex:" << clipIndex << "startBeats:" << clip->startBeats;
         return clip->startBeats;
     case DurationBeatsRole:
         return clip->durationBeats;
     case ClipTypeRole:
-        if (dynamic_cast<Engine::AudioClip*>(clip.get())) {
+        if (dynamic_cast<Engine::AudioClip*>(clip.get()))
             return "audio";
+        if (auto cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
+            if (dynamic_cast<Engine::AudioClip*>(cloneClip->masterClip))
+                return "audio";
+            else
+                return "midi";
         }
         return "midi";
     case FilePathRole:
@@ -50,6 +54,14 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
                 audioClip->file.getFullPathName().getNumBytesAsUTF8()
             );
         }
+        else if (auto cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
+            if (auto masterAudioClip = dynamic_cast<Engine::AudioClip*>(cloneClip->masterClip)) {
+                return QString::fromUtf8(
+                    masterAudioClip->file.getFullPathName().toRawUTF8(),
+                    masterAudioClip->file.getFullPathName().getNumBytesAsUTF8()
+                );
+            }
+        }
         return QVariant();
     case WaveformDataRole:
         if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
@@ -58,6 +70,15 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
                 waveformData.append(amplitude);
             }
             return waveformData;
+        }
+        else if (auto cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
+            if (auto masterAudioClip = dynamic_cast<Engine::AudioClip*>(cloneClip->masterClip)) {
+                QVariantList waveformData;
+                for (float amplitude : masterAudioClip->waveformData) {
+                    waveformData.append(amplitude);
+                }
+                return waveformData;
+            }
         }
         return QVariant();
     default:
@@ -119,12 +140,17 @@ QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
     }
 
     const auto& clip = tracks[m_trackIndex].clips[clipIndex];
-    if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
-        if (audioClip->waveformData.empty()) {
-            qDebug() << "No waveform data for clip:" << clipIndex;
-            return "";
-        }
+    Engine::AudioClip* audioClip = nullptr;
 
+    // Проверяем, является ли клип AudioClip или CloneClip, ссылающимся на AudioClip
+    if (auto directAudioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
+        audioClip = directAudioClip;
+    }
+    else if (auto cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
+        audioClip = dynamic_cast<Engine::AudioClip*>(cloneClip->masterClip);
+    }
+
+    if (audioClip && !audioClip->waveformData.empty()) {
         // Предопределённые ширины
         const std::vector<int> targetWidths = { 100, 200, 400, 800, 1600 };
         int targetWidth = targetWidths[0];
@@ -203,5 +229,6 @@ QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
         qDebug() << "Returning URL for clip ID:" << audioClip->clipID.c_str() << "url:" << url;
         return url;
     }
+    qDebug() << "No waveform data for clip:" << clipIndex;
     return "";
 }
