@@ -12,6 +12,9 @@ Item {
     property int selectedIndex: -2
     property string dragFilePath
     property string currentFilter: "*" // Текущий фильтр файлов
+    property var supportedFormats: ["*.mp3", "*.wav", "*.mp4"]
+
+    property string imagesPath: "file:///" + browser.applicationHomeFolder() + "/images/"
 
     // Сигнал для передачи пути к файлу и координат отпускания
     signal fileDropped(string filePath, real globalX, real globalY)
@@ -21,6 +24,7 @@ Item {
 
     Component.onCompleted: {
         console.log("Browser dragParent:", dragParent)
+        browser.setCurrentFolder(browser.applicationHomeFolder())
     }
 
     FileBrowser {
@@ -30,6 +34,18 @@ Item {
             folderModel.folder = "file://" + browser.currentFolder
             pathField.text = browser.currentFolder
         }
+    }
+    
+    function isSupportedFile(fileName) {
+        if (root.currentFilter === "*") {
+            for (var i = 0; i < supportedFormats.length; i++) {
+                if (fileName.toLowerCase().endsWith(supportedFormats[i].substring(1))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
     }
 
     Column {
@@ -58,7 +74,7 @@ Item {
                     anchors.centerIn: parent
                     width: 24
                     height: 24
-                    source: "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/left_arrow.png"
+                    source: root.imagesPath + "left_arrow.png"
                     sourceSize.width: 24
                     sourceSize.height: 24
                 }
@@ -76,6 +92,7 @@ Item {
                 width: 30
                 height: 30
 
+
                 ToolTip.visible: hovered
                 ToolTip.text: "Домашняя папка"
 
@@ -87,15 +104,14 @@ Item {
                     anchors.centerIn: parent
                     width: 24
                     height: 24
-                    source: "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/up_arrow.png"
+                    source: root.imagesPath + "up_arrow.png";
                     sourceSize.width: 24
                     sourceSize.height: 24
                 }
-
                 onClicked: {
-                    console.log("Navigating home")
-                    var homefolder = browser.homeFolder()
-                    browser.setCurrentFolder(homefolder)
+                    var homePath = browser.applicationHomeFolder();
+                    console.log("Navigating to home folder:", homePath);
+                    browser.setCurrentFolder(homePath);
                 }
             }
 
@@ -104,6 +120,7 @@ Item {
                 id: filterButton
                 width: 30
                 height: 30
+
                 ToolTip.visible: hovered
                 ToolTip.text: {
                     switch(root.currentFilter) {
@@ -126,12 +143,12 @@ Item {
                     height: 24
                     source: {
                         switch(root.currentFilter) {
-                        case "*": return "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/filter.png";
-                        case "": return "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/folder.png";
-                        case "*.mp3": return "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/mp3.png";
-                        case "*.wav": return "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/wav.png";
-                        case "*.mp4": return "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/mp4.png";
-                        default: return "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/filter.png";
+                        case "*": return root.imagesPath + "filter.png";
+                        case "": return root.imagesPath + "folder.png";
+                        case "*.mp3": return root.imagesPath + "mp3.png";
+                        case "*.wav": return root.imagesPath + "wav.png";
+                        case "*.mp4": return root.imagesPath + "mp4.png";
+                        default: return root.imagesPath + "filter.png";
                         }
                     }
                     sourceSize.width: 24
@@ -146,28 +163,28 @@ Item {
 
                     MenuItem {
                         text: "Все файлы"
-                        icon.source: "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/filter.png";
+                        icon.source: root.imagesPath + "filter.png";
                         onTriggered: root.currentFilter = "*"
                     }
                     MenuItem {
                         text: "Только папки"
-                        icon.source: "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/folder.png"
+                        icon.source: root.imagesPath + "folder.png";
                         onTriggered: root.currentFilter = ""
                     }
                     MenuSeparator {}
                     MenuItem {
                         text: "MP3 аудио"
-                        icon.source: "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/mp3.png"
+                        icon.source: root.imagesPath + "mp3.png";
                         onTriggered: root.currentFilter = "*.mp3"
                     }
                     MenuItem {
                         text: "WAV аудио"
-                        icon.source: "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/wav.png"
+                        icon.source: root.imagesPath + "wav.png";
                         onTriggered: root.currentFilter = "*.wav"
                     }
                     MenuItem {
                         text: "MP4 видео"
-                        icon.source: "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/mp4.png"
+                        icon.source: root.imagesPath + "mp4.png";
                         onTriggered: root.currentFilter = "*.mp4"
                     }
                 }
@@ -184,16 +201,24 @@ Item {
 
             delegate: Rectangle {
                 id: delegateItem
-                width: ListView.view ? ListView.view.width : root.width
+                width: ListView.view.width
                 height: 30
-                visible: fileIsDir || (root.currentFilter === "*") || 
-                       (root.currentFilter !== "" && fileName.toLowerCase().endsWith(root.currentFilter.substring(1)))
-                color: {
-                    if (ListView.isCurrentItem) "#4C566A"
-                    else if (root.selectedIndex === index) "#3B4252"
-                    else if (dragArea.containsMouse) "#434C5E"
-                    else "transparent"
+                visible: {
+                    if (fileIsDir) {
+                        return true; // Всегда показываем папки
+                    } else {
+                        if (root.currentFilter === "*") {
+                            return isSupportedFile(fileName);
+                        } else if (root.currentFilter === "") {
+                            return false; // В режиме "Только папки" не показываем файлы
+                        } else {
+                            return fileName.toLowerCase().endsWith(root.currentFilter.substring(1));
+                        }
+                    }
                 }
+                color: ListView.isCurrentItem ? "#4C566A" :
+                      root.selectedIndex === index ? "#3B4252" :
+                      dragArea.containsMouse ? "#434C5E" : "transparent"
                 
                 Behavior on color {
                     ColorAnimation { duration: 150; easing.type: Easing.InOutQuad }
@@ -227,11 +252,11 @@ Item {
                     width: 16
                     height: 16
                     source: {
-                        if (fileIsDir) "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/folder.png";
-                        else if (fileName.endsWith(".mp3")) "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/mp3.png";
-                        else if (fileName.endsWith(".wav")) "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/wav.png";
-                        else if (fileName.endsWith(".mp4")) "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/mp4.png";
-                        else "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/file.png";
+                        if (fileIsDir) return root.imagesPath + "folder.png";
+                        else if (fileName.endsWith(".mp3")) return root.imagesPath + "mp3.png";
+                        else if (fileName.endsWith(".wav")) return root.imagesPath + "wav.png";
+                        else if (fileName.endsWith(".mp4")) return root.imagesPath + "mp4.png";
+                        else return root.imagesPath + "file.png";
                     }
                     sourceSize.width: 16
                     sourceSize.height: 16
@@ -255,26 +280,26 @@ Item {
                 // Элемент для перетаскивания
                 Rectangle {
                     id: dragItem
-                    width: 40
-                    height: 40
+                    width: Math.min(150, dragText.implicitWidth + 20)  // Автоподбор ширины с ограничением
+                    height: dragText.implicitHeight + 10  // Автоподбор высоты
                     visible: false
                     color: "#4C566A"
-                    radius: 20
+                    radius: 6  // Более скругленные углы
                     opacity: 0.9
                     z: 9999
-
-                    Image {
+    
+                    Text {
+                        id: dragText
                         anchors.centerIn: parent
-                        width: 24
-                        height: 24
-                        source: {
-                            if (fileName.endsWith(".mp3")) "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/mp3.png";
-                            else if (fileName.endsWith(".wav")) "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/wav.png";
-                            else if (fileName.endsWith(".mp4")) "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/mp4.png";
-                            else "file:///C:/Users/user/source/repos/LevShv/StudioMain/images/file.png";
-                        }
-                        sourceSize.width: 24
-                        sourceSize.height: 24
+                        width: parent.width - 12  // Отступы от краев
+                        text: fileName
+                        color: "white"
+                        font.pixelSize: 12  // Увеличенный размер текста
+                        font.bold: true  // Полужирный шрифт
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideMiddle
+                        wrapMode: Text.NoWrap  // Текст в одну строку
                     }
                 }
 
@@ -343,7 +368,14 @@ Item {
         folder: "file://" + browser.currentFolder
         showDirsFirst: true
         showDotAndDotDot: false
-        nameFilters: root.currentFilter === "" ? [] : [root.currentFilter]
-        onFolderChanged: console.log("Model folder updated:", folder)
+        nameFilters: {
+            if (root.currentFilter === "") {
+                return []; // Только папки
+            } else if (root.currentFilter === "*") {
+                return root.supportedFormats; // Все поддерживаемые форматы
+            } else {
+                return [root.currentFilter]; // Конкретный фильтр
+            }
+        }
     }
 }

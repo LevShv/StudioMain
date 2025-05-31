@@ -7,6 +7,7 @@
 #include <QStandardPaths>
 #include <QUrl>
 #include <QDesktopServices>
+#include <QCoreApplication>
 
 class FileBrowser : public QObject
 {
@@ -30,6 +31,8 @@ public:
     Q_INVOKABLE void viewClick(QString currentPath, QString obj);
 
     Q_INVOKABLE QString NormalizePath(QString path);
+    Q_INVOKABLE QString applicationHomeFolder() const;
+
 
  
 
