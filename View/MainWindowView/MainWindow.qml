@@ -6,6 +6,7 @@ import QtQuick.Controls.Material
 import "qrc:/FileBrowser"
 import Qt.labs.folderlistmodel
 import QtQuick.Dialogs
+import QtQuick.Shapes 1.15
 
 Window {
     id: mainWindow
@@ -282,7 +283,7 @@ Window {
                         // Прокручиваемая область
                         Flickable {
                             id: flickableArea
-                            property int countOfBeats: 1000
+                            property int countOfBeats: 10000
                             property real baseBeatWidth: 40
                             property real zoomLevel: 1.0
                             property real beatWidth: baseBeatWidth * zoomLevel
@@ -395,7 +396,7 @@ Window {
                                         x: index * width
                                         visible: {
                                             var itemX = x - flickableArea.contentX
-                                            return itemX > -width * 2 && itemX < flickableArea.width + width * 2
+                                            return itemX > -width * 4 && itemX < flickableArea.width + width * 4
                                         }
 
                                         Rectangle {
@@ -460,49 +461,6 @@ Window {
                             }
 
                             // Grid lines
-                            Rectangle {
-                                id: timelineGrid
-                                width: flickableArea.widthOfAllArea
-                                height: contentGrid.height
-                                anchors.top: timeRuler.bottom
-                                color: "#333333"
-                                z: 1
-                                clip: true
-
-                                Repeater {
-                                    model: visibleBeatsModel
-                                    Item {
-                                        width: flickableArea.cachedGroupSize * flickableArea.beatWidth
-                                        height: timelineGrid.height
-                                        x: index * width
-                                        visible: {
-                                            var itemX = x - flickableArea.contentX
-                                            return itemX > -width * 2 && itemX < flickableArea.width + width * 2
-                                        }
-
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            color: {
-                                                var beatIndex = index * flickableArea.cachedGroupSize
-                                                var measure = Math.floor(beatIndex / 4) + 1
-                                                return measure % 2 === 0 ? "#444444" : "#333333"
-                                            }
-                                            z: 0
-                                        }
-
-                                        Rectangle {
-                                            height: parent.height
-                                            color: "#000000"
-                                            antialiasing: true
-                                            z: 1
-                                            width: {
-                                                var beatIndex = index * flickableArea.cachedGroupSize
-                                                return beatIndex % 4 < 0.001 ? 1 : 0.5
-                                            }
-                                        }
-                                    }
-                                }
-                            }
 
                             // Tracks and clips
                             Item {
