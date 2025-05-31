@@ -61,15 +61,19 @@ public:
     struct CloneClip : public ClipBase {
         ClipBase* masterClip = nullptr; // ”казатель на мастер-клип
 
+
         CloneClip(ClipBase* master, double startBeats) {
             masterClip = master;
-            startBeats = startBeats;
-            startTime = master->startTime; // ¬рем€ будет задаватьс€ отдельно
+            this->startBeats = startBeats; // явно устанавливаем поле объекта
+            startTime = master->startTime;
             duration = master->duration;
             durationBeats = master->durationBeats;
             gain = master->gain;
             muted = master->muted;
+            LOG_SUCCESS("CloneClip constructed: startBeats:" << this->startBeats);
         }
+        // ...
+        
 
         bool isActive(double time) const override {
             return time >= startTime && time < startTime + duration;
