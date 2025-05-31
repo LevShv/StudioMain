@@ -12,6 +12,7 @@ Item {
     property int selectedIndex: -2
     property string dragFilePath
     property string currentFilter: "*" // Текущий фильтр файлов
+    property var supportedFormats: ["*.mp3", "*.wav", "*.mp4"]
 
     // Сигнал для передачи пути к файлу и координат отпускания
     signal fileDropped(string filePath, real globalX, real globalY)
@@ -31,6 +32,18 @@ Item {
             folderModel.folder = "file://" + browser.currentFolder
             pathField.text = browser.currentFolder
         }
+    }
+    
+    function isSupportedFile(fileName) {
+        if (root.currentFilter === "*") {
+            for (var i = 0; i < supportedFormats.length; i++) {
+                if (fileName.toLowerCase().endsWith(supportedFormats[i].substring(1))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
     }
 
     Column {
@@ -184,16 +197,24 @@ Item {
 
             delegate: Rectangle {
                 id: delegateItem
-                width: ListView.view ? ListView.view.width : root.width
+                width: ListView.view.width
                 height: 30
-                visible: fileIsDir || (root.currentFilter === "*") || 
-                       (root.currentFilter !== "" && fileName.toLowerCase().endsWith(root.currentFilter.substring(1)))
-                color: {
-                    if (ListView.isCurrentItem) "#4C566A"
-                    else if (root.selectedIndex === index) "#3B4252"
-                    else if (dragArea.containsMouse) "#434C5E"
-                    else "transparent"
+                visible: {
+                    if (fileIsDir) {
+                        return true; // Всегда показываем папки
+                    } else {
+                        if (root.currentFilter === "*") {
+                            return isSupportedFile(fileName);
+                        } else if (root.currentFilter === "") {
+                            return false; // В режиме "Только папки" не показываем файлы
+                        } else {
+                            return fileName.toLowerCase().endsWith(root.currentFilter.substring(1));
+                        }
+                    }
                 }
+                color: ListView.isCurrentItem ? "#4C566A" :
+                      root.selectedIndex === index ? "#3B4252" :
+                      dragArea.containsMouse ? "#434C5E" : "transparent"
                 
                 Behavior on color {
                     ColorAnimation { duration: 150; easing.type: Easing.InOutQuad }
@@ -343,7 +364,14 @@ Item {
         folder: "file://" + browser.currentFolder
         showDirsFirst: true
         showDotAndDotDot: false
-        nameFilters: root.currentFilter === "" ? [] : [root.currentFilter]
-        onFolderChanged: console.log("Model folder updated:", folder)
+        nameFilters: {
+            if (root.currentFilter === "") {
+                return []; // Только папки
+            } else if (root.currentFilter === "*") {
+                return root.supportedFormats; // Все поддерживаемые форматы
+            } else {
+                return [root.currentFilter]; // Конкретный фильтр
+            }
+        }
     }
 }
