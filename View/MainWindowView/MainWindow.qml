@@ -246,7 +246,7 @@ Window {
                                 model: viewModel.trackModel
                                 Rectangle {
                                     width: 150
-                                    height: 50
+                                    height: 52
                                     color: "#2D2D2D"
                                     border.color: "#444"
                                     Label {
@@ -288,23 +288,26 @@ Flickable {
     property real beatWidth: baseBeatWidth * zoomLevel
     property real widthOfAllArea: countOfBeats * beatWidth
     property bool needsUpdate: false
+    property real lastContentX: 0
+    property real cachedGroupSize: getGroupSize()
 
     Layout.fillWidth: true
     Layout.fillHeight: true
     contentWidth: widthOfAllArea
-    contentHeight: contentGrid.height + 50
+    contentHeight: timeRuler.height + contentGrid.height
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.HorizontalFlick
+    maximumFlickVelocity: 2000
+    flickDeceleration: 1000
 
     Timer {
         id: updateDebounceTimer
         interval: 50
+        running: flickableArea.needsUpdate
         onTriggered: {
-            if (flickableArea.needsUpdate) {
-                flickableArea.updateVisibleBeats()
-                flickableArea.needsUpdate = false
-            }
+            flickableArea.updateVisibleBeats()
+            flickableArea.needsUpdate = false
         }
     }
 
@@ -312,37 +315,40 @@ Flickable {
         beatWidth = baseBeatWidth * zoomLevel
         contentWidth = countOfBeats * beatWidth
         contentX = Math.max(0, Math.min(contentX, contentWidth - width))
+        cachedGroupSize = getGroupSize()
         needsUpdate = true
-        updateDebounceTimer.restart()
+        console.log("Zoom level changed to:", zoomLevel, "contentX:", contentX, "groupSize:", cachedGroupSize)
     }
 
     onContentXChanged: {
-        needsUpdate = true
-        updateDebounceTimer.restart()
+        if (Math.abs(contentX - lastContentX) > 100) {
+            needsUpdate = true
+            lastContentX = contentX
+            console.log("ContentX changed, updating visible beats at:", contentX)
+        }
     }
 
     function updateVisibleBeats() {
         var startBeat = Math.floor(contentX / beatWidth)
         var endBeat = Math.ceil((contentX + width) / beatWidth)
-        var groupSize = getGroupSize()
-        var startIndex = Math.floor(startBeat / groupSize)
-        var endIndex = Math.ceil(endBeat / groupSize)
-        startIndex = Math.max(0, startIndex - 1)
-        endIndex = Math.min(Math.ceil(countOfBeats / groupSize), endIndex + 1)
+        var groupSize = cachedGroupSize
+        var startIndex = Math.floor(startBeat / groupSize) - 2
+        var endIndex = Math.ceil(endBeat / groupSize) + 2
+        startIndex = Math.max(0, startIndex)
+        endIndex = Math.min(Math.ceil(countOfBeats / groupSize), endIndex)
         visibleBeatsModel.clear()
-        // Отрисовываем только каждую вторую линию
-        for (var i = startIndex; i < endIndex; i += 2) {
+        for (var i = startIndex; i < endIndex; i++) {
             visibleBeatsModel.append({"index": i})
         }
+        console.log("Updated visible beats: startIndex:", startIndex, "endIndex:", endIndex, "groupSize:", groupSize)
     }
 
     function getGroupSize() {
-        if (beatWidth > 80) return 0.5 // Новый уровень для очень крупного зума
-        if (beatWidth > 60) return 0.75 // Новый уровень для крупного зума
-        if (beatWidth > 40) return 1
-        if (beatWidth > 20) return 2
-        if (beatWidth > 10) return 4
-        return 8
+        if (zoomLevel >= 8.0) return 0.0625
+        if (zoomLevel >= 4.0) return 0.25
+        if (zoomLevel >= 2.0) return 1
+        if (zoomLevel >= 0.5) return 4
+        return 16
     }
 
     ListModel {
@@ -369,6 +375,7 @@ Flickable {
             flickableArea.contentWidth = flickableArea.countOfBeats * newBeatWidth
             flickableArea.contentX = currentBeat * newBeatWidth - cursorX
             flickableArea.contentX = Math.max(0, Math.min(flickableArea.contentX, flickableArea.contentWidth - flickableArea.width))
+            console.log("Wheel zoom: cursorX:", cursorX, "contentCursorX:", contentCursorX, "currentBeat:", currentBeat, "newZoom:", newZoom, "newContentX:", flickableArea.contentX)
         }
     }
 
@@ -377,41 +384,75 @@ Flickable {
         id: timeRuler
         width: flickableArea.widthOfAllArea
         height: 50
-        color: "#1E1E1E"
+        color: "#333333"
         z: 3
 
         Repeater {
             model: visibleBeatsModel
             Item {
-                width: flickableArea.getGroupSize() * flickableArea.beatWidth // Оригинальная ширина
+                width: flickableArea.cachedGroupSize * flickableArea.beatWidth
                 height: 50
                 x: index * width
                 visible: {
                     var itemX = x - flickableArea.contentX
-                    return itemX + width > -width / 2 && itemX < flickableArea.width + width / 2
+                    return itemX > -width * 2 && itemX < flickableArea.width + width * 2
                 }
 
                 Rectangle {
-                    width: parent.width
-                    height: 50
-                    color: "transparent"
-                    border.color: "#444"
-                    Label {
-                        anchors.centerIn: parent
-                        text: {
-                            var groupSize = flickableArea.getGroupSize()
-                            var beatIndex = index * groupSize * 2 // Учитываем пропуск линий
-                            var seconds = beatIndex * (60 / viewModel.bpm)
-                            if (seconds >= 60) {
-                                var minutes = Math.floor(seconds / 60)
-                                seconds = Math.round(seconds % 60)
-                                return minutes + ":" + (seconds < 10 ? "0" : "") + seconds
-                            }
-                            return beatIndex + 1
+                    anchors.fill: parent
+                    color: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        return measure % 2 === 0 ? "#444444" : "#333333"
+                    }
+                    z: 0
+                }
+
+                Rectangle {
+                    height: parent.height
+                    x: 0
+                    color: "#000000"
+                    z: 1
+                    antialiasing: true
+                    width: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        return beatIndex % 4 < 0.001 ? 1 : 0.5
+                    }
+                }
+
+                Label {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: {
+                        var groupSize = flickableArea.cachedGroupSize
+                        var beatIndex = index * groupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        if (groupSize >= 4) {
+                            return measure
                         }
-                        color: "#CCC"
-                        font.pixelSize: flickableArea.beatWidth > 15 ? 12 : 10
-                        visible: flickableArea.beatWidth > 10
+                        var beatInMeasure = Math.floor(beatIndex % 4) + 1
+                        if (groupSize === 1) {
+                            return measure + "." + beatInMeasure
+                        }
+                        var subBeat = Math.round((beatIndex % 1) / groupSize) + 1
+                        return measure + "." + beatInMeasure + "." + subBeat
+                    }
+                    color: "#AAAAAA"
+                    font.pixelSize: flickableArea.beatWidth * flickableArea.cachedGroupSize > 20 ? 12 : 8
+                    visible: {
+                        var groupSize = flickableArea.cachedGroupSize
+                        var beatIndex = index * groupSize
+                        return flickableArea.beatWidth * flickableArea.cachedGroupSize > 10 &&
+                               (beatIndex % 1 < 0.001 || groupSize >= 1)
+                    }
+                    z: 2
+                    background: Rectangle {
+                        color: "#333333"
+                        opacity: 0.7
+                        anchors.fill: parent
+                        anchors.leftMargin: -2
+                        anchors.rightMargin: -2
                     }
                 }
             }
@@ -424,21 +465,40 @@ Flickable {
         width: flickableArea.widthOfAllArea
         height: contentGrid.height
         anchors.top: timeRuler.bottom
-        color: "transparent"
+        color: "#333333"
         z: 1
+        clip: true
 
         Repeater {
             model: visibleBeatsModel
-            Rectangle {
-                width: flickableArea.getGroupSize() * flickableArea.beatWidth // Оригинальная ширина
+            Item {
+                width: flickableArea.cachedGroupSize * flickableArea.beatWidth
                 height: timelineGrid.height
                 x: index * width
-                color: "transparent"
-                border.width: 1
-                border.color: "#444"
                 visible: {
                     var itemX = x - flickableArea.contentX
-                    return itemX + width > -width / 2 && itemX < flickableArea.width + width / 2
+                    return itemX > -width * 2 && itemX < flickableArea.width + width * 2
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        return measure % 2 === 0 ? "#444444" : "#333333"
+                    }
+                    z: 0
+                }
+
+                Rectangle {
+                    height: parent.height
+                    color: "#000000"
+                    antialiasing: true
+                    z: 1
+                    width: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        return beatIndex % 4 < 0.001 ? 1 : 0.5
+                    }
                 }
             }
         }
@@ -449,22 +509,79 @@ Flickable {
         id: contentGrid
         anchors.top: timeRuler.bottom
         width: flickableArea.widthOfAllArea
-        height: viewModel.trackModel.countOfTracks * 50
+        height: viewModel.trackModel.countOfTracks * 52
         z: 2
+        clip: true
 
         Item {
             id: tracksAndClipsContainer
             anchors.fill: parent
 
             Repeater {
+                model: visibleBeatsModel
+                Rectangle {
+                    width: flickableArea.cachedGroupSize * flickableArea.beatWidth
+                    height: contentGrid.height
+                    x: index * width
+                    color: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        var measure = Math.floor(beatIndex / 4) + 1
+                        return measure % 2 === 0 ? "#444444" : "#333333"
+                    }
+                    z: 0
+                }
+            }
+
+            Repeater {
                 model: viewModel.trackModel
-                delegate: Rectangle {
+                delegate: Item {
                     property int trackIndex: model.trackIndex || 0
-                    width: contentGrid.width
+                    width: flickableArea.width
                     height: 50
-                    y: index * 50
-                    color: "transparent"
-                    border { width: 1; color: "#444" }
+                    x: flickableArea.contentX
+                    y: Math.floor(index * 52)
+                    z: 2
+
+                    Rectangle {
+                        width: parent.width
+                        height: 2
+                        color: "#000000"
+                        anchors.top: parent.top
+                        antialiasing: true
+                        z: 2
+                        layer.enabled: true
+                        Component.onCompleted: console.log("Horizontal line drawn at track:", index, "y:", parent.y, "x:", parent.x, "width:", width)
+                    }
+                    Rectangle {
+                        width: parent.width
+                        height: 2
+                        color: "#000000"
+                        anchors.bottom: parent.bottom
+                        antialiasing: true
+                        z: 2
+                        layer.enabled: true
+                        visible: index === viewModel.trackModel.countOfTracks - 1
+                        Component.onCompleted: console.log("Bottom horizontal line drawn at track:", index, "y:", parent.y + height)
+                    }
+                }
+            }
+
+            Repeater {
+                model: visibleBeatsModel
+                Rectangle {
+                    height: contentGrid.height
+                    x: index * flickableArea.cachedGroupSize * flickableArea.beatWidth
+                    color: "#000000"
+                    antialiasing: true
+                    z: 1
+                    width: {
+                        var beatIndex = index * flickableArea.cachedGroupSize
+                        return beatIndex % 4 < 0.001 ? 1 : 0.5
+                    }
+                    visible: {
+                        var itemX = x - flickableArea.contentX
+                        return itemX > -width * 2 && itemX < flickableArea.width + width * 2
+                    }
                 }
             }
 
@@ -477,7 +594,8 @@ Flickable {
                     property var clipsModel: model.clipsModel
                     width: contentGrid.width
                     height: 50
-                    y: index * 50
+                    y: Math.floor(index * 52)
+                    z: 3
 
                     Connections {
                         target: viewModel.trackModel
@@ -496,9 +614,11 @@ Flickable {
                             x: model.startBeats * flickableArea.beatWidth
                             width: model.durationBeats * flickableArea.beatWidth
                             height: 48
+                            anchors.top: parent.top
+                            anchors.topMargin: 1
                             visible: {
                                 var clipX = x - flickableArea.contentX
-                                return clipX + width > -width / 2 && clipX < flickableArea.width + width / 2
+                                return clipX > -width * 3 && clipX < flickableArea.width + width * 3
                             }
 
                             Rectangle {
@@ -508,24 +628,25 @@ Flickable {
                                 radius: 3
                                 border.width: 1
                                 border.color: Qt.darker(color, 1.2)
-                                z: 3
+                                z: 4
 
                                 Image {
                                     id: waveformImage
                                     anchors.fill: parent
                                     source: ""
                                     asynchronous: true
-                                    cache: true
+                                    cache: false
                                     visible: model.type === "audio" && source != ""
                                 }
 
                                 Timer {
                                     id: imageUpdateTimer
-                                    interval: 300
-                                    running: clipItem.visible && model.type === "audio" && waveformImage.source == ""
+                                    interval: 1000
+                                    running: clipItem.visible && model.type === "audio" && waveformImage.source == "" && !flickableArea.moving
                                     onTriggered: {
                                         if (clipItem.visible) {
                                             waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
+                                            console.log("Waveform updated via timer for clip:", index, "width:", clipRectangle.width, "source:", waveformImage.source)
                                         }
                                     }
                                 }
@@ -533,19 +654,32 @@ Flickable {
                                 Connections {
                                     target: clipItem
                                     function onWidthChanged() {
-                                        if (clipItem.visible && Math.abs(clipRectangle.width - lastWidth) > 10) {
+                                        if (clipItem.visible && model.type === "audio") {
                                             imageUpdateTimer.restart()
-                                            lastWidth = clipRectangle.width
+                                            waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
+                                            console.log("Clip width changed, updated waveform:", clipRectangle.width, "source:", waveformImage.source)
                                         }
                                     }
-                                    property real lastWidth: clipRectangle.width
+                                }
+
+                                Connections {
+                                    target: flickableArea
+                                    function onZoomLevelChanged() {
+                                        if (clipItem.visible && model.type === "audio") {
+                                            imageUpdateTimer.restart()
+                                            waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
+                                            console.log("Zoom level changed, updated waveform:", clipRectangle.width, "source:", waveformImage.source)
+                                        }
+                                    }
                                 }
 
                                 Connections {
                                     target: flickableArea
                                     function onContentXChanged() {
-                                        if (clipItem.visible && waveformImage.source == "" && !imageUpdateTimer.running) {
+                                        if (clipItem.visible && model.type === "audio" && waveformImage.source == "" && !flickableArea.moving) {
                                             imageUpdateTimer.restart()
+                                            waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
+                                            console.log("ContentX changed, updated waveform:", clipRectangle.width, "source:", waveformImage.source)
                                         }
                                     }
                                 }
@@ -554,7 +688,7 @@ Flickable {
                                     anchors.right: parent.right
                                     anchors.top: parent.top
                                     anchors.margins: 2
-                                    z: 4
+                                    z: 5
                                     text: "🗑"
                                     onClicked: viewModel.deleteClip(trackIndex, index)
                                 }
@@ -580,13 +714,13 @@ Flickable {
                                 drag.maximumX: Math.max(0, contentGrid.width - clipItem.width)
 
                                 onPressed: {
-                                    clipRectangle.z = 5
+                                    clipRectangle.z = 6
                                 }
 
                                 onReleased: {
                                     var snappedX = Math.round(clipItem.x / flickableArea.beatWidth) * flickableArea.beatWidth
                                     var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
-                                    clipRectangle.z = 3
+                                    clipRectangle.z = 4
                                     viewModel.moveClip(trackIndex, index, newPosition)
                                 }
                             }
@@ -602,7 +736,7 @@ Flickable {
         width: 2
         height: contentGrid.height
         color: "green"
-        z: 4
+        z: 7
         x: Math.max(0, Math.min(viewModel.playheadPosition * flickableArea.beatWidth, flickableArea.contentWidth - width))
         anchors.top: timeRuler.bottom
 
