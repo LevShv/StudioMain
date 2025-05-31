@@ -929,8 +929,25 @@ Window {
                                 }
                             }
 
+                            Timer {
+                                id: initialUpdateTimer
+                                interval: 1
+                                running: true
+                                repeat: false
+                                onTriggered: {
+                                    flickableArea.updateVisibleBeats()
+                                    console.log("Forced initial update, width:", flickableArea.width)
+                                }
+                            }
+
                             Component.onCompleted: {
-                                flickableArea.updateVisibleBeats()
+                                zoomLevel = 1.0
+                                beatWidth = baseBeatWidth * zoomLevel
+                                cachedGroupSize = getGroupSize()
+                                contentWidth = countOfBeats * beatWidth
+                                contentX = 0
+                                console.log("Flickable initialized: width:", width, "zoomLevel:", zoomLevel, "beatWidth:", beatWidth, "cachedGroupSize:", cachedGroupSize, "contentX:", contentX)
+                            
                             }
                         }
                     }
