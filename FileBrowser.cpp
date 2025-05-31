@@ -166,3 +166,23 @@ bool FileBrowser::IsPathNormalized(const QString& path)
 
     return true;
 }
+// filebrowser.cpp
+QString FileBrowser::applicationHomeFolder() const
+{
+    // Получаем директорию, где находится исполняемый файл
+    QString appDir = QCoreApplication::applicationDirPath();
+
+    // Формируем путь к HomeLeTo
+    QString homePath = QDir::cleanPath(appDir + "/HomeLeTo");
+
+    // Проверяем существование папки
+    QDir dir(homePath);
+    if (!dir.exists()) {
+        qWarning() << "HomeLeTo directory does not exist:" << homePath;
+        // Если папки нет, возвращаем рабочую директорию приложения
+        return appDir;
+    }
+
+    LOG_INFO("Application home folder: " + homePath.toStdString());
+    return homePath;
+}
