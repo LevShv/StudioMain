@@ -500,6 +500,41 @@ Window {
                                 z: 2
                                 clip: true
 
+MouseArea {
+    anchors.fill: parent
+    acceptedButtons: Qt.LeftButton
+    onClicked: (mouse) => {
+        // Map mouse coordinates to contentGrid
+        var localPos = mapToItem(contentGrid, mouse.x, mouse.y)
+        var trackIndex = Math.floor(localPos.y / 52)
+        var groupSize = flickableArea.cachedGroupSize
+        var snapStep = groupSize * flickableArea.beatWidth // Grid size in pixels
+        // Calculate position relative to contentGrid's origin
+        var absoluteX = localPos.x // No need to add contentX here
+        var position = absoluteX / flickableArea.beatWidth // Convert to beats
+        // Find nearest grid point
+        var nearestGridBeat = Math.round(position / groupSize) * groupSize
+        var nearestGridX = nearestGridBeat * flickableArea.beatWidth // Convert back to pixels
+        var distanceToGrid = Math.abs(absoluteX - nearestGridX)
+        // Snap to grid only if distance is strictly less than 8 pixels
+        if (distanceToGrid < 8) {
+            position = nearestGridBeat
+        }
+        // Round position to 3 decimal places to avoid floating-point issues
+        position = Math.round(position * 1000) / 1000
+        if (trackIndex >= 0 && trackIndex < countOfTracks && position >= 0) {
+            viewModel.addMidiClip(trackIndex, position)
+            console.log("MIDI clip added: trackIndex:", trackIndex, "position:", position, 
+                        "absoluteX:", absoluteX, "localPos.x:", localPos.x, 
+                        "beatWidth:", flickableArea.beatWidth, "zoomLevel:", flickableArea.zoomLevel, 
+                        "distanceToGrid:", distanceToGrid, "nearestGridBeat:", nearestGridBeat, 
+                        "contentX:", flickableArea.contentX)
+        } else {
+            console.log("Invalid MIDI clip placement: trackIndex:", trackIndex, "position:", position)
+        }
+        mouse.accepted = true
+    }
+}
                                 Item {
                                     id: tracksAndClipsContainer
                                     anchors.fill: parent
@@ -771,95 +806,95 @@ Window {
                                                     }
 
                                                     MouseArea {
-    anchors.fill: parent
-    acceptedButtons: Qt.LeftButton
-    drag.target: clipItem
-    drag.axis: Drag.XAxis
-    drag.minimumX: 0
-    drag.maximumX: Math.max(0, contentGrid.width - clipItem.width)
+                                                        anchors.fill: parent
+                                                        acceptedButtons: Qt.LeftButton
+                                                        drag.target: clipItem
+                                                        drag.axis: Drag.XAxis
+                                                        drag.minimumX: 0
+                                                        drag.maximumX: Math.max(0, contentGrid.width - clipItem.width)
 
-    onClicked: (mouse) => {
-        console.log(`Mouse clicked on clip: trackIndex=${trackIndex}, clipIndex=${index}, ctrlPressed=${mouse.modifiers & Qt.ControlModifier}`)
-        if (!mainWindowRef) {
-            console.log("Error: mainWindowRef is undefined in MouseArea")
-            return
-        }
+                                                        onClicked: (mouse) => {
+                                                            console.log(`Mouse clicked on clip: trackIndex=${trackIndex}, clipIndex=${index}, ctrlPressed=${mouse.modifiers & Qt.ControlModifier}`)
+                                                            if (!mainWindowRef) {
+                                                                console.log("Error: mainWindowRef is undefined in MouseArea")
+                                                                return
+                                                            }
 
-        if (mouse.modifiers & Qt.ControlModifier) {
-            // Множественное выделение с Control: переключаем текущий клип
-            clipItem.isSelected = !clipItem.isSelected
-            mainWindow.multiSelectMode = true
-        } else {
-            // Одиночное выделение: сбрасываем все и выбираем текущий
-            resetAllClipSelections()
-            clipItem.isSelected = true
-            mainWindow.multiSelectMode = false
-        }
-        mouse.accepted = true
-    }
+                                                            if (mouse.modifiers & Qt.ControlModifier) {
+                                                                // Множественное выделение с Control: переключаем текущий клип
+                                                                clipItem.isSelected = !clipItem.isSelected
+                                                                mainWindow.multiSelectMode = true
+                                                            } else {
+                                                                // Одиночное выделение: сбрасываем все и выбираем текущий
+                                                                resetAllClipSelections()
+                                                                clipItem.isSelected = true
+                                                                mainWindow.multiSelectMode = false
+                                                            }
+                                                            mouse.accepted = true
+                                                        }
 
-    onReleased: {
-        var groupSize = flickableArea.cachedGroupSize
-        var snapStep = groupSize * flickableArea.beatWidth
-        var threshold = 8 // Порог для привязки к сетке
+                                                        onReleased: {
+                                                            var groupSize = flickableArea.cachedGroupSize
+                                                            var snapStep = groupSize * flickableArea.beatWidth
+                                                            var threshold = 8 // Порог для привязки к сетке
 
-        // Вычисляем смещение для главного клипа (того, который перетаскивается)
-        var deltaX = clipItem.x - (model.startBeats * flickableArea.beatWidth)
-        var nearestGridX = Math.round(clipItem.x / snapStep) * snapStep
-        var snappedX = Math.abs(clipItem.x - nearestGridX) <= threshold ? nearestGridX : clipItem.x
-        var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
-        var snapOffset = snappedX - clipItem.x // Смещение из-за привязки к сетке (если есть)
+                                                            // Вычисляем смещение для главного клипа (того, который перетаскивается)
+                                                            var deltaX = clipItem.x - (model.startBeats * flickableArea.beatWidth)
+                                                            var nearestGridX = Math.round(clipItem.x / snapStep) * snapStep
+                                                            var snappedX = Math.abs(clipItem.x - nearestGridX) <= threshold ? nearestGridX : clipItem.x
+                                                            var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
+                                                            var snapOffset = snappedX - clipItem.x // Смещение из-за привязки к сетке (если есть)
 
-        // Обновляем главный клип
-        viewModel.moveClip(trackIndex, index, newPosition)
+                                                            // Обновляем главный клип
+                                                            viewModel.moveClip(trackIndex, index, newPosition)
 
-        // Для всех выделенных клипов этого трека
-        for (var i = 0; i < clipsRepeater.count; i++) {
-            var otherClip = clipsRepeater.itemAt(i)
-            if (otherClip && otherClip.isSelected && otherClip !== clipItem) {
-                // Вычисляем новое положение без привязки к сетке, но с учетом snapOffset главного клипа
-                var newX = otherClip.x + deltaX + snapOffset
-                var newOtherPosition = flickableArea.beatWidth > 0 ? newX / flickableArea.beatWidth : 0
-                viewModel.moveClip(trackIndex, otherClip.sourceIndex, newOtherPosition)
-            }
-        }
+                                                            // Для всех выделенных клипов этого трека
+                                                            for (var i = 0; i < clipsRepeater.count; i++) {
+                                                                var otherClip = clipsRepeater.itemAt(i)
+                                                                if (otherClip && otherClip.isSelected && otherClip !== clipItem) {
+                                                                    // Вычисляем новое положение без привязки к сетке, но с учетом snapOffset главного клипа
+                                                                    var newX = otherClip.x + deltaX + snapOffset
+                                                                    var newOtherPosition = flickableArea.beatWidth > 0 ? newX / flickableArea.beatWidth : 0
+                                                                    viewModel.moveClip(trackIndex, otherClip.sourceIndex, newOtherPosition)
+                                                                }
+                                                            }
 
-        clipRectangle.z = 4
-    }
+                                                            clipRectangle.z = 4
+                                                        }
 
-    function resetAllClipSelections() {
-        for (var t = 0; t < tracksRepeater.count; t++) {
-            var track = tracksRepeater.itemAt(t)
-            if (track && track.resetTrackSelections) {
-                track.resetTrackSelections()
-            }
-        }
-        mainWindow.selectedClips = []
-        console.log("All clip selections cleared, selectedClips count=0")
-    }
-}
+                                                        function resetAllClipSelections() {
+                                                            for (var t = 0; t < tracksRepeater.count; t++) {
+                                                                var track = tracksRepeater.itemAt(t)
+                                                                if (track && track.resetTrackSelections) {
+                                                                    track.resetTrackSelections()
+                                                                }
+                                                            }
+                                                            mainWindow.selectedClips = []
+                                                            console.log("All clip selections cleared, selectedClips count=0")
+                                                        }
+                                                    }
 
-function deleteSelectedClips() {
-        console.log("Starting deleteSelectedClips, selectedClips count=" + mainWindow.selectedClips.length)
-        
-        if (!mainWindow.selectedClips || mainWindow.selectedClips.length === 0) {
-            console.log("No clips selected for deletion")
-            mainWindow.selectedClips = []
-            return
-        }
+                                                    function deleteSelectedClips() {
+                                                            console.log("Starting deleteSelectedClips, selectedClips count=" + mainWindow.selectedClips.length)
+                                                            
+                                                            if (!mainWindow.selectedClips || mainWindow.selectedClips.length === 0) {
+                                                                console.log("No clips selected for deletion")
+                                                                mainWindow.selectedClips = []
+                                                                return
+                                                            }
 
-        console.log("Preparing to delete " + mainWindow.selectedClips.length + " clips")
-        try {
-            viewModel.deleteClips(mainWindow.selectedClips)
-            console.log("Successfully deleted " + mainWindow.selectedClips.length + " clips")
-        } catch (error) {
-            console.log("Failed to delete clips, error=" + error)
-            mainWindowRef.clearSelectedClipsRequested()
-        }
+                                                            console.log("Preparing to delete " + mainWindow.selectedClips.length + " clips")
+                                                            try {
+                                                                viewModel.deleteClips(mainWindow.selectedClips)
+                                                                console.log("Successfully deleted " + mainWindow.selectedClips.length + " clips")
+                                                            } catch (error) {
+                                                                console.log("Failed to delete clips, error=" + error)
+                                                                mainWindowRef.clearSelectedClipsRequested()
+                                                            }
 
-        mainWindowRef.clearSelectedClipsRequested()
-        console.log("Finished deleting clips, selectedClips cleared")
-    }                      
+                                                            mainWindowRef.clearSelectedClipsRequested()
+                                                            console.log("Finished deleting clips, selectedClips cleared")
+                                                        }                      
 
                                                     // Обработка клавиш C и D
                                                     Keys.onPressed: (event) => {

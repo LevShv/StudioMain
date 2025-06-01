@@ -961,7 +961,9 @@ void Engine::AddAudioClip(int trackInd, const std::string& path, double startBea
     core.loadAudioClip(trackInd, audioFile, startBeats, loadToRAM);
 }
 
-void Engine::AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startBeats) {
+void Engine::AddMidiClip(int trackInd, double startBeats) {
+
+    juce::MidiMessageSequence sequence;
     core.loadMidiClip(trackInd, sequence, startBeats);
 }
 

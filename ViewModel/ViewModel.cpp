@@ -69,6 +69,16 @@ void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double sta
     emit clipAdded(trackIndex);
 }
 
+void ViewModel::addMidiClip(int trackIndex, double startTime)
+{
+    engine.AddMidiClip(trackIndex, startTime);
+    ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
+    if (clipModel) {
+        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
+    }
+    emit clipAdded(trackIndex);
+}
+
 void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats)
 {
     

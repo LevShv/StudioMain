@@ -53,6 +53,7 @@ public:
 
     struct MidiClip : public ClipBase {
         juce::MidiMessageSequence midiSequence;
+        double minDurationBeats = 1;
     };
 
     struct CloneClip : public ClipBase {
@@ -123,7 +124,8 @@ public:
 	void TogglePluginBypass(int trackIndex, int pluginIndex);
 
     void AddAudioClip(int trackInd, const std::string& path, double startBeats, bool loadToRAM);
-    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startBeats);
+    void AddMidiClip(int trackInd, double startBeats);
+
     void StopMix();
     void PlayMix();
     void MoveClip(int trackIndex, int clipIndex, double startBeats);
