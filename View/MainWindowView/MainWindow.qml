@@ -19,6 +19,25 @@ Window {
     property Item dragParent: contentItem
     property int countOfTracks: viewModel.trackModel.countOfTracks
 
+    property bool multiSelectMode: false // Режим множественного выделения (удерживать Ctrl)
+    property var selectedClips: []
+    signal clearSelectedClipsRequested()
+
+    Connections {
+        target: mainWindow
+        function onClearSelectedClipsRequested() {
+            console.log("clearSelectedClipsRequested received, previous selectedClips count=" + mainWindow.selectedClips.length)
+            mainWindow.selectedClips = []
+            console.log("selectedClips cleared, new count=" + mainWindow.selectedClips.length)
+        }
+    }
+
+    function clearSelectedClips() {
+        console.log("clearSelectedClips called, previous selectedClips count=" + mainWindow.selectedClips.length)
+        mainWindow.selectedClips = []
+        console.log("selectedClips cleared, new count=" + mainWindow.selectedClips.length)
+    }
+
     Component.onCompleted: {
         console.log("MainWindow dragParent:", dragParent)
     }
@@ -302,6 +321,16 @@ Window {
                             maximumFlickVelocity: 2000
                             flickDeceleration: 1000
 
+                            Rectangle {
+                                id: selectionRect
+                                color: Qt.rgba(0.5, 0.5, 1, 0.3)
+                                border.color: "blue"
+                                border.width: 1
+                                visible: false
+                                z: 5
+                            }
+
+   
                             Timer {
                                 id: updateDebounceTimer
                                 interval: 50
@@ -476,6 +505,7 @@ Window {
                                     anchors.fill: parent
 
                                     Repeater {
+                                        id: trackLinesRepeater
                                         model: visibleBeatsModel
                                         Rectangle {
                                             width: flickableArea.cachedGroupSize * flickableArea.beatWidth
@@ -490,7 +520,7 @@ Window {
                                         }
                                     }
 
-                                    Repeater {
+                                    Repeater {    
                                         model: viewModel.trackModel
                                         delegate: Item {
                                             property int trackIndex: model.trackIndex || 0
@@ -559,7 +589,7 @@ Window {
                                             id: trackItem
                                             property int trackIndex: model.trackIndex
                                             property var clipsModel: model.clipsModel
-
+                                            property var mainWindowRef: mainWindow // Явная привязка
                                             property var lastCopiedSourceIndex: -1  // Индекс исходного клипа
                                             property real lastCopiedPosition: -1
 
@@ -641,6 +671,28 @@ Window {
                                                     // Свойство для выделения
                                                     property bool isSelected: false
                                                     property int sourceIndex: index  
+                                                    property var mainWindowRef: trackItem.mainWindowRef
+                                                
+
+                                                    onIsSelectedChanged: {
+                                                        if (isSelected) {
+                                                            let exists = mainWindow.selectedClips.some(
+                                                                clip => clip.trackIndex === trackIndex && clip.clipIndex === index
+                                                            )
+                                                            if (!exists) {
+                                                                mainWindow.selectedClips.push({
+                                                                    trackIndex: trackIndex,
+                                                                    clipIndex: index
+                                                                })
+                                                                console.log(`Clip selected: trackIndex=${trackIndex}, clipIndex=${index}, selectedClips count=${mainWindow.selectedClips.length}`)
+                                                            }
+                                                        } else {
+                                                            mainWindow.selectedClips = mainWindow.selectedClips.filter(
+                                                                clip => clip.trackIndex !== trackIndex || clip.clipIndex !== index
+                                                            )
+                                                            console.log(`Clip deselected: trackIndex=${trackIndex}, clipIndex=${index}, selectedClips count=${mainWindow.selectedClips.length}`)
+                                                        }
+                                                    }
 
                                                     Rectangle {
                                                         id: clipRectangle
@@ -719,111 +771,169 @@ Window {
                                                     }
 
                                                     MouseArea {
-                                                        anchors.fill: parent
-                                                        drag.target: clipItem
-                                                        drag.axis: Drag.XAxis
-                                                        drag.minimumX: 0
-                                                        drag.maximumX: Math.max(0, contentGrid.width - clipItem.width)
+    anchors.fill: parent
+    acceptedButtons: Qt.LeftButton
+    drag.target: clipItem
+    drag.axis: Drag.XAxis
+    drag.minimumX: 0
+    drag.maximumX: Math.max(0, contentGrid.width - clipItem.width)
 
-                                                        onClicked: {
-                                                            trackItem.resetTrackSelections()
-                                                            clipItem.isSelected = true
-                                                            // Сбрасываем при выборе нового клипа
-                                                            trackItem.lastCopiedSourceIndex = -1
-                                                        }
+    onClicked: (mouse) => {
+        console.log(`Mouse clicked on clip: trackIndex=${trackIndex}, clipIndex=${index}, ctrlPressed=${mouse.modifiers & Qt.ControlModifier}`)
+        if (!mainWindowRef) {
+            console.log("Error: mainWindowRef is undefined in MouseArea")
+            return
+        }
 
-                                                        onPressed: {
-                                                            // Сбрасываем выделение в текущем треке
-                                                            for (var t = 0; t < tracksRepeater.count; t++) {
-                                                                var track = tracksRepeater.itemAt(t)
-                                                                if (track && track.resetTrackSelections) {
-                                                                    track.resetTrackSelections()
-                                                                }
-                                                            }
-                                                            
-                                                            // Выделяем текущий клип
-                                                            clipItem.isSelected = true
-                                                            clipRectangle.z = 6
-                                                            
-                                                            // Устанавливаем фокус
-                                                            clipItem.forceActiveFocus()
-                                                            
-                                                            // Сохраняем позицию для корректного перемещения
-                                                            mouse.accepted = true
-                                                        }
+        if (mouse.modifiers & Qt.ControlModifier) {
+            // Множественное выделение с Control: переключаем текущий клип
+            clipItem.isSelected = !clipItem.isSelected
+            mainWindow.multiSelectMode = true
+        } else {
+            // Одиночное выделение: сбрасываем все и выбираем текущий
+            resetAllClipSelections()
+            clipItem.isSelected = true
+            mainWindow.multiSelectMode = false
+        }
+        mouse.accepted = true
+    }
 
-                                                        onReleased: {
-                                                            var groupSize = flickableArea.cachedGroupSize
-                                                            var snapStep = groupSize * flickableArea.beatWidth
-                                                            var nearestGridX = Math.round(clipItem.x / snapStep) * snapStep
-                                                            var threshold = 8
-                                                            var snappedX = Math.abs(clipItem.x - nearestGridX) <= threshold ? nearestGridX : clipItem.x
-                                                            var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
-                                                            
-                                                            // Обновляем позицию
-                                                        
-                                                            clipRectangle.z = 4
-                                                            
-                                                            // Сообщаем модели о перемещении
-                                                            viewModel.moveClip(trackIndex, index, newPosition)
-                                                        }
-                                                        
+    onReleased: {
+        var groupSize = flickableArea.cachedGroupSize
+        var snapStep = groupSize * flickableArea.beatWidth
+        var threshold = 8 // Порог для привязки к сетке
 
-                                                        function resetAllClipSelections() {
-                                                        for (var t = 0; t < tracksRepeater.count; t++) {
-                                                            var trackItem = tracksRepeater.itemAt(t);
-                                                            if (trackItem) {
-                                                                var clipsRepeater = trackItem.children[1]; // clipsRepeater
-                                                                if (clipsRepeater) {
-                                                                    for (var i = 0; i < clipsRepeater.count; i++) {
-                                                                        var clip = clipsRepeater.itemAt(i);
-                                                                        if (clip) {
-                                                                            clip.isSelected = false;
-                                                                            clip.opacity = clip.opacity; // Принудительное обновление
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    }
+        // Вычисляем смещение для главного клипа (того, который перетаскивается)
+        var deltaX = clipItem.x - (model.startBeats * flickableArea.beatWidth)
+        var nearestGridX = Math.round(clipItem.x / snapStep) * snapStep
+        var snappedX = Math.abs(clipItem.x - nearestGridX) <= threshold ? nearestGridX : clipItem.x
+        var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
+        var snapOffset = snappedX - clipItem.x // Смещение из-за привязки к сетке (если есть)
+
+        // Обновляем главный клип
+        viewModel.moveClip(trackIndex, index, newPosition)
+
+        // Для всех выделенных клипов этого трека
+        for (var i = 0; i < clipsRepeater.count; i++) {
+            var otherClip = clipsRepeater.itemAt(i)
+            if (otherClip && otherClip.isSelected && otherClip !== clipItem) {
+                // Вычисляем новое положение без привязки к сетке, но с учетом snapOffset главного клипа
+                var newX = otherClip.x + deltaX + snapOffset
+                var newOtherPosition = flickableArea.beatWidth > 0 ? newX / flickableArea.beatWidth : 0
+                viewModel.moveClip(trackIndex, otherClip.sourceIndex, newOtherPosition)
+            }
+        }
+
+        clipRectangle.z = 4
+    }
+
+    function resetAllClipSelections() {
+        for (var t = 0; t < tracksRepeater.count; t++) {
+            var track = tracksRepeater.itemAt(t)
+            if (track && track.resetTrackSelections) {
+                track.resetTrackSelections()
+            }
+        }
+        mainWindow.selectedClips = []
+        console.log("All clip selections cleared, selectedClips count=0")
+    }
+}
+
+function deleteSelectedClips() {
+        console.log("Starting deleteSelectedClips, selectedClips count=" + mainWindow.selectedClips.length)
+        
+        if (!mainWindow.selectedClips || mainWindow.selectedClips.length === 0) {
+            console.log("No clips selected for deletion")
+            mainWindow.selectedClips = []
+            return
+        }
+
+        console.log("Preparing to delete " + mainWindow.selectedClips.length + " clips")
+        try {
+            viewModel.deleteClips(mainWindow.selectedClips)
+            console.log("Successfully deleted " + mainWindow.selectedClips.length + " clips")
+        } catch (error) {
+            console.log("Failed to delete clips, error=" + error)
+            mainWindowRef.clearSelectedClipsRequested()
+        }
+
+        mainWindowRef.clearSelectedClipsRequested()
+        console.log("Finished deleting clips, selectedClips cleared")
+    }                      
 
                                                     // Обработка клавиш C и D
                                                     Keys.onPressed: (event) => {
-                                                        if (isSelected) {
-                                                            if (event.key === Qt.Key_C) {
-                                                                var duration = model.durationBeats
-                                                                var newPosition = trackItem.findFreePosition(
+                                                        console.log(`Key pressed: key=${event.key}, text=${event.text}, modifiers=${event.modifiers}, clipSelected=${isSelected}, multiSelectMode=${mainWindow.multiSelectMode}`)
+                                                        if (isSelected || mainWindow.multiSelectMode) {
+                                                            if (event.key === Qt.Key_C && !mainWindow.multiSelectMode) {
+                                                                console.log("Copy key (C) pressed")
+                                                                let duration = model.durationBeats
+                                                                let newPosition = trackItem.findFreePosition(
                                                                     model.startBeats + duration, 
                                                                     duration,
                                                                     sourceIndex
                                                                 )
-                                                                if (model.type === "audio") {
-                                                                    viewModel.addAudioClip(trackIndex, model.file, newPosition)
-                                                                } else {
-                                                                    viewModel.addMidiClip(trackIndex, newPosition, model.durationBeats)
-                                                                }
-                                                                console.log("Clip copied: trackIndex:", trackIndex, "newPosition:", newPosition)
+                                                                viewModel.addAudioClip(trackIndex, model.file, newPosition)
+                                                                console.log(`Clip copied: trackIndex=${trackIndex}, newPosition=${newPosition}`)
                                                                 event.accepted = true
-                                                            }
-                                                            else if (event.key === Qt.Key_B) {
-                                                                var duration = model.durationBeats
-                                                                var newPosition = trackItem.findFreePosition(
+                                                            } else if (event.key === Qt.Key_B && !mainWindow.multiSelectMode) {
+                                                                console.log("Clone key (B) pressed")
+                                                                let duration = model.durationBeats
+                                                                let newPosition = trackItem.findFreePosition(
                                                                     model.startBeats + duration, 
                                                                     duration,
                                                                     sourceIndex
                                                                 )
-                                                                console.log("Pressed B")
                                                                 viewModel.AddCloneClip(trackIndex, sourceIndex, newPosition)
-
-                                                                console.log("Clip copied: trackIndex:", sourceIndex, "newPosition:", newPosition)
-                                                                event.accepted = true                                                                                                                   
-                                                            } 
-                                                            else if (event.key === Qt.Key_D) {
-                                                                viewModel.deleteClip(trackIndex, index)
-                                                                console.log("Clip deleted: trackIndex:", trackIndex, "clipIndex:", index)
+                                                                console.log(`Clip cloned: trackIndex=${sourceIndex}, newPosition=${newPosition}`)
                                                                 event.accepted = true
+                                                            } else if (event.key === Qt.Key_D || event.key === Qt.Key_Delete) {
+                                                                console.log("Delete key (D or Delete) pressed")
+                                                                if (mainWindow.multiSelectMode) {
+                                                                    deleteSelectedClips()
+                                                                } else if (isSelected) {
+                                                                    console.log(`Deleting single clip: trackIndex=${trackIndex}, clipIndex=${index}`)
+                                                                    try {
+                                                                        viewModel.deleteClip(trackIndex, index)
+                                                                        console.log(`Clip deleted: trackIndex=${trackIndex}, clipIndex=${index}`)
+                                                                        clipItem.isSelected = false // Сбрасываем выделение
+                                                                    } catch (error) {
+                                                                      //  console.log(`Failed to delete single clip: trackIndex=${trackIndex}, clipIndex=${index}, error=${error}`)
+                                                                    }
+                                                                }
+                                                                event.accepted = true
+                                                            } else if (event.key === Qt.Key_A && (event.modifiers & Qt.ControlModifier)) {
+                                                                console.log("Select all key (Ctrl+A) pressed")
+                                                                mainWindow.selectedClips = []
+                                                                for (let t = 0; t < tracksRepeater.count; t++) {
+                                                                    let track = tracksRepeater.itemAt(t)
+                                                                    if (track && track.clipsRepeater) {
+                                                                        for (let i = 0; i < track.clipsRepeater.count; i++) {
+                                                                            let clip = track.clipsRepeater.itemAt(i)
+                                                                            if (clip) {
+                                                                                clip.isSelected = true
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                                console.log(`All clips selected, selectedClips count=${mainWindow.selectedClips.length}`)
+                                                                event.accepted = true
+                                                            } else if (event.key === Qt.Key_Escape) {
+                                                                console.log("Escape key pressed")
+                                                                for (let t = 0; t < tracksRepeater.count; t++) {
+                                                                    let track = tracksRepeater.itemAt(t)
+                                                                    if (track && track.resetTrackSelections) {
+                                                                        track.resetTrackSelections()
+                                                                    }
+                                                                }
+                                                                mainWindow.selectedClips = []
+                                                                console.log("All clip selections cleared, selectedClips count=0")
+                                                                event.accepted = true
+                                                            } else {
+                                                                console.log(`Unhandled key: key=${event.key}, text=${event.text}`)
                                                             }
+                                                        } else {
+                                                            console.log("Key ignored: clip not selected and not in multi-select mode")
                                                         }
                                                     }
 
@@ -929,8 +1039,25 @@ Window {
                                 }
                             }
 
+                            Timer {
+                                id: initialUpdateTimer
+                                interval: 1
+                                running: true
+                                repeat: false
+                                onTriggered: {
+                                    flickableArea.updateVisibleBeats()
+                                    console.log("Forced initial update, width:", flickableArea.width)
+                                }
+                            }
+
                             Component.onCompleted: {
-                                flickableArea.updateVisibleBeats()
+                                zoomLevel = 1.0
+                                beatWidth = baseBeatWidth * zoomLevel
+                                cachedGroupSize = getGroupSize()
+                                contentWidth = countOfBeats * beatWidth
+                                contentX = 0
+                                console.log("Flickable initialized: width:", width, "zoomLevel:", zoomLevel, "beatWidth:", beatWidth, "cachedGroupSize:", cachedGroupSize, "contentX:", contentX)
+                            
                             }
                         }
                     }

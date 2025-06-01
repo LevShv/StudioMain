@@ -69,7 +69,9 @@ void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double sta
     emit clipAdded(trackIndex);
 }
 
-void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats) {
+void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats)
+{
+    
     engine.AddCloneClip(trackIndex, masterClipIndex, startBeats);
     ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
     if (clipModel) {
@@ -147,7 +149,7 @@ void ViewModel::deleteTrack(int trackIndex) {
     }
 }
 
-Q_INVOKABLE void ViewModel::deleteClip(int trackIndex, int clipindex)
+void ViewModel::deleteClip(int trackIndex, int clipindex)
 {
     if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
         if (clipindex >= 0 && clipindex < engine.GetdataBase()[trackIndex].clips.size()) {
@@ -179,6 +181,70 @@ Q_INVOKABLE void ViewModel::deleteClip(int trackIndex, int clipindex)
     }
     else {
         qWarning() << "Invalid track index for clip deletion:" << trackIndex;
+    }
+}
+
+void ViewModel::deleteClips(const QVariantList& clips) {
+    qDebug() << "deleteClips called with" << clips.size() << "clips";
+
+    // Проверяем, проигрывается ли проект
+    bool wasPlaying = isPlaying();
+    if (wasPlaying) {
+        engine.StopMix();
+        m_playheadTimer->stop();
+        m_isPlaying = false;
+        emit isPlayingChanged();
+        qDebug() << "Stopped playback before deleting clips";
+    }
+
+    // Группируем клипы по trackIndex для оптимизации
+    QMap<int, QList<int>> clipsByTrack;
+    for (const QVariant& clipVar : clips) {
+        QVariantMap clipMap = clipVar.toMap();
+        int trackIndex = clipMap["trackIndex"].toInt();
+        int clipIndex = clipMap["clipIndex"].toInt();
+        clipsByTrack[trackIndex].append(clipIndex);
+    }
+
+    // Обрабатываем каждый трек
+    for (auto it = clipsByTrack.constBegin(); it != clipsByTrack.constEnd(); ++it) {
+        int trackIndex = it.key();
+        QList<int> clipIndices = it.value();
+
+        if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size()) {
+            qWarning() << "Invalid track index for clip deletion:" << trackIndex;
+            continue;
+        }
+
+        // Сортируем индексы клипов в обратном порядке, чтобы избежать проблем со сдвигом
+        std::sort(clipIndices.begin(), clipIndices.end(), std::greater<int>());
+
+        ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
+        if (!clipModel) {
+            qWarning() << "No ClipModel found for track:" << trackIndex;
+            continue;
+        }
+
+        // Удаляем клипы
+        for (int clipIndex : clipIndices) {
+            if (clipIndex < 0 || clipIndex >= engine.GetdataBase()[trackIndex].clips.size()) {
+                qWarning() << "Invalid clip index for deletion: trackIndex=" << trackIndex << "clipIndex=" << clipIndex;
+                continue;
+            }
+
+            clipModel->deleteClip(clipIndex);
+            engine.DeleteClip(trackIndex, clipIndex);
+            qDebug() << "Deleted clip: trackIndex=" << trackIndex << "clipIndex=" << clipIndex;
+        }
+    }
+
+    // Возобновляем воспроизведение, если оно было активно
+    if (wasPlaying && !engine.GetdataBase().empty()) {
+        engine.PlayMix();
+        m_playheadTimer->start(16);
+        m_isPlaying = true;
+        emit isPlayingChanged();
+        qDebug() << "Resumed playback after deleting clips";
     }
 }
 

@@ -15,7 +15,7 @@ public:
         double duration = 0.0;
         float gain = 1.0f;
         bool muted = false;
-
+        std::string clipID;
 
         double startBeats = 0.0; // ¬рем€ в ударах
         double durationBeats = 0.0; // ƒлительность в ударах
@@ -30,18 +30,6 @@ public:
             return (this->startTime <= endTime + epsilon) &&
                 (this->startTime + this->duration >= startTime - epsilon);
         }
-    };
-
-    using ClipPtr = std::unique_ptr<ClipBase>;
-
-    struct AudioClip : public ClipBase {
-        juce::File file;
-        juce::AudioBuffer<float> buffer;
-        bool useRAM = false;
-        std::vector<float> waveformData;
-        std::string clipID;
-
-
 
         std::string generateClipID() {
             auto now = std::chrono::system_clock::now().time_since_epoch().count();
@@ -54,13 +42,22 @@ public:
         }
     };
 
+    using ClipPtr = std::unique_ptr<ClipBase>;
+
+    struct AudioClip : public ClipBase {
+        juce::File file;
+        juce::AudioBuffer<float> buffer;
+        bool useRAM = false;
+        std::vector<float> waveformData;
+    };
+
     struct MidiClip : public ClipBase {
         juce::MidiMessageSequence midiSequence;
     };
 
     struct CloneClip : public ClipBase {
         ClipBase* masterClip = nullptr; // ”казатель на мастер-клип
-
+        std::string masterClipID;
 
         CloneClip(ClipBase* master, double startBeats) {
             masterClip = master;
@@ -70,9 +67,9 @@ public:
             durationBeats = master->durationBeats;
             gain = master->gain;
             muted = master->muted;
+            masterClipID = master->clipID;
             LOG_SUCCESS("CloneClip constructed: startBeats:" << this->startBeats);
         }
-        // ...
         
 
         bool isActive(double time) const override {

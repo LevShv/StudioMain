@@ -32,7 +32,7 @@ public:
 
     Q_INVOKABLE void deleteTrack(int trackIndex);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);
-
+    Q_INVOKABLE void deleteClips(const QVariantList& clips); // Новый метод
     Q_INVOKABLE void addAudioTrack();
 	Q_INVOKABLE void addMidiTrack();
     Q_INVOKABLE void addSamplerTrack();
