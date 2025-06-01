@@ -963,8 +963,14 @@ void Engine::AddAudioClip(int trackInd, const std::string& path, double startBea
 
 void Engine::AddMidiClip(int trackInd, double startBeats) {
 
-    juce::MidiMessageSequence sequence;
-    core.loadMidiClip(trackInd, sequence, startBeats);
+    if (core.tracks[trackInd].isMidiTrack) {
+        juce::MidiMessageSequence sequence;
+        core.loadMidiClip(trackInd, sequence, startBeats);
+    }
+    else {
+        LOG_WARN("Tracks is not midi");
+    }
+   
 }
 
 void Engine::StopMix() { core.stop(); }
