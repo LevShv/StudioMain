@@ -124,7 +124,8 @@ public:
 	void TogglePluginBypass(int trackIndex, int pluginIndex);
 
     void AddAudioClip(int trackInd, const std::string& path, double startBeats, bool loadToRAM);
-    void AddMidiClip(int trackInd, double startBeats);
+    bool AddMidiClip(int trackInd, double startBeats);
+    void AddCloneClip(int trackIndex, int masterClipIndex, double startBeats);
 
     void StopMix();
     void PlayMix();
@@ -144,7 +145,9 @@ public:
     void DeleteTrack(int trackIndex);
     void DeleteClip(int trackIndex, int clipIndex);
 
-    void AddCloneClip(int trackIndex, int masterClipIndex, double startBeats);
+    void ChangeDuration(int trackIndex, int clipIndex, double newDuration);
+
+   
 
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;
@@ -218,6 +221,9 @@ private:
         void addCloneClip(int trackIndex, int masterClipIndex, double startBeats);
 
 		void RenderToFile(std::string& Path);
+        
+        void changeMidiclipDuration(int trackIndex, int clipIndex, double newDuration);
+        void changeAudioclipDuration(int trackIndex, int clipIndex, double newDuration);
 
     private:
 

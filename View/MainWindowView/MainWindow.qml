@@ -707,6 +707,12 @@ MouseArea {
                                                     property bool isSelected: false
                                                     property int sourceIndex: index  
                                                     property var mainWindowRef: trackItem.mainWindowRef
+                                                    property bool resizingLeft: false
+                                                    property bool resizingRight: false
+                                                    property real originalX: 0
+                                                    property real originalWidth: 0
+                                                    property real originalStartBeats: 0
+                                                    property real originalDurationBeats: 0
                                                 
 
                                                     onIsSelectedChanged: {
@@ -726,6 +732,15 @@ MouseArea {
                                                                 clip => clip.trackIndex !== trackIndex || clip.clipIndex !== index
                                                             )
                                                             console.log(`Clip deselected: trackIndex=${trackIndex}, clipIndex=${index}, selectedClips count=${mainWindow.selectedClips.length}`)
+                                                        }
+                                                    }
+
+                                                    Connections {
+                                                        target: flickableArea
+                                                        function onBeatWidthChanged() {
+                                                            clipItem.width = model.durationBeats * flickableArea.beatWidth
+                                                            clipItem.x = model.startBeats * flickableArea.beatWidth
+                                                            console.log("Updated clip position and width due to zoom: trackIndex=", trackIndex, "clipIndex=", index, "width=", clipItem.width)
                                                         }
                                                     }
 
@@ -803,6 +818,162 @@ MouseArea {
                                                             opacity: model.type === "audio" ? 0.5 : 1.0
                                                             visible: !waveformImage.visible
                                                         }
+
+
+      MouseArea {
+            id: leftResizeArea
+            width: Math.min(15, clipItem.width / 4) // Уменьшена ширина для коротких клипов
+            height: parent.height
+            anchors.left: parent.left
+            cursorShape: Qt.SizeHorCursor
+            enabled: isSelected
+            hoverEnabled: true
+            preventStealing: true
+            z: 5
+
+            onPressed: (mouse) => {
+                if (mouse.modifiers & Qt.ControlModifier) {
+                    clipItem.resizingLeft = true
+                    clipItem.originalX = clipItem.x
+                    clipItem.originalWidth = clipItem.width
+                    clipItem.originalStartBeats = model.startBeats
+                    clipItem.originalDurationBeats = model.durationBeats
+                    console.log("Started resizing left edge: trackIndex=", trackIndex, "clipIndex=", index, "zoneWidth=", leftResizeArea.width)
+                    mouse.accepted = true
+                } else {
+                    mouse.accepted = false // Передаем событие dragArea
+                }
+            }
+
+onPositionChanged: (mouse) => {
+        if (drag.active && !clipItem.isResizing) {
+            var groupSize = flickableArea.cachedGroupSize
+            var snapStep = groupSize * flickableArea.beatWidth // Grid size in pixels
+            // Update dragX based on mouse movement
+            clipItem.dragX = clipItem.x
+            var position = clipItem.dragX / flickableArea.beatWidth // Position in beats
+            // Calculate snapping
+            var nearestGridBeat = Math.round(position / groupSize) * groupSize
+            var nearestGridX = nearestGridBeat * flickableArea.beatWidth
+            var distanceToGrid = Math.abs(clipItem.dragX - nearestGridX)
+            if (distanceToGrid < 8) {
+                clipItem.dragX = nearestGridX // Snap dragX
+            }
+            // Apply dragX to clipItem.x temporarily
+            clipItem.x = clipItem.dragX
+            console.log("Dragging: trackIndex:", trackIndex, "clipIndex:", index, 
+                        "position:", position, "distanceToGrid:", distanceToGrid, 
+                        "nearestGridBeat:", nearestGridBeat, "dragX:", clipItem.dragX, 
+                        "clipItem.x:", clipItem.x, "beatWidth:", flickableArea.beatWidth, 
+                        "zoomLevel:", flickableArea.zoomLevel)
+        }
+    }
+
+    onReleased: {
+        if (!clipItem.isResizing) {
+            var groupSize = flickableArea.cachedGroupSize
+            var snapStep = groupSize * flickableArea.beatWidth
+            var position = clipItem.dragX / flickableArea.beatWidth
+            // Finalize snapping
+            var nearestGridBeat = Math.round(position / groupSize) * groupSize
+            var nearestGridX = nearestGridBeat * flickableArea.beatWidth
+            var distanceToGrid = Math.abs(clipItem.dragX - nearestGridX)
+            var newPosition = position
+            if (distanceToGrid < 8) {
+                newPosition = nearestGridBeat
+            }
+            // Round position
+            newPosition = Math.round(newPosition * 1000) / 1000
+            // Update viewModel
+            viewModel.moveClip(trackIndex, index, newPosition)
+            // Handle selected clips
+            var deltaX = clipItem.dragX - (model.startBeats * flickableArea.beatWidth)
+            var snappedX = newPosition * flickableArea.beatWidth
+            var snapOffset = snappedX - clipItem.dragX
+            for (var i = 0; i < clipsRepeater.count; i++) {
+                var otherClip = clipsRepeater.itemAt(i)
+                if (otherClip && otherClip.isSelected && otherClip !== clipItem) {
+                    var newX = otherClip.x + deltaX + snapOffset
+                    var newOtherPosition = flickableArea.beatWidth > 0 ? newX / flickableArea.beatWidth : 0
+                    newOtherPosition = Math.round(newOtherPosition * 1000) / 1000
+                    viewModel.moveClip(trackIndex, otherClip.sourceIndex, newOtherPosition)
+                }
+            }
+            clipRectangle.z = 4
+            // Reset clipItem.x to binding
+            clipItem.x = Qt.binding(function() { return model.startBeats * flickableArea.beatWidth })
+            console.log("Move finished: trackIndex:", trackIndex, "clipIndex:", index, 
+                        "newPosition:", newPosition, "distanceToGrid:", distanceToGrid, 
+                        "nearestGridBeat:", nearestGridBeat, "dragX:", clipItem.dragX, 
+                        "clipItem.x:", clipItem.x, "beatWidth:", flickableArea.beatWidth, 
+                        "zoomLevel:", flickableArea.zoomLevel)
+        }
+    }
+        }
+
+        // Правый край для изменения длительности (только с Ctrl)
+        MouseArea {
+            id: rightResizeArea
+            width: Math.min(15, clipItem.width / 4) // Уменьшена ширина для коротких клипов
+            height: parent.height
+            anchors.right: parent.right
+            cursorShape: Qt.SizeHorCursor
+            enabled: isSelected
+            hoverEnabled: true
+            preventStealing: true
+            z: 5
+
+            onPressed: (mouse) => {
+                if (mouse.modifiers & Qt.ControlModifier) {
+                    clipItem.resizingRight = true
+                    clipItem.originalWidth = clipItem.width
+                    clipItem.originalDurationBeats = model.durationBeats
+                    console.log("Started resizing right edge: trackIndex=", trackIndex, "clipIndex=", index, "zoneWidth=", rightResizeArea.width)
+                    mouse.accepted = true
+                } else {
+                    mouse.accepted = false // Передаем событие dragArea
+                }
+            }
+
+            onPositionChanged: (mouse) => {
+                if (clipItem.resizingRight) {
+                    var newWidth = clipItem.originalWidth + mouse.x
+                    var newDurationBeats = flickableArea.beatWidth > 0 ? newWidth / flickableArea.beatWidth : 0
+                    if (newDurationBeats >= 0.25) { // Минимальная длительность 0.25 бита
+                        clipItem.width = newWidth
+                    }
+                }
+            }
+
+            onReleased: {
+                if (clipItem.resizingRight) {
+                    var groupSize = flickableArea.cachedGroupSize
+                    var snapStepBeats = groupSize > 0 ? groupSize : 1 // Шаг сетки в битах
+                    var thresholdBeats = 0.1 // Порог привязки в битах
+
+                    var newDurationBeats = flickableArea.beatWidth > 0 ? clipItem.width / flickableArea.beatWidth : 0
+
+                    // Привязка к сетке
+                    var snappedDurationBeats = Math.round(newDurationBeats / snapStepBeats) * snapStepBeats
+                    if (Math.abs(newDurationBeats - snappedDurationBeats) <= thresholdBeats) {
+                        newDurationBeats = snappedDurationBeats
+                    }
+
+                    if (newDurationBeats >= 0.25) {
+                        clipItem.width = newDurationBeats * flickableArea.beatWidth
+                        viewModel.changeClipDuration(trackIndex, index, newDurationBeats)
+                        console.log("Resized right: trackIndex=", trackIndex, "clipIndex=", index, "newDurationBeats=", newDurationBeats)
+                    } else {
+                        console.log("Invalid duration, reverting: newDurationBeats=", newDurationBeats)
+                        clipItem.width = model.durationBeats * flickableArea.beatWidth
+                    }
+
+                    clipItem.resizingRight = false
+                }
+            }
+        }
+
+           
                                                     }
 
                                                     MouseArea {

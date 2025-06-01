@@ -71,12 +71,14 @@ void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double sta
 
 void ViewModel::addMidiClip(int trackIndex, double startTime)
 {
-    engine.AddMidiClip(trackIndex, startTime);
-    ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
-    if (clipModel) {
-        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
+    if (engine.AddMidiClip(trackIndex, startTime)) {
+        ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
+        if (clipModel) {
+            clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
+        }
+        emit clipAdded(trackIndex);
     }
-    emit clipAdded(trackIndex);
+    
 }
 
 void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats)
@@ -301,6 +303,30 @@ Q_INVOKABLE void ViewModel::OpenProject(QString path)
     }
     
 
+}
+void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDuration)
+{
+    if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size() ||
+        clipIndex < 0 || clipIndex >= engine.GetdataBase()[trackIndex].clips.size()) {
+        qWarning() << "Invalid track or clip index for duration change: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex;
+        return;
+    }
+
+    if (newDuration <= 0.0) {
+        qWarning() << "Invalid duration: " << newDuration << ", duration must be positive";
+        return;
+    }
+
+    engine.ChangeDuration(trackIndex, clipIndex, newDuration);
+
+    // Обновляем модель клипа
+    ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
+    if (clipModel) {
+        clipModel->updateClip(clipIndex); // Уведомляем ClipModel об изменении
+    }
+
+    emit clipDurationChanged(trackIndex, clipIndex, newDuration);
+    qDebug() << "Clip duration changed: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << ", newDuration=" << newDuration << "beats";
 }
 
 void ViewModel::addMidiTrack() {

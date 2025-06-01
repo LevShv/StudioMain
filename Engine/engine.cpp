@@ -758,6 +758,113 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double startBeats) {
     }
 }
 
+void Engine::Core::changeMidiclipDuration(int trackIndex, int clipIndex, double newDurationBeats)
+{
+    auto& clip = tracks[trackIndex].clips[clipIndex];
+    auto* midiClip = dynamic_cast<MidiClip*>(clip.get());
+    if (!midiClip) {
+        LOG_ERROR("Clip at trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << " is not a MIDI clip");
+        return;
+    }
+
+    if (newDurationBeats <= 0.0) {
+        LOG_ERROR("Invalid duration: " << newDurationBeats << " beats, duration must be positive");
+        return;
+    }
+
+    double newDurationSeconds = beatsToSeconds(newDurationBeats); 
+
+    midiClip->duration = newDurationSeconds;
+    midiClip->durationBeats = newDurationBeats; // Уже в битах
+    LOG("MIDI clip duration changed to " << newDurationSeconds << " seconds (" << newDurationBeats << " beats)");
+}
+
+void Engine::Core::changeAudioclipDuration(int trackIndex, int clipIndex, double newDurationBeats)
+{
+    auto& clip = tracks[trackIndex].clips[clipIndex];
+    auto* audioClip = dynamic_cast<AudioClip*>(clip.get());
+    if (!audioClip) {
+        LOG_ERROR("Clip at trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << " is not an audio clip");
+        return;
+    }
+
+    // Загружаем аудиоданные, если они еще не в памяти
+    if (!audioClip->useRAM) {
+        loadClipToRAM(*audioClip);
+        audioClip->useRAM = true;
+    }
+
+    double newDurationSeconds = beatsToSeconds(newDurationBeats);
+
+    if (newDurationBeats <= 0.0) {
+        LOG_ERROR("Invalid new duration: " << newDurationBeats << " beats");
+        return;
+    }
+
+    // Исходная длительность аудиоклипа
+    double originalDuration = audioClip->buffer.getNumSamples() / sampleRate;
+
+    int newSampleCount = static_cast<int>(newDurationSeconds * sampleRate);
+    int originalSampleCount = audioClip->buffer.getNumSamples();
+    int numChannels = audioClip->buffer.getNumChannels();
+
+    juce::AudioBuffer<float> newBuffer(numChannels, newSampleCount);
+
+    if (newDurationSeconds > originalDuration) {
+        // Зацикливание аудио
+        int samplesToCopy = originalSampleCount;
+        int targetSample = 0;
+        while (targetSample < newSampleCount) {
+            int samplesThisLoop = juce::jmin(samplesToCopy, newSampleCount - targetSample);
+            for (int channel = 0; channel < numChannels; ++channel) {
+                newBuffer.copyFrom(channel, targetSample, audioClip->buffer, channel, 0, samplesThisLoop);
+            }
+            targetSample += samplesThisLoop;
+            // Если нужно продолжить зацикливание, начинаем сначала
+            if (targetSample < newSampleCount) {
+                samplesToCopy = juce::jmin(originalSampleCount, newSampleCount - targetSample);
+            }
+        }
+        LOG("Audio clip looped to new duration: " << newDurationSeconds << " seconds (" << newDurationBeats << " beats)");
+    }
+    else {
+        // Обрезка аудио
+        for (int channel = 0; channel < numChannels; ++channel) {
+            newBuffer.copyFrom(channel, 0, audioClip->buffer, channel, 0, newSampleCount);
+        }
+        LOG("Audio clip truncated to new duration: " << newDurationSeconds << " seconds (" << newDurationBeats << " beats)");
+    }
+
+    audioClip->buffer = std::move(newBuffer);
+    audioClip->duration = newDurationSeconds;
+    audioClip->durationBeats = newDurationBeats;
+
+    // Пересчитываем данные формы волны
+    int sampleCount = newSampleCount / 100; // Примерное количество точек
+    sampleCount = juce::jmin(sampleCount, 10000); // Ограничение на максимальное количество точек
+    int step = sampleCount > 0 ? newSampleCount / sampleCount : 1;
+
+    std::vector<float> waveformData(sampleCount);
+    for (int i = 0; i < sampleCount && i * step < newSampleCount; ++i) {
+        float maxAmplitude = 0.0f;
+        for (int j = 0; j < step; ++j) {
+            int sampleIdx = i * step + j;
+            float amplitude = 0.0f;
+            for (int c = 0; c < numChannels; ++c) {
+                if (sampleIdx < newSampleCount) {
+                    amplitude += std::abs(audioClip->buffer.getSample(c, sampleIdx));
+                }
+            }
+            amplitude /= numChannels;
+            maxAmplitude = std::max(maxAmplitude, amplitude);
+        }
+        waveformData[i] = maxAmplitude;
+    }
+
+    audioClip->waveformData = std::move(waveformData);
+    LOG("Waveform data recalculated for audio clip, new sample count: " << newSampleCount);
+}
+
 void Engine::Core::updateActiveClips() {
     activeClips.clear();
     LOG("Updating active clips at position: " << position << " seconds (" << positionInBeats << " beats)");
@@ -961,14 +1068,16 @@ void Engine::AddAudioClip(int trackInd, const std::string& path, double startBea
     core.loadAudioClip(trackInd, audioFile, startBeats, loadToRAM);
 }
 
-void Engine::AddMidiClip(int trackInd, double startBeats) {
+bool Engine::AddMidiClip(int trackInd, double startBeats) {
 
     if (core.tracks[trackInd].isMidiTrack) {
         juce::MidiMessageSequence sequence;
         core.loadMidiClip(trackInd, sequence, startBeats);
+        return true;
     }
     else {
         LOG_WARN("Tracks is not midi");
+        return false;
     }
    
 }
@@ -1175,6 +1284,81 @@ void Engine::DeleteClip(int trackIndex, int clipIndex) {
     }
 
     // Обновляем активные клипы
+    core.updateActiveClips();
+}
+
+void Engine::ChangeDuration(int trackIndex, int clipIndex, double newDurationBeats)
+{
+    juce::ScopedLock sl(core.lock);
+
+    if (trackIndex < 0 || trackIndex >= core.tracks.size() ||
+        clipIndex < 0 || clipIndex >= core.tracks[trackIndex].clips.size()) {
+        LOG_ERROR("Index out of range: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex);
+        return;
+    }
+
+    if (newDurationBeats <= 0.0) {
+        LOG_ERROR("Invalid duration: " << newDurationBeats << " beats, duration must be positive");
+        return;
+    }
+
+    // Преобразуем длительность из битов в секунды
+    double bpm = core.bpm; // Предполагается, что bpm доступен в Core
+    if (bpm <= 0.0) {
+        LOG_ERROR("Invalid BPM: " << bpm);
+        return;
+    }
+    double newDurationSeconds = core.beatsToSeconds(newDurationBeats); // 1 бит = 60/BPM секунд
+
+    auto& track = core.tracks[trackIndex];
+    auto& clip = track.clips[clipIndex];
+
+    if (auto* cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
+        // Если это клонированный клип, изменяем длительность мастер-клипа
+        if (cloneClip->masterClip) {
+            int masterTrackIndex = -1;
+            int masterClipIndex = -1;
+            // Ищем мастер-клип в треках
+            for (size_t t = 0; t < core.tracks.size(); ++t) {
+                for (size_t c = 0; c < core.tracks[t].clips.size(); ++c) {
+                    if (core.tracks[t].clips[c]->clipID == cloneClip->masterClipID) {
+                        masterTrackIndex = t;
+                        masterClipIndex = c;
+                        break;
+                    }
+                }
+                if (masterTrackIndex != -1) break;
+            }
+            if (masterTrackIndex == -1 || masterClipIndex == -1) {
+                LOG_ERROR("Master clip not found for clone with masterClipID: " << cloneClip->masterClipID);
+                return;
+            }
+            // Изменяем длительность мастер-клипа
+            if (dynamic_cast<Engine::AudioClip*>(cloneClip->masterClip)) {
+                core.changeAudioclipDuration(masterTrackIndex, masterClipIndex, newDurationBeats); // Передаем в битах
+            }
+            else if (dynamic_cast<Engine::MidiClip*>(cloneClip->masterClip)) {
+                core.changeMidiclipDuration(masterTrackIndex, masterClipIndex, newDurationBeats); // Передаем в битах
+            }
+            // Обновляем длительность клонированного клипа
+            cloneClip->duration = cloneClip->masterClip->duration;
+            cloneClip->durationBeats = cloneClip->masterClip->durationBeats;
+            LOG("Updated clone clip duration to " << newDurationBeats << " beats for masterClipID: " << cloneClip->masterClipID);
+        }
+        else {
+            LOG_ERROR("Clone clip has no valid master clip");
+            return;
+        }
+    }
+    else if (auto* audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
+        // Если это аудиоклип, изменяем его длительность
+        core.changeAudioclipDuration(trackIndex, clipIndex, newDurationBeats);
+    }
+    else if (auto* midiClip = dynamic_cast<Engine::MidiClip*>(clip.get())) {
+        // Если это MIDI-клип, изменяем его длительность
+        core.changeMidiclipDuration(trackIndex, clipIndex, newDurationBeats);
+    }
+
     core.updateActiveClips();
 }
 
