@@ -799,34 +799,32 @@ Window {
     }
 
     onReleased: {
-       
-            var groupSize = flickableArea.cachedGroupSize
-            var snapStep = groupSize * flickableArea.beatWidth
-            var deltaX = clipItem.x - (model.startBeats * flickableArea.beatWidth)
-            
-            // Для всех выделенных клипов этого трека
-            for (var i = 0; i < clipsRepeater.count; i++) {
-                var otherClip = clipsRepeater.itemAt(i)
-                if (otherClip && otherClip.isSelected && otherClip !== clipItem) {
-                    var newX = otherClip.x + deltaX
-                    var nearestGridX = Math.round(newX / snapStep) * snapStep
-                    var threshold = 8
-                    var snappedX = Math.abs(newX - nearestGridX) <= threshold ? nearestGridX : newX
-                    var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
-                    
-                    viewModel.moveClip(trackIndex, otherClip.sourceIndex, newPosition)
-                }
+        var groupSize = flickableArea.cachedGroupSize
+        var snapStep = groupSize * flickableArea.beatWidth
+        var threshold = 8 // Порог для привязки к сетке
+
+        // Вычисляем смещение для главного клипа (того, который перетаскивается)
+        var deltaX = clipItem.x - (model.startBeats * flickableArea.beatWidth)
+        var nearestGridX = Math.round(clipItem.x / snapStep) * snapStep
+        var snappedX = Math.abs(clipItem.x - nearestGridX) <= threshold ? nearestGridX : clipItem.x
+        var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
+        var snapOffset = snappedX - clipItem.x // Смещение из-за привязки к сетке (если есть)
+
+        // Обновляем главный клип
+        viewModel.moveClip(trackIndex, index, newPosition)
+
+        // Для всех выделенных клипов этого трека
+        for (var i = 0; i < clipsRepeater.count; i++) {
+            var otherClip = clipsRepeater.itemAt(i)
+            if (otherClip && otherClip.isSelected && otherClip !== clipItem) {
+                // Вычисляем новое положение без привязки к сетке, но с учетом snapOffset главного клипа
+                var newX = otherClip.x + deltaX + snapOffset
+                var newOtherPosition = flickableArea.beatWidth > 0 ? newX / flickableArea.beatWidth : 0
+                viewModel.moveClip(trackIndex, otherClip.sourceIndex, newOtherPosition)
             }
-            
-            // Обновляем текущий клип
-            var nearestGridX = Math.round(clipItem.x / snapStep) * snapStep
-            var threshold = 8
-            var snappedX = Math.abs(clipItem.x - nearestGridX) <= threshold ? nearestGridX : clipItem.x
-            var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
-            viewModel.moveClip(trackIndex, index, newPosition)
-            
-            clipRectangle.z = 4
-        
+        }
+
+        clipRectangle.z = 4
     }
 
     function resetAllClipSelections() {
