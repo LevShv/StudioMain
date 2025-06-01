@@ -245,8 +245,7 @@ void Engine::Core::handleIncomingMidiMessage(juce::MidiInput* source, const juce
     }
 }
 
-void Engine::Core::addCloneClip(int trackIndex, int masterClipIndex, double startBeats)
-{
+void Engine::Core::addCloneClip(int trackIndex, int masterClipIndex, double startBeats) {
     if (trackIndex < 0 || trackIndex >= tracks.size()) {
         LOG_ERROR("Invalid track index: " << trackIndex);
         return;
@@ -256,12 +255,41 @@ void Engine::Core::addCloneClip(int trackIndex, int masterClipIndex, double star
         return;
     }
 
-    ClipBase* masterClip = tracks[trackIndex].clips[masterClipIndex].get();
-    auto cloneClip = std::make_unique<CloneClip>(masterClip, startBeats);
-    cloneClip->startTime = beatsToSeconds(startBeats);    
-    cloneClip->clipID = cloneClip->generateClipID();
-    tracks[trackIndex].clips.push_back(std::move(cloneClip));
-    LOG("Added clone clip with startBeats: " << startBeats);
+    // Получаем указатель на клип
+    ClipBase* clip = tracks[trackIndex].clips[masterClipIndex].get();
+    if (!clip) {
+        LOG_ERROR("Null clip at trackIndex=" << trackIndex << ", masterClipIndex=" << masterClipIndex);
+        return;
+    }
+
+    // Проверяем, является ли клип клоном
+    ClipBase* masterClip = clip;
+    if (auto* cloneClip = dynamic_cast<CloneClip*>(clip)) {
+        masterClip = cloneClip->masterClip;
+        LOG("Requested clone from clone clip with clipID=" << clip->clipID
+            << ", using its master clip with clipID=" << masterClip->clipID);
+    }
+
+    // Проверяем, что мастер-клип валиден
+    if (!masterClip) {
+        LOG_ERROR("Invalid master clip for clone creation at trackIndex=" << trackIndex
+            << ", masterClipIndex=" << masterClipIndex);
+        return;
+    }
+
+    // Создаем новый клон
+    auto newCloneClip = std::make_unique<CloneClip>(masterClip, startBeats);
+    newCloneClip->startTime = beatsToSeconds(startBeats);
+    newCloneClip->clipID = newCloneClip->generateClipID();
+    newCloneClip->masterClipID = masterClip->clipID;
+
+    // Логируем до перемещения
+    LOG("Added clone clip with clipID=" << newCloneClip->clipID
+        << ", startBeats=" << startBeats << ", masterClipID=" << masterClip->clipID);
+
+    // Добавляем клон в трек
+    tracks[trackIndex].clips.push_back(std::move(newCloneClip));
+
     updateActiveClips();
 }
 

@@ -69,7 +69,9 @@ void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double sta
     emit clipAdded(trackIndex);
 }
 
-void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats) {
+void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats)
+{
+    
     engine.AddCloneClip(trackIndex, masterClipIndex, startBeats);
     ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
     if (clipModel) {
