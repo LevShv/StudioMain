@@ -12,8 +12,7 @@ Item {
     property int clipIndex: 0
     property real baseBeatWidth: 50
     property int countOfBeats: 10000
-    property real zoomFactor: 1.0
-
+    property real zoomLevel: 1.0
     // Настройка midiModel из контекста
     Connections {
         target: viewModel.midiModel
@@ -151,16 +150,16 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 flickableDirection: Flickable.HorizontalAndVerticalFlick
 
-                property real beatWidth: baseBeatWidth * zoomFactor > 0 ? baseBeatWidth * zoomFactor : 50
-                property int countOfBeats: countOfBeats > 0 ? countOfBeats : 10000
+                property real beatWidth: baseBeatWidth * zoomLevel > 0 ? baseBeatWidth * zoomLevel : 50
+                property int countOfBeats: pianoRoll.countOfBeats > 0 ? pianoRoll.countOfBeats : 10000
 
                 onBeatWidthChanged: {
                     contentWidth = countOfBeats * beatWidth
-                    console.log("PianoRoll beatWidth updated: beatWidth=", beatWidth, "zoomFactor=", zoomFactor, "contentWidth=", contentWidth)
+                    console.log("PianoRoll beatWidth updated: beatWidth=", beatWidth, "zoomLevel=", zoomLevel, "contentWidth=", contentWidth)
                 }
 
                 // Синхронизация горизонтальной прокрутки с flickableArea из MainWindow.qml
-                Binding {
+/*                 Binding {
                     target: pianoRollFlickable
                     property: "contentX"
                     value: flickableArea.contentX
@@ -172,8 +171,32 @@ Item {
                     value: pianoRollFlickable.contentX
                     when: !flickableArea.movingHorizontally
                 }
-
+ */
                 // Фон сетки с чередованием цветов
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.NoButton
+                    hoverEnabled: true
+
+                    onWheel: (wheel) => {
+                        var cursorX = Math.max(0, Math.min(wheel.x - pianoRollFlickable.contentX, pianoRollFlickable.width))
+                        if (isNaN(cursorX)) {
+                            cursorX = pianoRollFlickable.width / 2
+                        }
+                        var contentCursorX = cursorX + pianoRollFlickable.contentX
+                        var oldBeatWidth = baseBeatWidth * pianoRoll.zoomLevel
+                        var currentBeat = oldBeatWidth > 0 ? contentCursorX / oldBeatWidth : 0
+                        var delta = wheel.angleDelta.y / 120
+                        var newZoom = Math.max(0.2, Math.min(10.0, pianoRoll.zoomLevel + delta * 0.1))
+                        pianoRoll.zoomLevel = newZoom
+                        var newBeatWidth = baseBeatWidth * pianoRoll.zoomLevel
+                        pianoRollFlickable.contentWidth = countOfBeats * newBeatWidth
+                        pianoRollFlickable.contentX = currentBeat * newBeatWidth - cursorX
+                        pianoRollFlickable.contentX = Math.max(0, Math.min(pianoRollFlickable.contentX, pianoRollFlickable.contentWidth - pianoRollFlickable.width))
+                        console.log("PianoRoll zoom: cursorX=", cursorX, "newZoom=", newZoom, "newContentX=", pianoRollFlickable.contentX)
+                    }
+                }
                 Repeater {
                     model: 128
                     delegate: Rectangle {

@@ -1750,7 +1750,7 @@ Window {
                         clipIndex: selectedClipIndex
                         baseBeatWidth: flickableArea.baseBeatWidth
                         countOfBeats: flickableArea.countOfBeats
-                        zoomFactor: flickableArea.zoomLevel
+                        
                        
                     }
                 }
