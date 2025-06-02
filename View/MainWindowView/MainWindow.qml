@@ -24,6 +24,7 @@ Window {
     property int selectedClipIndex: -1
     property bool pianoRollVisible: false
     //
+    property string imagesPath: "file:///" + viewModel.applicationHomeFolder() + "/images/"
 
     property Item dragParent: contentItem
     property int countOfTracks: viewModel.trackModel.countOfTracks
@@ -81,126 +82,345 @@ Window {
 
         // Верхняя панель инструментов
         Rectangle {
-            id: toolbar
             Layout.fillWidth: true
-            Layout.preferredHeight: 102
-            color: "#2E3440"
-
-            ColumnLayout {
+            height: 48
+            color: "#4C566A"
+            RowLayout {
                 anchors.fill: parent
-                spacing: 0
+                spacing: 10
+                Row {
+                    Layout.alignment: Qt.AlignLeft
+                    spacing: 5
+                    leftPadding: 10  // Небольшой отступ слева для всего Row
+                    //Кнопка "файл"
+                    ToolButton {
+                        id: fileButton
+                        text: "Файл"
+                        implicitWidth: 80
+                        height: parent.height
+                        anchors.verticalCenter: parent.verticalCenter                       
+                        contentItem: Text {
+                            text: fileButton.text
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter 
+                            verticalAlignment: Text.AlignVCenter
+                            color: "white"
+                        }     
+                        onClicked: fileMenu.open()
+            
+                        Menu {
+                            id: fileMenu
+                            y: fileButton.height
+                            width: 130       
+                            MenuItem {
+                                text: "Создать"
+                                
+                                onTriggered: { /* действие */ }
+                            }
 
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 48
-                    color: "#4C566A"
-                    // ... (Логотип без изменений)
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 48
-                    color: "#4C566A"
-
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 10
-
-                        Row {
-                            Layout.alignment: Qt.AlignLeft
-                            spacing: 5
-                            ToolButton { text: "Создать"; implicitWidth: 100 }
-                            ToolButton { 
-                                text: "Открыть" 
-                                implicitWidth: 100 
-                                onClicked: {
+                            MenuItem {
+                                text: "Открыть"                                
+                                onTriggered: {
                                     viewModel.OpenProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.json")
                                 }
                             }
-                            ToolButton { 
+
+                            MenuItem {
                                 text: "Сохранить"
-                                implicitWidth: 100
-                                onClicked: {
+                                onTriggered: {
                                     viewModel.SaveProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.json")
                                 }
                             }
 
-                            ToolButton {
-                                text: "Add WAV Track"
-                                implicitWidth: 120
-                                onClicked: viewModel.addAudioTrack()
-                            }
-                            ToolButton {
-                                text: "Add Sampler Track"
-                                implicitWidth: 120
-                                onClicked: viewModel.addSamplerTrack()
-                            }
-                            ToolButton {
-                                text: "Add MIDI Track"
-                                implicitWidth: 120
-                                onClicked: viewModel.addMidiTrack()
+                            MenuItem {
+                                text: "Сохранить как..."                                
+                                onTriggered: { /* действие */ }
                             }
                         }
+                    }    
+                    ToolButton{
+                    }
+                    // Кнопка "Справка"
+                    ToolButton {
+                        id: helpButton
+                        text: "Справка"
+                        implicitWidth: 80
+                        height: parent.height
+                        anchors.verticalCenter: parent.verticalCenter
+                        contentItem: Text {
+                            text: helpButton.text
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter 
+                            verticalAlignment: Text.AlignVCenter
+                            color: "white"
+                        }
+                        onClicked: helpMenu.open()
 
-                        Row {
-                            Layout.alignment: Qt.AlignLeft
-                            spacing: 5
-                            ToolButton { text: "Создать"; implicitWidth: 100 }
-                            ToolButton { text: "Копировать"; implicitWidth: 100 }
-                            ToolButton {
-                                text: "Сохранить"
-                                implicitWidth: 100 
-                                onClicked: {
-                                    viewModel.RenderToWave("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\mix.wav")
-                                    console.log("Render to WAV")
+                        Menu {
+                            id: helpMenu
+                            y: helpButton.height
+                            width: 130
+                            MenuItem {
+                                id: editItem
+                                text: "Правка"
+                                hoverEnabled: true
+                                
+            
+                                Menu {
+                                    id: editMenu
+                                    y: 0
+                                    x: parent.width
+                                    width: 150
+                                    height: 60
+                                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                
+                                    
+                
+                                    Column {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                    
+                                        Label {
+                                            width: parent.width
+                                            text: "Ctrl+C - Копировать"
+                                            color: "black"
+                                            font.pixelSize: 11
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                    
+                                        Label {
+                                            width: parent.width
+                                            text: "Ctrl+V - Вставить"
+                                            color: "black"
+                                            font.pixelSize: 11
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                    }
+                                }
+            
+                                onHoveredChanged: {
+                                    if (hovered) {
+                                        editMenu.open()
+                                    } else {
+                                        editMenu.close()
+                                    }
                                 }
                             }
-                        }
-
-                        Row {
-                            Layout.alignment: Qt.AlignHCenter
-                            spacing: 5
-                            ToolButton {
-                                text: viewModel.isPlaying ? "⏸️" : "▶️"
-                                implicitWidth: 60
-                                onClicked: viewModel.togglePlayback()
-                            }
-                            ToolButton { text: "⏺️"; implicitWidth: 60 }
-                            ToolButton {
-                                text: "⏮️"
-                                implicitWidth: 60
-                                onClicked: {
-                                    viewModel.setPlayheadPosition(0)
-                                    console.log("Reset playhead to start")
+            
+                            MenuItem {
+                                id: aboutItem
+                                text: "Об авторах"
+                                hoverEnabled: true
+                                
+            
+                                Menu {
+                                    id: aboutMenu
+                                    y: 0
+                                    x: parent.width
+                                    width: 150
+                                    height: 40
+                                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                
+                                    
+                
+                                    Label {
+                                        anchors.centerIn: parent
+                                        text: "LeTo corporation"
+                                        font.pixelSize: 11
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
                                 }
-                            }
-                        }
-
-                        Row {
-                            Layout.alignment: Qt.AlignRight
-                            spacing: 10
-                            Label { text: "BPM:"; color: "white"; anchors.verticalCenter: parent.verticalCenter }
-                            Slider {
-                                width: 150
-                                from: 60
-                                to: 200
-                                value: viewModel.bpm
-                                onValueChanged: viewModel.setBpm(value)
-                            }
-                           ToolButton {
-                                text: "Показать/Скрыть Piano Roll"
-                                onClicked: {
-                                    pianoRollVisible = !pianoRollVisible
-                                    console.log("PianoRoll visible:", pianoRollVisible)
+            
+                                onHoveredChanged: {
+                                    if (hovered) {
+                                        aboutMenu.open()
+                                    } else {
+                                        aboutMenu.close()
+                                    }
                                 }
                             }
                         }
                     }
-                    radius: 8
-                    border.color: "white"
-                    border.width: 1
+                }                
+                Row {
+                    anchors.centerIn: parent  // Это обеспечит точное центрирование
+                    anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку
+                    spacing: 5
+                    ToolButton {
+                        implicitWidth: 40
+                        onClicked: viewModel.togglePlayback()
+                        Image {
+                            anchors.centerIn: parent
+                            source: viewModel.isPlaying ? imagesPath + "pause.png" : imagesPath + "play.png"
+                            width: 24
+                            height: 24
+                            fillMode: Image.PreserveAspectFit
+                        }
+                    }
+                    ToolButton {
+                        implicitWidth: 40
+                        Image {
+                            anchors.centerIn: parent
+                            source: imagesPath + "stop.png"
+                            width: 24
+                            height: 24
+                            fillMode: Image.PreserveAspectFit
+                        }
+                    }
+                    ToolButton {
+                        implicitWidth: 40
+                        onClicked: {
+                            viewModel.setPlayheadPosition(0)
+                            console.log("Reset playhead to start")
+                        }
+                        Image {
+                            anchors.centerIn: parent
+                            source: imagesPath + "rewind.png"
+                            width: 24
+                            height: 24
+                            fillMode: Image.PreserveAspectFit
+                        }
+                    }
                 }
-            }
+                Row {
+                    Layout.alignment: Qt.AlignRight
+                    anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку
+                    rightPadding: 20
+                    spacing: 10
+            
+                    Label { 
+                        text: "BPM:" 
+                        color: "white" 
+                        anchors.verticalCenter: parent.verticalCenter 
+                    }
+            
+                    Rectangle {
+                        id: bpmControl
+                        width: 60
+                        height: 30
+                        color: "#8690fa"
+                        radius: 4
+                        border.color: "#555"
+                        border.width: 1
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        property real bpmValue: viewModel.bpm
+                        property real startX: 0
+                        property bool mousePressed: false
+
+                        // Отображение значения BPM
+                        Text {
+                            anchors.centerIn: parent
+                            text: Math.round(bpmControl.bpmValue)
+                            color: "white"
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        // Обработка мыши
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+
+                            onPressed: {
+                                bpmControl.mousePressed = true
+                                bpmControl.startX = mouseX
+                            }
+
+                            onReleased: {
+                                bpmControl.mousePressed = false
+                            }
+
+                            onPositionChanged: {
+                                if (bpmControl.mousePressed) {
+                                    var delta = mouseX - bpmControl.startX
+                                    var newValue = bpmControl.bpmValue + delta * 0.5
+                
+                                    // Ограничиваем значения в диапазоне 60-200
+                                    newValue = Math.max(60, Math.min(200, newValue))
+                
+                                    bpmControl.bpmValue = newValue
+                                    viewModel.setBpm(newValue)
+                                    bpmControl.startX = mouseX
+                                }
+                            }
+                        }
+
+                        // Анимация при изменении значения
+                        Behavior on bpmValue {
+                            NumberAnimation {
+                                duration: 100
+                            }
+                        }
+                    }
+            
+                    // Круговой регулятор громкости
+                    Dial {
+                        id: volumeDial
+                        width: 35
+                        height: 35
+                        from: 0
+                        to: 100
+                        value: viewModel.volume
+                        anchors.verticalCenter: parent.verticalCenter
+                        onValueChanged: viewModel.setVolume(value)
+
+                        handle: null
+
+                        // Определяем углы для фиксированного закрашивания
+                        readonly property real fixedStartAngle: 130  // начальный угол закрашивания
+                        readonly property real fixedEndAngle: 270   // конечный угол закрашивания
+
+                        background: Rectangle {
+                            color: "transparent"
+                            border.color: "white"
+                            border.width: 2
+                            radius: width / 2
+
+                            Rectangle {
+                                id: customHandle
+                                width: 2
+                                height: parent.width * 0.4
+                                color: "white"
+                                antialiasing: true
+                                x: parent.width / 2 - width / 2
+                                y: parent.height / 2 - height
+                                rotation: volumeDial.angle
+                                transformOrigin: Item.Bottom
+                            }
+                        }
+
+                        Shape {
+                            anchors.fill: parent
+
+                            ShapePath {
+                                fillColor: "transparent"
+                                strokeColor: "#8690fa"
+                                strokeWidth: 2
+                                capStyle: ShapePath.RoundCap
+            
+                                PathAngleArc {
+                                    centerX: volumeDial.width / 2
+                                    centerY: volumeDial.height / 2
+                                    radiusX: volumeDial.width / 2 - 1
+                                    radiusY: volumeDial.height / 2 - 1
+                                    // Фиксированный начальный угол (120°)
+                                    startAngle: volumeDial.fixedStartAngle
+                                    // Закрашиваем до фиксированного конечного угла (270°)
+                                    sweepAngle: volumeDial.fixedEndAngle - volumeDial.fixedStartAngle+volumeDial.angle
+                                }
+                            }
+                        }
+                    }
+                }
+            }                    
+            radius: 8
+            border.color: "white"
+            border.width: 1                    
         }
 
         // Основная рабочая область
@@ -287,7 +507,111 @@ Window {
                                     id: trackHeaders
                                     width: 150
                                     Layout.fillHeight: true
-                                    Rectangle { width: 100; height: 50; color: "transparent" }
+                                    
+                                    Rectangle {
+                                        width: 150
+                                        height: 50
+                                        color: "transparent"
+
+                                        Row {
+                                            anchors.centerIn: parent
+                                            spacing: 6  // Увеличил промежуток между кнопками
+                                            
+                                            // Кнопка 1 - Аудио
+                                            Button {
+                                                text: "AUDIO"
+                                                width: 40  // Увеличил ширину
+                                                height: 30  // Вернул стандартную высоту
+                                                font {
+                                                    family: "Tahoma"
+                                                    pixelSize: 11  // Увеличил шрифт
+                                                }
+                                                leftPadding: 0
+                                                rightPadding: 0
+                                                
+                                                background: Rectangle {
+                                                    radius: 3
+                                                    color: parent.down ? "#B8C1FC" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
+                                                    border.color: "#8293FC"
+                                                    border.width: 1
+                                                }
+
+                                                contentItem: Text {
+                                                    text: parent.text
+                                                    font: parent.font
+                                                    color: "#333333"
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    verticalAlignment: Text.AlignVCenter
+                                                    anchors.fill: parent
+                                                }
+
+                                                onClicked: viewModel.addAudioTrack()
+                                            }
+
+                                            // Кнопка 2 - MIDI
+                                            Button {
+                                                text: "MIDI"
+                                                width: 40
+                                                height: 30
+                                                font {
+                                                    family: "Tahoma"
+                                                    pixelSize: 12  // Увеличил шрифт
+                                                }
+                                                leftPadding: 0
+                                                rightPadding: 0
+                                                
+                                                background: Rectangle {
+                                                    radius: 3
+                                                    color: parent.down ? "#B8C1FC" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
+                                                    border.color: "#8293FC"
+                                                    border.width: 1
+                                                }
+
+                                                contentItem: Text {
+                                                    text: parent.text
+                                                    font: parent.font
+                                                    color: "#333333"
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    verticalAlignment: Text.AlignVCenter
+                                                    anchors.fill: parent
+                                                }
+
+                                                onClicked: viewModel.addMidiTrack()
+                                            }
+
+                                            // Кнопка 3 - SAMPLER (полный текст)
+                                            Button {
+                                                text: "SMPLR"  // Оптимальное сокращение
+                                                width: 40
+                                                height: 30
+                                                font {
+                                                    family: "Tahoma"
+                                                    pixelSize: 11  // Увеличил шрифт
+                                                }
+                                                leftPadding: 0
+                                                rightPadding: 0
+                                                
+                                                background: Rectangle {
+                                                    radius: 3
+                                                    color: parent.down ? "#B8C1FC" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
+                                                    border.color: "#8293FC"
+                                                    border.width: 1
+                                                }
+
+                                                contentItem: Text {
+                                                    text: parent.text
+                                                    font: parent.font
+                                                    color: "#333333"
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    verticalAlignment: Text.AlignVCenter
+                                                    anchors.fill: parent
+                                                }
+
+                                                onClicked: viewModel.addSamplerTrack()
+                                            }
+                                        }
+                                    }
+
                                     Repeater {
                                         model: viewModel.trackModel
                                         Rectangle {
@@ -774,21 +1098,89 @@ Window {
                                                                 id: clipRectangle
                                                                 anchors.fill: parent
                                                                 color: model.type === "audio" ? "#FF5722" : "#4CAF50"
+                                                                opacity: 0.6
                                                                 radius: 3
                                                                 border.width: isSelected ? 3 : 1 // Жёлтая рамка при выделении
                                                                 border.color: isSelected ? "#FFFF00" : Qt.darker(color, 1.2)
                                                                 z: 4
 
-                                                                Image {
+                                                                property bool isLabelVisible: {
+                                                                    // Показываем лейбл только если ширина клипа больше минимально допустимой
+                                                                    var minWidthRequired = clipLabel.implicitWidth + 10 // 10 - это отступы и небольшой запас
+                                                                    return width > minWidthRequired
+                                                                }
+                                                                // Верхняя зона (20%) для лейбла
+                                                                Item {
+                                                                    id: topZone
+                                                                    anchors.top: parent.top
+                                                                    anchors.left: parent.left
+                                                                    anchors.right: parent.right
+                                                                    height: parent.height * 0.2
+
+                                                                    Label {
+                                                                        id: clipLabel
+                                                                        anchors.left: parent.left
+                                                                        anchors.verticalCenter: parent.verticalCenter
+                                                                        leftPadding: 5
+                                                                        text: {
+                                                                            if (!model.file) return "MIDI Clip";
+                                                                            var parts = model.file.split(/[\\/]/);
+                                                                            return parts[parts.length - 1];
+                                                                        }
+                                                                        color: "#FFFFFF"
+                                                                        font.pixelSize: 10 // Устанавливаем фиксированный размер шрифта в пикселях
+                                                                        font.letterSpacing: 0.8
+                                                                        elide: Text.ElideRight
+                                                                        maximumLineCount: 1
+                                                                        opacity: 1
+                                                                      /*   style: Text.Outline
+                                                                        styleColor: "#000000" */
+                                                                        renderType: Text.NativeRendering
+                                                                        smooth: true
+                                                                        visible: clipRectangle.isLabelVisible
+                                                                    }
+                                                                }
+
+                                                                // Нижняя зона (80%) для остального содержимого
+                                                                Item {
+                                                                    id: bottomZone
+                                                                    anchors.top: topZone.bottom
+                                                                    anchors.left: parent.left
+                                                                    anchors.right: parent.right
+                                                                    anchors.bottom: parent.bottom
+
+                                                                    Image {
+                                                                        id: waveformImage
+                                                                        anchors.fill: parent
+                                                                        source: ""
+                                                                        asynchronous: true
+                                                                        cache: false
+                                                                        visible: model.type === "audio" && source != ""
+                                                                    }
+
+                                                                    Timer {
+                                                                        id: imageUpdateTimer
+                                                                        interval: 1000
+                                                                        running: clipItem.visible && model.type === "audio" && waveformImage.source == "" && !flickableArea.moving
+                                                                        onTriggered: {
+                                                                            if (clipItem.visible) {
+                                                                                waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
+                                                                                console.log("Waveform updated via timer for clip:", index, "width:", clipRectangle.width, "source:", waveformImage.source)
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                               /*  Image {
                                                                     id: waveformImage
                                                                     anchors.fill: parent
                                                                     source: ""
                                                                     asynchronous: true
                                                                     cache: false
                                                                     visible: model.type === "audio" && source != ""
-                                                                }
+                                                                } */
 
-                                                                Timer {
+                                                               /*  Timer {
                                                                     id: imageUpdateTimer
                                                                     interval: 1000
                                                                     running: clipItem.visible && model.type === "audio" && waveformImage.source == "" && !flickableArea.moving
@@ -798,7 +1190,7 @@ Window {
                                                                             console.log("Waveform updated via timer for clip:", index, "width:", clipRectangle.width, "source:", waveformImage.source)
                                                                         }
                                                                     }
-                                                                }
+                                                                } */
 
                                                                 Connections {
                                                                     target: clipItem
@@ -833,7 +1225,7 @@ Window {
                                                                     }
                                                                 }
 
-                                                                Label {
+                                                                /* Label {
                                                                     anchors.fill: parent
                                                                     text: model.file ? model.file.split("/").pop() : "MIDI Clip"
                                                                     color: "white"
@@ -843,7 +1235,7 @@ Window {
                                                                     verticalAlignment: Text.AlignVCenter
                                                                     opacity: model.type === "audio" ? 0.5 : 1.0
                                                                     visible: !waveformImage.visible
-                                                                }
+                                                                } */
 
 
                                                                 MouseArea {
@@ -1063,6 +1455,14 @@ Window {
                                                                         resetAllClipSelections()
                                                                         clipItem.isSelected = true
                                                                         mainWindow.multiSelectMode = false
+                                                                        if (model.type === "midi") {
+                                                                            mainWindow.selectedTrackIndex = trackIndex
+                                                                            mainWindow.selectedClipIndex = index
+                                                                            mainWindow.pianoRollVisible = true
+                                                                            console.log(`Opening Piano Roll: trackIndex=${trackIndex}, clipIndex=${index}`)
+                                                                        } else {
+                                                                            mainWindow.pianoRollVisible = false
+                                                                        }
                                                                     }
                                                                     mouse.accepted = true
                                                                 }
@@ -1351,18 +1751,8 @@ Window {
                         baseBeatWidth: flickableArea.baseBeatWidth
                         countOfBeats: flickableArea.countOfBeats
                         zoomFactor: flickableArea.zoomLevel
-                        // Синхронизация прокрутки
-                        Binding {
-                            target: pianoRollFlickable
-                            property: "contentX"
-                            value: flickableArea.contentX
-                        }
-                        Binding {
-                            target: flickableArea
-                            property: "contentX"
-                            value: pianoRollFlickable.contentX
-                        }
-                    }   
+                       
+                    }
                 }
             }
         }

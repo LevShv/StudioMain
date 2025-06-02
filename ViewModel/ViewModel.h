@@ -30,6 +30,10 @@ public:
  
     Q_INVOKABLE void setVolume(int volume);
 
+    Q_INVOKABLE void addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+    Q_INVOKABLE void deleteMidiNote(int trackIndex, int clipIndex, int index);
+    Q_INVOKABLE void updateMidiNote(int trackIndex, int clipIndex, int index, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+
     Q_INVOKABLE void addPlugin(int trackIndex, const QString& pluginPath);
     Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
     Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
@@ -49,6 +53,7 @@ public:
     Q_INVOKABLE void OpenProject(QString);
 
     Q_INVOKABLE void changeClipDuration(int trackIndex, int clipIndex, double newDuration); // Новый метод
+    Q_INVOKABLE QString applicationHomeFolder() const;
 
    
 

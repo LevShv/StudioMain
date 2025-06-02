@@ -1,5 +1,9 @@
 #include "ViewModel.h"
 #include <QDebug>
+#include <QCoreApplication>
+#include <QDir>
+#include <QDesktopServices>
+
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
 
@@ -305,6 +309,7 @@ Q_INVOKABLE void ViewModel::OpenProject(QString path)
     
 
 }
+
 void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDuration)
 {
     if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size() ||
@@ -330,6 +335,27 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
     qDebug() << "Clip duration changed: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << ", newDuration=" << newDuration << "beats";
 }
 
+Q_INVOKABLE QString ViewModel::applicationHomeFolder() const
+{
+    // Получаем директорию, где находится исполняемый файл
+    QString appDir = QCoreApplication::applicationDirPath();
+
+    // Формируем путь к HomeLeTo
+    QString homePath = QDir::cleanPath(appDir + "/HomeLeTo");
+
+    // Проверяем существование папки
+    QDir dir(homePath);
+    if (!dir.exists()) {
+        qWarning() << "HomeLeTo directory does not exist:" << homePath;
+        // Если папки нет, возвращаем рабочую директорию приложения
+        return appDir;
+    }
+
+    LOG_INFO("Application home folder: " + homePath.toStdString());
+    return homePath;
+
+}
+
 void ViewModel::addMidiTrack() {
     int newTrackIndex = engine.AddMidiTrack();
     if (newTrackIndex >= 0) {
@@ -350,5 +376,38 @@ void ViewModel::setVolume(int volume) {
     if (m_volume != volume) {
         m_volume = volume;
         emit volumeChanged();
+    }
+}
+
+void ViewModel::addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
+    if (trackIndex == m_midiModel->trackIndex() && clipIndex == m_midiModel->clipIndex()) {
+        engine.AddMidiNote(trackIndex, clipIndex, noteNumber, startBeats, durationBeats, velocity, channel);
+        m_midiModel->addNote(noteNumber, startBeats, durationBeats, velocity, channel);
+        qDebug() << "ViewModel: Added MIDI note: trackIndex=" << trackIndex << "clipIndex=" << clipIndex << "noteNumber=" << noteNumber << "startBeats=" << startBeats;
+    }
+    else {
+        qWarning() << "Cannot add note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
+    }
+}
+
+void ViewModel::deleteMidiNote(int trackIndex, int clipIndex, int index) {
+    if (trackIndex == m_midiModel->trackIndex() && clipIndex == m_midiModel->clipIndex()) {
+        engine.DeleteMidiNote(trackIndex, clipIndex, index);
+        m_midiModel->deleteNote(index);
+        qDebug() << "ViewModel: Deleted MIDI note at index=" << index << "trackIndex=" << trackIndex << "clipIndex=" << clipIndex;
+    }
+    else {
+        qWarning() << "Cannot delete note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
+    }
+}
+
+void ViewModel::updateMidiNote(int trackIndex, int clipIndex, int index, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
+    if (trackIndex == m_midiModel->trackIndex() && clipIndex == m_midiModel->clipIndex()) {
+        engine.UpdateMidiNote(trackIndex, clipIndex, index, noteNumber, startBeats, durationBeats, velocity, channel);
+        m_midiModel->updateNote(index, noteNumber, startBeats, durationBeats, velocity, channel);
+        qDebug() << "ViewModel: Updated MIDI note at index=" << index << "trackIndex=" << trackIndex << "clipIndex=" << clipIndex << "noteNumber=" << noteNumber;
+    }
+    else {
+        qWarning() << "Cannot update note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
     }
 }

@@ -1,8 +1,6 @@
-﻿
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-
 
 Item {
     id: pianoRoll
@@ -18,23 +16,29 @@ Item {
 
     // Настройка midiModel из контекста
     Connections {
-        target: midiModel
+        target: viewModel.midiModel
         function onTrackIndexChanged() {
-            if (midiModel.trackIndex !== pianoRoll.trackIndex) {
-                midiModel.setTrackIndex(pianoRoll.trackIndex)
+            if (viewModel.midiModel.trackIndex !== pianoRoll.trackIndex) {
+                viewModel.midiModel.setTrackIndex(pianoRoll.trackIndex)
+                console.log("PianoView: viewModel.viewModel.midiModel trackIndex updated to", pianoRoll.trackIndex)
             }
         }
         function onClipIndexChanged() {
-            if (midiModel.clipIndex !== pianoRoll.clipIndex) {
-                midiModel.setClipIndex(pianoRoll.clipIndex)
+            if (viewModel.midiModel.clipIndex !== pianoRoll.clipIndex) {
+                viewModel.midiModel.setClipIndex(pianoRoll.clipIndex)
+                console.log("PianoView: viewModel.viewModel.midiModel clipIndex updated to", pianoRoll.clipIndex)
             }
         }
     }
 
     Component.onCompleted: {
-        midiModel.setTrackIndex(pianoRoll.trackIndex)
-        midiModel.setClipIndex(pianoRoll.clipIndex)
-        console.log("PianoView: Initialized midiModel with trackIndex=", midiModel.trackIndex, "clipIndex=", midiModel.clipIndex)
+        viewModel.midiModel.setTrackIndex(pianoRoll.trackIndex)
+        viewModel.viewModel.midiModel.setClipIndex(pianoRoll.clipIndex)
+        viewModel.midiModel.refresh()
+        console.log("PianoView: Initialized viewModel.midiModel with trackIndex=", viewModel.midiModel.trackIndex,
+                    "clipIndex=", viewModel.midiModel.clipIndex)
+        console.log("PianoView: baseBeatWidth=", baseBeatWidth, "countOfBeats=", countOfBeats,
+                    "zoomFactor=", zoomFactor)
     }
 
     // Основной контейнер
@@ -74,9 +78,20 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 flickableDirection: Flickable.VerticalFlick
 
-                // Связываем вертикальную прокрутку с сеткой
-                
-
+                // Синхронизация вертикальной прокрутки с pianoRollFlickable
+/*                 Binding {
+                    target: pianoRollFlickable
+                    property: "contentY"
+                    value: pianoKeysFlickable.contentY
+                    when: !pianoRollFlickable.movingVertically
+                }
+                Binding {
+                    target: pianoKeysFlickable
+                    property: "contentY"
+                    value: pianoRollFlickable.contentY
+                    when: !pianoKeysFlickable.movingVertically
+                }
+ */
                 Column {
                     id: pianoKeysColumn
                     width: parent.width
@@ -136,15 +151,15 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 flickableDirection: Flickable.HorizontalAndVerticalFlick
 
-                property real beatWidth: baseBeatWidth * zoomFactor
-                property int countOfBeats: countOfBeats
+                property real beatWidth: baseBeatWidth * zoomFactor > 0 ? baseBeatWidth * zoomFactor : 50
+                property int countOfBeats: countOfBeats > 0 ? countOfBeats : 10000
 
                 onBeatWidthChanged: {
                     contentWidth = countOfBeats * beatWidth
-                    console.log("PianoRoll beatWidth updated: beatWidth=", beatWidth, "zoomFactor=", zoomFactor)
+                    console.log("PianoRoll beatWidth updated: beatWidth=", beatWidth, "zoomFactor=", zoomFactor, "contentWidth=", contentWidth)
                 }
 
-                // Синхронизация прокрутки с flickableArea из MainWindow.qml
+                // Синхронизация горизонтальной прокрутки с flickableArea из MainWindow.qml
                 Binding {
                     target: pianoRollFlickable
                     property: "contentX"
@@ -202,7 +217,7 @@ Item {
 
                 // Ноты
                 Repeater {
-                    model: midiModel
+                    model: viewModel.midiModel
                     delegate: Rectangle {
                         x: model.startBeats * pianoRollFlickable.beatWidth
                         y: (127 - model.noteNumber) * 20
@@ -222,16 +237,18 @@ Item {
 
                             onPressed: {
                                 parent.z = 5
-                                console.log("Note selected: noteNumber=", model.noteNumber, "startBeats=", model.startBeats)
+                                console.log("Note selected: noteNumber=", model.noteNumber, "startBeats=", model.startBeats,
+                                            "trackIndex=", trackIndex, "clipIndex=", clipIndex)
                             }
 
                             onReleased: {
                                 let newStartBeats = parent.x / pianoRollFlickable.beatWidth
                                 let snappedStart = Math.round(newStartBeats * 16) / 16
                                 parent.x = snappedStart * pianoRollFlickable.beatWidth
-                                midiModel.updateNote(index, model.noteNumber, snappedStart, model.durationBeats, model.velocity, model.channel)
+                                viewModel.updateMidiNote(trackIndex, clipIndex, index, model.noteNumber, snappedStart,
+                                                         model.durationBeats, model.velocity, model.channel)
                                 parent.z = 4
-                                console.log("Note moved: newStartBeats=", snappedStart)
+                                console.log("Note moved: newStartBeats=", snappedStart, "trackIndex=", trackIndex, "clipIndex=", clipIndex)
                             }
                         }
 
@@ -246,16 +263,17 @@ Item {
 
                             onPressed: {
                                 parent.z = 5
-                                console.log("Resizing note at index=", index)
+                                console.log("Resizing note at index=", index, "trackIndex=", trackIndex, "clipIndex=", clipIndex)
                             }
 
                             onReleased: {
                                 let newDurationBeats = parent.width / pianoRollFlickable.beatWidth
                                 let snappedDuration = Math.round(newDurationBeats * 16) / 16
                                 parent.width = snappedDuration * pianoRollFlickable.beatWidth
-                                midiModel.updateNote(index, model.noteNumber, model.startBeats, snappedDuration, model.velocity, model.channel)
+                                viewModel.updateMidiNote(trackIndex, clipIndex, index, model.noteNumber, model.startBeats,
+                                                         snappedDuration, model.velocity, model.channel)
                                 parent.z = 4
-                                console.log("Note resized: durationBeats=", snappedDuration)
+                                console.log("Note resized: durationBeats=", snappedDuration, "trackIndex=", trackIndex, "clipIndex=", clipIndex)
                             }
                         }
                     }
@@ -281,8 +299,9 @@ Item {
                         let snappedBeat = Math.round(beat * 16) / 16
                         let noteNumber = 127 - Math.floor(mouse.y / 20)
                         if (noteNumber >= 0 && noteNumber < 128 && snappedBeat >= 0) {
-                            midiModel.addNote(noteNumber, snappedBeat, 1.0, 100.0, 1)
-                            console.log("Added note: noteNumber=", noteNumber, "startBeats=", snappedBeat)
+                            viewModel.addMidiNote(trackIndex, clipIndex, noteNumber, snappedBeat, 1.0, 100.0, 1)
+                            console.log("Added note: noteNumber=", noteNumber, "startBeats=", snappedBeat,
+                                        "trackIndex=", trackIndex, "clipIndex=", clipIndex)
                         }
                     }
                 }
@@ -321,5 +340,9 @@ Item {
     }
 
     // Отладка
-    
+    /* Component.onCompleted: {
+        console.log("PianoView loaded: trackIndex=", trackIndex, "clipIndex=", clipIndex,
+                    "baseBeatWidth=", baseBeatWidth, "countOfBeats=", countOfBeats,
+                    "zoomFactor=", zoomFactor)
+    } */
 }

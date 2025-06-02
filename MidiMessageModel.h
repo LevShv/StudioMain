@@ -1,6 +1,6 @@
 #pragma once
 #include <QAbstractListModel>
-#include <engine.h>
+#include "engine.h"
 
 class MidiMessageModel : public QAbstractListModel {
     Q_OBJECT
@@ -28,10 +28,10 @@ public:
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
+    Q_INVOKABLE void refresh();
     Q_INVOKABLE void addNote(int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
     Q_INVOKABLE void deleteNote(int index);
     Q_INVOKABLE void updateNote(int index, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
-    Q_INVOKABLE void refresh();
 
 signals:
     void trackIndexChanged();
@@ -46,7 +46,7 @@ private:
         int channel;
     };
 
-    Engine& m_engine; // —сылка на Engine
+    Engine& m_engine; // ƒл€ доступа к GetdataBase()
     int m_trackIndex;
     int m_clipIndex;
     std::vector<Note> m_notes;
