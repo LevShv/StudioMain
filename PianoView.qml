@@ -2,7 +2,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import QtQuick.Shapes 1.15
 
 
 Item {
@@ -22,20 +21,20 @@ Item {
         target: midiModel
         function onTrackIndexChanged() {
             if (midiModel.trackIndex !== pianoRoll.trackIndex) {
-                midiModel.setTrackIndex(pianoRoll.trackIndex);
+                midiModel.setTrackIndex(pianoRoll.trackIndex)
             }
         }
         function onClipIndexChanged() {
             if (midiModel.clipIndex !== pianoRoll.clipIndex) {
-                midiModel.setClipIndex(pianoRoll.clipIndex);
+                midiModel.setClipIndex(pianoRoll.clipIndex)
             }
         }
     }
 
     Component.onCompleted: {
-        midiModel.setTrackIndex(pianoRoll.trackIndex);
-        midiModel.setClipIndex(pianoRoll.clipIndex);
-        console.log("PianoView: midiModel initialized, trackIndex=", midiModel.trackIndex, "clipIndex=", midiModel.clipIndex);
+        midiModel.setTrackIndex(pianoRoll.trackIndex)
+        midiModel.setClipIndex(pianoRoll.clipIndex)
+        console.log("PianoView: Initialized midiModel with trackIndex=", midiModel.trackIndex, "clipIndex=", midiModel.clipIndex)
     }
 
     // Основной контейнер
@@ -46,7 +45,7 @@ Item {
         // Панель инструментов
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 30
+            Layout.preferredHeight: 40
             color: "#2E3440"
 
             Label {
@@ -59,58 +58,86 @@ Item {
 
         // Основная область
         RowLayout {
+            id: pianoRollLayout
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 0
 
-            // Клавиши
-            Rectangle {
-                id: keysPanel
-                Layout.preferredWidth: 50
+            // Колонка с клавишами пианино
+            Flickable {
+                id: pianoKeysFlickable
+                width: 40
                 Layout.fillHeight: true
-                color: "#3B4252"
+                z: 2
+                contentHeight: pianoKeysColumn.height
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.VerticalFlick
 
-                ListView {
-                    id: keysView
-                    anchors.fill: parent
-                    model: 128 // MIDI-ноты 0–127
-                    interactive: false
-                    clip: true
-                    verticalLayoutDirection: ListView.BottomToTop
+                // Связываем вертикальную прокрутку с сеткой
+                
 
-                    delegate: Rectangle {
-                        width: keysPanel.width
-                        height: 20
-                        color: (index % 12 === 1 || index % 12 === 3 || index % 12 === 6 || index % 12 === 8 || index % 12 === 10) ? "#2E3440" : "#ECEFF4"
-                        border.color: "#4C566A"
-                        border.width: 1
+                Column {
+                    id: pianoKeysColumn
+                    width: parent.width
 
-                        Label {
-                            anchors.centerIn: parent
-                            text: {
-                                var noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-                                var octave = Math.floor(index / 12) - 1;
-                                var note = index % 12;
-                                return noteNames[note] + octave;
+                    Repeater {
+                        model: 128 // Диапазон MIDI нот
+                        delegate: Rectangle {
+                            width: pianoKeysColumn.width
+                            height: 20
+                            color: {
+                                let note = 127 - index
+                                let octaveNote = note % 12
+                                if ([1, 3, 6, 8, 10].includes(octaveNote)) {
+                                    return "#333333" // Чёрные клавиши
+                                } else {
+                                    return "#555555" // Белые клавиши
+                                }
                             }
-                            color: (index % 12 === 1 || index % 12 === 3 || index % 12 === 6 || index % 12 === 8 || index % 12 === 10) ? "#ECEFF4" : "#2E3440"
-                            font.pixelSize: 10
+                            border.color: "#444"
+
+                            // Разделение на октавы
+                            Rectangle {
+                                width: parent.width
+                                height: 1
+                                color: "#666"
+                                visible: (127 - index) % 12 === 0
+                                anchors.bottom: parent.bottom
+                            }
+
+                            Label {
+                                anchors.centerIn: parent
+                                text: {
+                                    let noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+                                    let note = 127 - index
+                                    let octave = Math.floor(note / 12)
+                                    let noteName = noteNames[note % 12]
+                                    return noteName + octave
+                                }
+                                color: "white"
+                                font.pixelSize: 8
+                                visible: height > 15
+                                font.bold: (127 - index) % 12 === 0
+                            }
                         }
                     }
                 }
             }
 
-            // Сетка и ноты
+            // Сетка Piano Roll
             Flickable {
                 id: pianoRollFlickable
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 contentWidth: countOfBeats * beatWidth
-                contentHeight: 128 * 20 // 128 нот по 20 пикселей
+                contentHeight: 128 * 20
                 clip: true
-                property real beatWidth: baseBeatWidth * zoomFactor
                 boundsBehavior: Flickable.StopAtBounds
                 flickableDirection: Flickable.HorizontalAndVerticalFlick
+
+                property real beatWidth: baseBeatWidth * zoomFactor
+                property int countOfBeats: countOfBeats
 
                 onBeatWidthChanged: {
                     contentWidth = countOfBeats * beatWidth
@@ -122,40 +149,54 @@ Item {
                     target: pianoRollFlickable
                     property: "contentX"
                     value: flickableArea.contentX
-                    when: !pianoRollFlickable.moving
+                    when: !pianoRollFlickable.movingHorizontally
                 }
                 Binding {
                     target: flickableArea
                     property: "contentX"
                     value: pianoRollFlickable.contentX
-                    when: !flickableArea.moving
+                    when: !flickableArea.movingHorizontally
                 }
 
-                // Сетка (вертикальные линии)
+                // Фон сетки с чередованием цветов
                 Repeater {
-                    model: countOfBeats * 4 // 1/4 ноты
-                    Rectangle {
-                        x: index * (pianoRollFlickable.beatWidth / 4)
-                        y: 0
-                        width: index % 4 === 0 ? 2 : 1
-                        height: pianoRollFlickable.contentHeight
-                        color: index % 4 === 0 ? "#4C566A" : "#3B4252"
-                        visible: {
-                            var itemX = x - pianoRollFlickable.contentX
-                            return itemX > -width && itemX < pianoRollFlickable.width + width
+                    model: 128
+                    delegate: Rectangle {
+                        width: pianoRollFlickable.contentWidth
+                        height: 20
+                        y: index * 20
+                        color: {
+                            let note = 127 - index
+                            let octaveNote = note % 12
+                            if ([1, 3, 6, 8, 10].includes(octaveNote)) {
+                                return "#252525" // Темнее для чёрных клавиш
+                            } else {
+                                return "#2D2D2D" // Светлее для белых клавиш
+                            }
+                        }
+
+                        // Линия разделения октав
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: "#666"
+                            visible: (127 - index) % 12 === 0
+                            anchors.bottom: parent.bottom
                         }
                     }
                 }
 
-                // Горизонтальные линии (ноты)
+                // Вертикальные линии (разделение битов)
                 Repeater {
-                    model: 128
-                    Rectangle {
-                        x: 0
-                        y: index * 20
-                        width: pianoRollFlickable.contentWidth
-                        height: 1
-                        color: (index % 12 === 1 || index % 12 === 3 || index % 12 === 6 || index % 12 === 8 || index % 12 === 10) ? "#4C566A" : "#3B4252"
+                    model: pianoRollFlickable.countOfBeats + 1
+                    delegate: Rectangle {
+                        width: 1
+                        height: pianoRollFlickable.contentHeight
+                        x: index * pianoRollFlickable.beatWidth
+                        color: "#444"
+                        property bool isStrongBeat: index % 4 === 0
+                        opacity: isStrongBeat ? 0.8 : 0.4
+                        visible: isStrongBeat || (index % 2 === 0)
                     }
                 }
 
@@ -185,8 +226,8 @@ Item {
                             }
 
                             onReleased: {
-                                var newStartBeats = parent.x / pianoRollFlickable.beatWidth
-                                var snappedStart = Math.round(newStartBeats * 16) / 16 // Привязка к 1/16
+                                let newStartBeats = parent.x / pianoRollFlickable.beatWidth
+                                let snappedStart = Math.round(newStartBeats * 16) / 16
                                 parent.x = snappedStart * pianoRollFlickable.beatWidth
                                 midiModel.updateNote(index, model.noteNumber, snappedStart, model.durationBeats, model.velocity, model.channel)
                                 parent.z = 4
@@ -205,11 +246,12 @@ Item {
 
                             onPressed: {
                                 parent.z = 5
+                                console.log("Resizing note at index=", index)
                             }
 
                             onReleased: {
-                                var newDurationBeats = parent.width / pianoRollFlickable.beatWidth
-                                var snappedDuration = Math.round(newDurationBeats * 16) / 16
+                                let newDurationBeats = parent.width / pianoRollFlickable.beatWidth
+                                let snappedDuration = Math.round(newDurationBeats * 16) / 16
                                 parent.width = snappedDuration * pianoRollFlickable.beatWidth
                                 midiModel.updateNote(index, model.noteNumber, model.startBeats, snappedDuration, model.velocity, model.channel)
                                 parent.z = 4
@@ -235,11 +277,11 @@ Item {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
                     onClicked: (mouse) => {
-                        var beat = mouse.x / pianoRollFlickable.beatWidth
-                        var snappedBeat = Math.round(beat * 16) / 16
-                        var noteNumber = 127 - Math.floor(mouse.y / 20)
+                        let beat = mouse.x / pianoRollFlickable.beatWidth
+                        let snappedBeat = Math.round(beat * 16) / 16
+                        let noteNumber = 127 - Math.floor(mouse.y / 20)
                         if (noteNumber >= 0 && noteNumber < 128 && snappedBeat >= 0) {
-                            midiModel.addNote(noteNumber, snappedBeat, 1.0, 100.0, 1) // Длительность 1 бит, velocity 100, канал 1
+                            midiModel.addNote(noteNumber, snappedBeat, 1.0, 100.0, 1)
                             console.log("Added note: noteNumber=", noteNumber, "startBeats=", snappedBeat)
                         }
                     }
@@ -279,5 +321,5 @@ Item {
     }
 
     // Отладка
-
+    
 }
