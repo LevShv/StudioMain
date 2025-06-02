@@ -17,12 +17,15 @@ public:
 
     Q_PROPERTY(int trackIndex READ trackIndex WRITE setTrackIndex NOTIFY trackIndexChanged)
         Q_PROPERTY(int clipIndex READ clipIndex WRITE setClipIndex NOTIFY clipIndexChanged)
+        Q_PROPERTY(double clipDuration READ clipDuration NOTIFY clipDurationChanged)
 
         int trackIndex() const { return m_trackIndex; }
-    void setTrackIndex(int index);
+    Q_INVOKABLE void setTrackIndex(int index);
 
     int clipIndex() const { return m_clipIndex; }
-    void setClipIndex(int index);
+    Q_INVOKABLE void setClipIndex(int index);
+
+    double clipDuration() const { return m_clipDuration; }
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
@@ -36,6 +39,7 @@ public:
 signals:
     void trackIndexChanged();
     void clipIndexChanged();
+    void clipDurationChanged();
 
 private:
     struct Note {
@@ -46,9 +50,10 @@ private:
         int channel;
     };
 
-    Engine& m_engine; // Для доступа к GetdataBase()
+    Engine& m_engine;
     int m_trackIndex;
     int m_clipIndex;
+    double m_clipDuration;
     std::vector<Note> m_notes;
 
     void rebuildNoteList();

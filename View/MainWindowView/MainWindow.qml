@@ -1315,9 +1315,14 @@ Window {
                                                                                 clipItem.width = newDurationBeats * flickableArea.beatWidth
                                                                                 viewModel.moveClip(trackIndex, index, newStartBeats)
                                                                                 viewModel.changeClipDuration(trackIndex, index, newDurationBeats)
+                                                                                // Обновляем clipDuration в midiModel для MIDI-клипов
+                                                                                if (model.type === "midi" && trackIndex === mainWindow.selectedTrackIndex && index === mainWindow.selectedClipIndex) {
+                                                                                    viewModel.midiModel.setClipDuration(newDurationBeats)
+                                                                                    console.log("Updated midiModel.clipDuration to", newDurationBeats, "for trackIndex=", trackIndex, "clipIndex=", index)
+                                                                                }
                                                                                 // Очищаем и обновляем волноформу после изменения
                                                                                 if (model.type === "audio") {
-                                                                                    waveformImage.source = "" // Очищаем перед финальным обновлением
+                                                                                    waveformImage.source = ""
                                                                                     waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
                                                                                     console.log("Waveform updated after left resize: width=", clipRectangle.width, "source=", waveformImage.source)
                                                                                 }
@@ -1328,9 +1333,8 @@ Window {
                                                                                 clipItem.width = model.durationBeats * flickableArea.beatWidth
                                                                                 clipsModel.setData(index, "startBeats", model.startBeats)
                                                                                 clipsModel.setData(index, "durationBeats", model.durationBeats)
-                                                                                // Восстанавливаем волноформу при откате
                                                                                 if (model.type === "audio") {
-                                                                                    waveformImage.source = "" // Очищаем перед восстановлением
+                                                                                    waveformImage.source = ""
                                                                                     waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
                                                                                     console.log("Waveform reverted: width=", clipRectangle.width, "source=", waveformImage.source)
                                                                                 }
@@ -1405,9 +1409,14 @@ Window {
                                                                             if (newDurationBeats >= 0.25) {
                                                                                 clipItem.width = newDurationBeats * flickableArea.beatWidth
                                                                                 viewModel.changeClipDuration(trackIndex, index, newDurationBeats)
+                                                                                // Обновляем clipDuration в midiModel для MIDI-клипов
+                                                                                if (model.type === "midi" && trackIndex === mainWindow.selectedTrackIndex && index === mainWindow.selectedClipIndex) {
+                                                                                    viewModel.midiModel.setClipDuration(newDurationBeats)
+                                                                                    console.log("Updated midiModel.clipDuration to", newDurationBeats, "for trackIndex=", trackIndex, "clipIndex=", index)
+                                                                                }
                                                                                 // Очищаем и обновляем волноформу после изменения
                                                                                 if (model.type === "audio") {
-                                                                                    waveformImage.source = "" // Очищаем перед финальным обновлением
+                                                                                    waveformImage.source = ""
                                                                                     waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
                                                                                     console.log("Waveform updated after right resize: width=", clipRectangle.width, "source=", waveformImage.source)
                                                                                 }
@@ -1416,9 +1425,8 @@ Window {
                                                                                 console.log("Invalid duration, reverting: newDurationBeats=", newDurationBeats)
                                                                                 clipItem.width = model.durationBeats * flickableArea.beatWidth
                                                                                 clipsModel.setData(index, "durationBeats", model.durationBeats)
-                                                                                // Восстанавливаем волноформу при откате
                                                                                 if (model.type === "audio") {
-                                                                                    waveformImage.source = "" // Очищаем перед восстановлением
+                                                                                    waveformImage.source = ""
                                                                                     waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
                                                                                     console.log("Waveform reverted: width=", clipRectangle.width, "source=", waveformImage.source)
                                                                                 }
@@ -1748,10 +1756,19 @@ Window {
                         visible: pianoRollVisible
                         trackIndex: selectedTrackIndex
                         clipIndex: selectedClipIndex
-                        baseBeatWidth: flickableArea.baseBeatWidth
-                        countOfBeats: flickableArea.countOfBeats
-                        
-                       
+                        clipDuration: viewModel.midiModel.clipDuration
+
+                        Component.onCompleted: {
+                            console.log("MainWindow: PianoView initialized with trackIndex=", selectedTrackIndex, "clipIndex=", selectedClipIndex, "clipDuration=", viewModel.midiModel.clipDuration)
+                        }
+
+                        onTrackIndexChanged: {
+                            console.log("MainWindow: PianoView trackIndex changed to", trackIndex, "clipDuration=", viewModel.midiModel.clipDuration)
+                        }
+
+                        onClipIndexChanged: {
+                            console.log("MainWindow: PianoView clipIndex changed to", clipIndex, "clipDuration=", viewModel.midiModel.clipDuration)
+                        }
                     }
                 }
             }

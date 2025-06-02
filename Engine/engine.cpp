@@ -633,9 +633,16 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
         auto event = sequence.getEventPointer(i);
         endTime = juce::jmax(endTime, event->message.getTimeStamp());
     }
-    newClip->duration = endTime + 0.1;
-    newClip->durationBeats = secondsToBeats(newClip->duration); ///
 
+    if (endTime == 0) {
+        newClip->duration = beatsToSeconds(4.0);
+        newClip->durationBeats = 4.0;
+    }
+    else {
+        newClip->duration = endTime + 0.1;
+        newClip->durationBeats = secondsToBeats(newClip->duration);
+    }
+    ///
     tracks.at(trackIndex).clips.push_back(std::move(newClip));
 }
 
@@ -937,7 +944,8 @@ void Engine::Core::addMidiNote(int trackIndex, int clipIndex, int noteNumber, do
         return;
     }
     if (noteNumber < 0 || noteNumber > 127 || startBeats < 0 || durationBeats <= 0 || velocity < 0 || velocity > 1.0f || channel < 1 || channel > 16) {
-        LOG_ERROR("Invalid note parameters");
+        LOG_ERROR("Invalid note parameters: noteNumber=" << noteNumber << ", startBeats=" << startBeats
+            << ", durationBeats=" << durationBeats << ", velocity=" << velocity << ", channel=" << channel);
         return;
     }
 
@@ -954,13 +962,14 @@ void Engine::Core::addMidiNote(int trackIndex, int clipIndex, int noteNumber, do
         midiClip->duration = beatsToSeconds(midiClip->durationBeats);
 
         updateActiveClips();
-        LOG("Added MIDI note: noteNumber=" << noteNumber << ", startBeats=" << startBeats << ", durationBeats=" << durationBeats);
+        LOG("Added MIDI note: noteNumber=" << noteNumber << ", startBeats=" << startBeats
+            << ", durationBeats=" << durationBeats << ", velocity=" << velocity
+            << ", sequence size=" << midiClip->midiSequence.getNumEvents());
     }
     else {
         LOG_ERROR("Clip is not a MIDI clip");
     }
 }
-
 void Engine::Core::deleteMidiNote(int trackIndex, int clipIndex, int noteIndex) {
     if (trackIndex < 0 || trackIndex >= tracks.size() ||
         clipIndex < 0 || clipIndex >= tracks[trackIndex].clips.size()) {
