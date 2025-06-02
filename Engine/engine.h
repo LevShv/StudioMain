@@ -147,7 +147,12 @@ public:
 
     void ChangeDuration(int trackIndex, int clipIndex, double newDuration);
 
-   
+    void AddMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+    void DeleteMidiNote(int trackIndex, int clipIndex, int noteIndex);
+    void UpdateMidiNote(int trackIndex, int clipIndex, int noteIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+
+    double SecondsToBeats(double seconds) const;
+    double BeatsToSeconds(double beats) const;
 
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;
@@ -224,6 +229,10 @@ private:
         
         void changeMidiclipDuration(int trackIndex, int clipIndex, double newDuration);
         void changeAudioclipDuration(int trackIndex, int clipIndex, double newDuration);
+
+        void addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+        void deleteMidiNote(int trackIndex, int clipIndex, int noteIndex);
+        void updateMidiNote(int trackIndex, int clipIndex, int noteIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
 
     private:
 

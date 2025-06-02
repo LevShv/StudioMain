@@ -108,12 +108,14 @@
     <ClCompile Include="Engine\engine.cpp" />
     <ClCompile Include="FileBrowser.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MidiMessageModel.cpp" />
     <ClCompile Include="TimelinePainter.cpp" />
     <ClCompile Include="TrackModel\TrackModel.cpp" />
     <ClCompile Include="ViewModel\ViewModel.cpp" />
     <ClCompile Include="View\MainWindowView\MainWindowView.cpp" />
     <None Include="FileBrowser\Browser.qml" />
     <None Include="old.qml" />
+    <None Include="PianoView.qml" />
     <None Include="View\MainWindowView\MainWindow.qml" />
     <QtRcc Include="qml.qrc" />
   </ItemGroup>
@@ -123,6 +125,7 @@
     <QtMoc Include="TrackModel\TrackModel.h" />
     <QtMoc Include="FileBrowser.h" />
     <QtMoc Include="TimelinePainter.h" />
+    <QtMoc Include="MidiMessageModel.h" />
     <ClInclude Include="Tools\log.h" />
     <QtMoc Include="ViewModel\ViewModel.h" />
     <QtMoc Include="View\MainWindowView\MainWindowView.h" />

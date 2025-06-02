@@ -4,6 +4,7 @@
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
 
     m_trackModel = new TrackModel(engine, this);
+    m_midiModel = new MidiMessageModel(engine, this);
 
     m_playheadTimer = new QTimer(this);
     connect(m_playheadTimer, &QTimer::timeout, this, &ViewModel::updatePlayhead);

@@ -6,6 +6,7 @@
 #include "TrackModel.h"
 #include <QTimer>
 #include <QWindow>
+#include "MidiMessageModel.h" // Добавляем для MidiMessageModel
 
 class ViewModel : public QObject {
     Q_OBJECT
@@ -13,12 +14,15 @@ class ViewModel : public QObject {
         Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged)
         Q_PROPERTY(double playheadPosition READ playheadPosition NOTIFY playheadPositionChanged)
         Q_PROPERTY(TrackModel* trackModel READ trackModel CONSTANT)
+        Q_PROPERTY(MidiMessageModel* midiModel READ midiModel CONSTANT) // Свойство для midiModel
 
 public:
     explicit ViewModel(QObject* parent = nullptr);
 
     TrackModel* trackModel() const { return m_trackModel; }
+    MidiMessageModel* midiModel() const { return m_midiModel; } // Геттер для midiModel
     double playheadPosition() const { return m_playheadPosition; }
+    Engine* getEngine() { return &engine; } // Оставляем для других случаев
 
     Q_INVOKABLE void togglePlayback();
     Q_INVOKABLE void setPlayheadPosition(double position);
@@ -71,6 +75,7 @@ private:
 
     Engine engine;
     TrackModel* m_trackModel;
+    MidiMessageModel* m_midiModel; // Добавляем midiModel
 	double m_bpm = 120.0; // Инициализация BPM
     double m_playheadPosition = engine.Position();
     bool m_isPlaying = false;

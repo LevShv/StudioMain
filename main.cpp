@@ -6,6 +6,7 @@
 #include <ViewModel.h>
 #include "filebrowser.h"
 #include "TimelinePainter.h"
+#include "MidiMessageModel.h"
 
 #include <iostream>
 #include <windows.h>
@@ -36,6 +37,7 @@ int main(int argc, char *argv[])
 
 	qmlRegisterType<FileBrowser>("FileBrowser", 1, 0, "FileBrowser");
 	qmlRegisterType<TimelinePainter>("CustomComponents", 1, 0, "TimelinePainter");
+	//mlRegisterType<MidiMessageModel>("MidiMessageModel", 1, 0, "MidiMessageModel");
 
     QQmlApplicationEngine engine;
 
