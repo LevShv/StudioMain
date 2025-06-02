@@ -77,20 +77,13 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 flickableDirection: Flickable.VerticalFlick
 
-                // Синхронизация вертикальной прокрутки с pianoRollFlickable
-/*                 Binding {
-                    target: pianoRollFlickable
-                    property: "contentY"
-                    value: pianoKeysFlickable.contentY
-                    when: !pianoRollFlickable.movingVertically
-                }
                 Binding {
                     target: pianoKeysFlickable
                     property: "contentY"
                     value: pianoRollFlickable.contentY
                     when: !pianoKeysFlickable.movingVertically
                 }
- */
+
                 Column {
                     id: pianoKeysColumn
                     width: parent.width
@@ -157,9 +150,14 @@ Item {
                     contentWidth = countOfBeats * beatWidth
                     console.log("PianoRoll beatWidth updated: beatWidth=", beatWidth, "zoomLevel=", zoomLevel, "contentWidth=", contentWidth)
                 }
+                Binding {
+                    target: pianoRollFlickable
+                    property: "contentY"
+                    value: pianoKeysFlickable.contentY
+                    when: !pianoRollFlickable.movingVertically
+                }
 
-                // Синхронизация горизонтальной прокрутки с flickableArea из MainWindow.qml
-/*                 Binding {
+                Binding {
                     target: pianoRollFlickable
                     property: "contentX"
                     value: flickableArea.contentX
@@ -171,8 +169,6 @@ Item {
                     value: pianoRollFlickable.contentX
                     when: !flickableArea.movingHorizontally
                 }
- */
-                // Фон сетки с чередованием цветов
 
                 MouseArea {
                     anchors.fill: parent
