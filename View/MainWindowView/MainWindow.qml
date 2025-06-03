@@ -162,50 +162,13 @@ Window {
                             width: 130
                             MenuItem {
                                 id: editItem
-                                text: "Правка"
+                                text: "Открыть справку"
                                 hoverEnabled: true
-                                
-            
-                                Menu {
-                                    id: editMenu
-                                    y: 0
-                                    x: parent.width
-                                    width: 150
-                                    height: 60
-                                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-                
-                                    
-                
-                                    Column {
-                                        anchors.centerIn: parent
-                                        spacing: 4
-                    
-                                        Label {
-                                            width: parent.width
-                                            text: "Ctrl+C - Копировать"
-                                            color: "black"
-                                            font.pixelSize: 11
-                                            horizontalAlignment: Text.AlignHCenter
-                                            verticalAlignment: Text.AlignVCenter
-                                        }
-                    
-                                        Label {
-                                            width: parent.width
-                                            text: "Ctrl+V - Вставить"
-                                            color: "black"
-                                            font.pixelSize: 11
-                                            horizontalAlignment: Text.AlignHCenter
-                                            verticalAlignment: Text.AlignVCenter
-                                        }
-                                    }
-                                }
-            
-                                onHoveredChanged: {
-                                    if (hovered) {
-                                        editMenu.open()
-                                    } else {
-                                        editMenu.close()
-                                    }
+                                onClicked: {
+                                    // Формируем путь: "file:///[app_folder]/help.html"
+                                    var helpFilePath = "file:///" + viewModel.applicationHomeFolder() + "/help.html"
+                                    console.log("Opening help file:", helpFilePath) // Для отладки
+                                    Qt.openUrlExternally(helpFilePath)
                                 }
                             }
             
@@ -244,44 +207,244 @@ Window {
                             }
                         }
                     }
-                }                
-                Row {
-                    anchors.centerIn: parent  // Это обеспечит точное центрирование
-                    anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку
-                    spacing: 5
-                    ToolButton {
-                        implicitWidth: 40
-                        onClicked: viewModel.togglePlayback()
-                        Image {
-                            anchors.centerIn: parent
-                            source: viewModel.isPlaying ? imagesPath + "pause.png" : imagesPath + "play.png"
-                            width: 24
-                            height: 24
-                            fillMode: Image.PreserveAspectFit
+                }   
+                Item {
+                    Layout.fillWidth: true
+                    Row {
+                        id: centerRow
+                        anchors.centerIn: parent
+                        spacing: 10
+                        // Переключатель Pattern/Song (добавлен слева от центрального ряда)
+                        TabBar {
+                            id: modeTabBar
+                            Material.accent: "transparent"  // Убираем акцентный цвет (красный)
+                            Material.background: "transparent"
+                            anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку
+
+                            spacing: 10
+                            currentIndex: 1  // По умолчанию SONG
+                            // Убираем стандартный индикатор TabBar
+
+                    
+            
+                            background: Rectangle {
+                                color: "transparent"
+                            }                      
+
+                            TabButton {
+                                width: 35
+                                height: 25  // Уменьшенная высота
+                                text: "PAT"
+                                ToolTip.visible: hovered
+                                ToolTip.delay: 500
+                                ToolTip.text: "Проигрывать только pattern"
+
+                                font {
+                                    family: "Tahoma"
+                                    pixelSize: 11
+                                }
+
+                                background: Rectangle {
+                                    radius: 5  // Более закругленные углы
+                                    color: parent.checked ? "#8690FA" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
+                                    border.color: "#8293FC"
+                                    border.width: 2  // Более широкий контур
+                                }
+
+                                contentItem: Text {
+                                    text: parent.text
+                                    font: parent.font
+                                    color: parent.checked ? "#FFFFFF" : "#5153FF"  // Белый текст при выборе
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    anchors.fill: parent
+                                }
+                            }
+
+                            TabButton {
+                                width: 35
+                                height: 25  // Уменьшенная высота
+                                text: "SONG"
+                                ToolTip.visible: hovered
+                                ToolTip.delay: 500
+                                ToolTip.text: "Проигрывать вместе с треками"
+
+                                font {
+                                    family: "Tahoma"
+                                    pixelSize: 11
+                                }
+
+                                background: Rectangle {
+                                    radius: 5  // Более закругленные углы
+                                    color: parent.checked ? "#8690FA" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
+                                    border.color: "#8293FC"
+                                    border.width: 2  // Более широкий контур
+                                }
+
+                                contentItem: Text {
+                                    text: parent.text
+                                    font: parent.font
+                                    color: parent.checked ? "#FFFFFF" : "#5153FF"  // Белый текст при выборе
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    anchors.fill: parent
+                                }
+                            }                    
                         }
-                    }
-                    ToolButton {
-                        implicitWidth: 40
-                        Image {
-                            anchors.centerIn: parent
-                            source: imagesPath + "stop.png"
-                            width: 24
-                            height: 24
-                            fillMode: Image.PreserveAspectFit
-                        }
-                    }
-                    ToolButton {
-                        implicitWidth: 40
-                        onClicked: {
-                            viewModel.setPlayheadPosition(0)
-                            console.log("Reset playhead to start")
-                        }
-                        Image {
-                            anchors.centerIn: parent
-                            source: imagesPath + "rewind.png"
-                            width: 24
-                            height: 24
-                            fillMode: Image.PreserveAspectFit
+                        Row {
+                            anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку
+                            spacing: 5
+                            RoundButton {
+                                id: playButton
+                                width: 40
+                                height: 40
+                                radius: width / 2
+                                ToolTip.visible: hovered
+                                ToolTip.delay: 500
+                                ToolTip.text: viewModel.isPlaying ? "Пауза" : "Воспроизвести"
+            
+                                background: Rectangle {
+                                    radius: parent.radius
+                                    color: playButton.hovered ? "#d0d0d0" : "transparent"
+                                    border.color: playButton.hovered ? "#a0a0a0" : "transparent"
+                                    border.width: 1
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 100 }
+                                    }
+                                    Behavior on border.color {
+                                        ColorAnimation { duration: 100 }
+                                    }
+                                }
+
+                                Image {
+                                    anchors.centerIn: parent
+                                    width: 24
+                                    height: 24
+                                    source: viewModel.isPlaying ? imagesPath + "pause.png" : imagesPath + "play.png"
+                                    sourceSize.width: 24
+                                    sourceSize.height: 24
+                                    opacity: playButton.down ? 0.7 : 1.0
+                                    fillMode: Image.PreserveAspectFit
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: 100 }
+                                    }
+                                }
+
+                                onClicked: {
+                                    playButton.scale = 0.95
+                                    viewModel.togglePlayback()
+                                }
+            
+                                Behavior on scale {
+                                    NumberAnimation { 
+                                        duration: 100
+                                        easing.type: Easing.OutQuad 
+                                    }
+                                }
+                            }
+                            RoundButton {
+                                id: stopButton
+                                width: 40
+                                height: 40
+                                radius: width / 2
+                                ToolTip.visible: hovered
+                                ToolTip.delay: 500
+                                ToolTip.text: "Стоп"
+            
+                                background: Rectangle {
+                                    radius: parent.radius
+                                    color: stopButton.hovered ? "#d0d0d0" : "transparent"
+                                    border.color: stopButton.hovered ? "#a0a0a0" : "transparent"
+                                    border.width: 1
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 100 }
+                                    }
+                                    Behavior on border.color {
+                                        ColorAnimation { duration: 100 }
+                                    }
+                                }
+
+                                Image {
+                                    anchors.centerIn: parent
+                                    width: 24
+                                    height: 24
+                                    source: imagesPath + "stop.png"
+                                    sourceSize.width: 24
+                                    sourceSize.height: 24
+                                    opacity: stopButton.down ? 0.7 : 1.0
+                                    fillMode: Image.PreserveAspectFit
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: 100 }
+                                    }
+                                }
+
+                                onClicked: {
+                                    stopButton.scale = 0.95
+                                    // Добавьте здесь логику для кнопки стоп
+                                }
+            
+                                Behavior on scale {
+                                    NumberAnimation { 
+                                        duration: 100
+                                        easing.type: Easing.OutQuad 
+                                    }
+                                }
+                            }
+                            RoundButton {
+                                id: rewindButton
+                                width: 40
+                                height: 40
+                                radius: width / 2
+                                ToolTip.visible: hovered
+                                ToolTip.delay: 500
+                                ToolTip.text: "Перемотать в начало"
+            
+                                background: Rectangle {
+                                    radius: parent.radius
+                                    color: rewindButton.hovered ? "#d0d0d0" : "transparent"
+                                    border.color: rewindButton.hovered ? "#a0a0a0" : "transparent"
+                                    border.width: 1
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 100 }
+                                    }
+                                    Behavior on border.color {
+                                        ColorAnimation { duration: 100 }
+                                    }
+                                }
+
+                                Image {
+                                    anchors.centerIn: parent
+                                    width: 24
+                                    height: 24
+                                    source: imagesPath + "rewind.png"
+                                    sourceSize.width: 24
+                                    sourceSize.height: 24
+                                    opacity: rewindButton.down ? 0.7 : 1.0
+                                    fillMode: Image.PreserveAspectFit
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: 100 }
+                                    }
+                                }
+
+                                onClicked: {
+                                    rewindButton.scale = 0.95
+                                    viewModel.setPlayheadPosition(0)
+                                    console.log("Reset playhead to start")
+                                }
+            
+                                Behavior on scale {
+                                    NumberAnimation { 
+                                        duration: 100
+                                        easing.type: Easing.OutQuad 
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -289,12 +452,142 @@ Window {
                     Layout.alignment: Qt.AlignRight
                     anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку
                     rightPadding: 20
-                    spacing: 10
+                    spacing: 0
+
+                    // Первая кнопка - plugins
+                    RoundButton {
+                        id: pluginsButton
+                        width: 40
+                        height: 40
+                        radius: width / 2
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                        ToolTip.text: "Плагины"
+
+                        background: Rectangle {
+                            radius: parent.radius
+                            color: pluginsButton.hovered ? "#d0d0d0" : "transparent"
+                            border.color: pluginsButton.hovered ? "#a0a0a0" : "transparent"
+                            border.width: 1
+
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                            Behavior on border.color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
+
+                        Image {
+                            anchors.centerIn: parent
+                            width: 24
+                            height: 24
+                            source: imagesPath + "plugins.png"
+                            sourceSize.width: 24
+                            sourceSize.height: 24
+                            opacity: pluginsButton.down ? 0.7 : 1.0
+                            fillMode: Image.PreserveAspectFit
+
+                            Behavior on opacity {
+                                NumberAnimation { duration: 100 }
+                            }
+                        }
+
+                        onClicked: {
+                            pluginsButton.scale = 0.95
+                            // Действие для кнопки плагинов
+                        }
+
+                        Behavior on scale {
+                            NumberAnimation { 
+                                duration: 100
+                                easing.type: Easing.OutQuad 
+                            }
+                        }
+                    }
+
+                    // Вторая кнопка - piano roll
+                    RoundButton {
+                        id: pianoRollButton
+                        width: 40
+                        height: 40
+                        radius: width / 2
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                        ToolTip.text: "Piano Roll"
+                        anchors.leftMargin: 2 // Уменьшенный отступ слева (было 10)
+
+                        // Здесь нужно прописать условие для enabled
+                        // Например: enabled: viewModel.isPianoRollAvailable
+                        // enabled: false // Пример временного отключения
+
+                        background: Rectangle {
+                            radius: parent.radius
+                            color: {
+                                if (!pianoRollButton.enabled) {
+                                    return "#606060" // Темный цвет для недоступной кнопки
+                                } else if (pianoRollButton.hovered) {
+                                    return "#d0d0d0" // Цвет при наведении для доступной кнопки
+                                } else {
+                                    return "transparent" // Обычный цвет
+                                }
+                            }
+                            border.color: {
+                                if (!pianoRollButton.enabled) {
+                                    return "transparent" // Без рамки для недоступной
+                                } else if (pianoRollButton.hovered) {
+                                    return "#a0a0a0" // Рамка при наведении
+                                } else {
+                                    return "transparent" // Обычное состояние
+                                }
+                            }
+                            border.width: 1
+
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                            Behavior on border.color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
+
+                        Image {
+                            anchors.centerIn: parent
+                            width: 24
+                            height: 24
+                            source: imagesPath + "piano_roll.png"
+                            sourceSize.width: 24
+                            sourceSize.height: 24
+                            opacity: pianoRollButton.down ? 0.7 : (pianoRollButton.enabled ? 1.0 : 0.5)
+                            fillMode: Image.PreserveAspectFit
+
+                            Behavior on opacity {
+                                NumberAnimation { duration: 100 }
+                            }
+                        }
+
+                        onClicked: {
+                            if (pianoRollButton.enabled) {
+                                pianoRollButton.scale = 0.95
+                                // Действие для кнопки piano roll
+                            }
+                        }
+
+                        Behavior on scale {
+                            NumberAnimation { 
+                                duration: 100
+                                easing.type: Easing.OutQuad 
+                            }
+                        }
+                    }
+                    // Отступ перед регулятором громкости
+                    Rectangle { width: 15; height:15; color: "#4C566A"}  // Невидимый разделитель
             
                     Label { 
                         text: "BPM:" 
                         color: "white" 
                         anchors.verticalCenter: parent.verticalCenter 
+                        rightPadding: 5  // Небольшой отступ перед прямоугольником
                     }
             
                     Rectangle {
@@ -307,12 +600,64 @@ Window {
                         border.width: 1
                         anchors.verticalCenter: parent.verticalCenter
 
-                        property real bpmValue: viewModel.bpm
-                        property real startX: 0
-                        property bool mousePressed: false
+                        // Начальное значение 120
+                        property real bpmValue: viewModel.bpm || 120
+                        onBpmValueChanged: {
+                            if (bpmValue >= 60 && bpmValue <= 200) {
+                                viewModel.setBpm(bpmValue)
+                            } else {
+                                // Если пришло недопустимое значение, вернуть последнее корректное
+                                bpmValue = Math.max(60, Math.min(200, bpmValue))
+                            }
+                        }
 
-                        // Отображение значения BPM
+                        TextInput {
+                            id: bpmInput
+                            anchors.fill: parent
+                            horizontalAlignment: TextInput.AlignHCenter
+                            verticalAlignment: TextInput.AlignVCenter
+                            color: "white"
+                            font.pixelSize: 16
+                            font.bold: true
+                            validator: IntValidator { bottom: 60; top: 200 }
+                            visible: false
+                            selectByMouse: true
+                            activeFocusOnPress: true
+
+                            Keys.onPressed: {
+                                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                    event.accepted = true
+                                    handleInput()
+                                }
+                            }
+
+                            onActiveFocusChanged: {
+                                if (!activeFocus && visible) {
+                                    handleInput()
+                                }
+                            }
+
+                            function handleInput() {
+                                var newValue = parseInt(text)
+                                if (!isNaN(newValue)) {
+                                    // Если введено недопустимое значение, вернуть последнее корректное
+                                    if (newValue < 60 || newValue > 200) {
+                                        bpmInput.text = Math.round(bpmControl.bpmValue).toString()
+                                    } else {
+                                        bpmControl.bpmValue = newValue
+                                    }
+                                }
+                                hideInput()
+                            }
+
+                            function hideInput() {
+                                visible = false
+                                bpmText.visible = true
+                            }
+                        }
+
                         Text {
+                            id: bpmText
                             anchors.centerIn: parent
                             text: Math.round(bpmControl.bpmValue)
                             color: "white"
@@ -320,42 +665,27 @@ Window {
                             font.bold: true
                         }
 
-                        // Обработка мыши
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
 
-                            onPressed: {
-                                bpmControl.mousePressed = true
-                                bpmControl.startX = mouseX
+                            onDoubleClicked: {
+                                bpmInput.text = Math.round(bpmControl.bpmValue).toString()
+                                bpmText.visible = false
+                                bpmInput.visible = true
+                                bpmInput.forceActiveFocus()
+                                bpmInput.selectAll()
                             }
-
-                            onReleased: {
-                                bpmControl.mousePressed = false
-                            }
-
-                            onPositionChanged: {
-                                if (bpmControl.mousePressed) {
-                                    var delta = mouseX - bpmControl.startX
-                                    var newValue = bpmControl.bpmValue + delta * 0.5
-                
-                                    // Ограничиваем значения в диапазоне 60-200
-                                    newValue = Math.max(60, Math.min(200, newValue))
-                
-                                    bpmControl.bpmValue = newValue
-                                    viewModel.setBpm(newValue)
-                                    bpmControl.startX = mouseX
-                                }
-                            }
-                        }
-
-                        // Анимация при изменении значения
-                        Behavior on bpmValue {
-                            NumberAnimation {
-                                duration: 100
-                            }
-                        }
+                        }                        
+                    }
+                    // Отступ перед регулятором громкости
+                    Rectangle { width: 15; height:15; color: "#4C566A"}  // Невидимый разделитель
+                    Label { 
+                        text: "Vol:" 
+                        color: "white" 
+                        anchors.verticalCenter: parent.verticalCenter 
+                        rightPadding: 5  // Небольшой отступ перед прямоугольником
                     }
             
                     // Круговой регулятор громкости
@@ -368,12 +698,29 @@ Window {
                         value: viewModel.volume
                         anchors.verticalCenter: parent.verticalCenter
                         onValueChanged: viewModel.setVolume(value)
+                        
 
                         handle: null
 
                         // Определяем углы для фиксированного закрашивания
                         readonly property real fixedStartAngle: 130  // начальный угол закрашивания
                         readonly property real fixedEndAngle: 270   // конечный угол закрашивания
+
+                        // Обработка колесика мыши
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onWheel: {
+                                if (wheel.angleDelta.y > 0) {
+                                    // Прокрутка вверх - увеличиваем значение
+                                    volumeDial.value = Math.min(volumeDial.to, volumeDial.value + 5);
+                                } else {
+                                    // Прокрутка вниз - уменьшаем значение
+                                    volumeDial.value = Math.max(volumeDial.from, volumeDial.value - 5);
+                                }
+                                wheel.accepted = true;
+                            }
+                        }
 
                         background: Rectangle {
                             color: "transparent"
@@ -503,11 +850,11 @@ Window {
                                 spacing: 0
 
                                 // Фиксированные заголовки треков
+                                // Фиксированные заголовки треков
                                 Column {
                                     id: trackHeaders
                                     width: 150
-                                    Layout.fillHeight: true
-                                    
+                                    Layout.fillHeight: true                                
                                     Rectangle {
                                         width: 150
                                         height: 50
@@ -516,19 +863,22 @@ Window {
                                         Row {
                                             anchors.centerIn: parent
                                             spacing: 6  // Увеличил промежуток между кнопками
-                                            
+                                        
                                             // Кнопка 1 - Аудио
                                             Button {
                                                 text: "AUDIO"
                                                 width: 40  // Увеличил ширину
-                                                height: 30  // Вернул стандартную высоту
+                                                height: 40  // Вернул стандартную высоту
+                                                ToolTip.visible: hovered
+                                                ToolTip.delay: 500
+                                                ToolTip.text: "Добавить AUDIO дорожку"
                                                 font {
                                                     family: "Tahoma"
                                                     pixelSize: 11  // Увеличил шрифт
                                                 }
                                                 leftPadding: 0
                                                 rightPadding: 0
-                                                
+                                            
                                                 background: Rectangle {
                                                     radius: 3
                                                     color: parent.down ? "#B8C1FC" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
@@ -539,7 +889,7 @@ Window {
                                                 contentItem: Text {
                                                     text: parent.text
                                                     font: parent.font
-                                                    color: "#333333"
+                                                    color: "#5153FF"
                                                     horizontalAlignment: Text.AlignHCenter
                                                     verticalAlignment: Text.AlignVCenter
                                                     anchors.fill: parent
@@ -552,14 +902,17 @@ Window {
                                             Button {
                                                 text: "MIDI"
                                                 width: 40
-                                                height: 30
+                                                height: 40
+                                                ToolTip.visible: hovered
+                                                ToolTip.delay: 500
+                                                ToolTip.text: "Добавить MIDI дорожку"
                                                 font {
                                                     family: "Tahoma"
                                                     pixelSize: 12  // Увеличил шрифт
                                                 }
                                                 leftPadding: 0
                                                 rightPadding: 0
-                                                
+                                            
                                                 background: Rectangle {
                                                     radius: 3
                                                     color: parent.down ? "#B8C1FC" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
@@ -570,7 +923,7 @@ Window {
                                                 contentItem: Text {
                                                     text: parent.text
                                                     font: parent.font
-                                                    color: "#333333"
+                                                    color: "#5153FF"
                                                     horizontalAlignment: Text.AlignHCenter
                                                     verticalAlignment: Text.AlignVCenter
                                                     anchors.fill: parent
@@ -583,14 +936,17 @@ Window {
                                             Button {
                                                 text: "SMPLR"  // Оптимальное сокращение
                                                 width: 40
-                                                height: 30
+                                                height: 40
+                                                ToolTip.visible: hovered
+                                                ToolTip.delay: 500
+                                                ToolTip.text: "Добавить SAMPLER дорожку"
                                                 font {
                                                     family: "Tahoma"
                                                     pixelSize: 11  // Увеличил шрифт
                                                 }
                                                 leftPadding: 0
                                                 rightPadding: 0
-                                                
+                                            
                                                 background: Rectangle {
                                                     radius: 3
                                                     color: parent.down ? "#B8C1FC" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
@@ -601,7 +957,7 @@ Window {
                                                 contentItem: Text {
                                                     text: parent.text
                                                     font: parent.font
-                                                    color: "#333333"
+                                                    color: "#5153FF"
                                                     horizontalAlignment: Text.AlignHCenter
                                                     verticalAlignment: Text.AlignVCenter
                                                     anchors.fill: parent
@@ -619,28 +975,255 @@ Window {
                                             height: 52
                                             color: "#2D2D2D"
                                             border.color: "#444"
-                                            Label {
-                                                anchors.centerIn: parent
-                                                text: (index + 1) + " (" + model.trackType + ")"
-                                                color: "#CCC"
-                                                font.pixelSize: 12
+                                            // Свойство для хранения предыдущего значения громкости
+                                            property real lastVolume: model.volume !== undefined ? model.volume : 30
+                                            // Контекстное меню для удаления
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                acceptedButtons: Qt.RightButton
+                                                onClicked: {
+                                                    if (mouse.button === Qt.RightButton) {
+                                                        contextMenu.popup()
+                                                    }
+                                                }
                                             }
-                                            Row {
-                                                ToolButton {
-                                                    text: "🎹"
-                                                    implicitWidth: 30
-                                                    implicitHeight: 30
-                                                    onClicked: {
-                                                        viewModel.openPluginEditor(index, 0) // Открываем первый плагин на дорожке
+                                        
+                                            Menu {
+                                                id: contextMenu
+                                                width: 130  // Минимальная ширина под текст
+                                                topPadding: 2
+                                                bottomPadding: 2          
+                                                
+                                            
+                                                delegate: MenuItem {
+                                                    id: menuItem
+                                                    implicitHeight: 10  // Минимальная высота
+                                                    padding: 4
+                                                
+                                                    contentItem: Text {
+                                                        text: parent.text
+                                                        color: "#EEE"
+                                                        font.pixelSize: 11
+                                                        horizontalAlignment: Text.AlignLeft
+                                                        verticalAlignment: Text.AlignVCenter
+                                                    }
+                                                
+                                                    background: Rectangle {
+                                                        color: parent.highlighted ? "#555" : "transparent"
+                                                        radius: 2
+                                                    }
+                                                }
+                                            
+                                                MenuItem {
+                                                    text: "Удалить дорожку"
+                                                    onTriggered: viewModel.deleteTrack(index)
+                                                }
+                                            }
+                                        
+                                            // Dial для управления громкостью своей дорожки
+                                            Dial {
+                                                id: trackVolumeDial
+                                                width: 35
+                                                height: 35
+                                                from: 0
+                                                to: 100
+                                                value: model.volume !== undefined ? model.volume : 30  // Если в модели нет volume, ставим 30
+                                                anchors.left: parent.left
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                anchors.leftMargin: 25
+                                                onValueChanged: {
+                                                    if (value !== undefined) {
+                                                        // Обновляем последнее значение громкости, если не в режиме mute
+                                                        if (value > 0) {
+                                                            trackContainer.lastVolume = value
+                                                        }
+                                                        viewModel.setTrackVolume(index, value)
+                                                    
+                                                        // Если громкость стала больше 0, автоматически выключаем mute
+                                                        if (value > 0 && model.muted) {
+                                                            viewModel.setTrackMute(index, false)
+                                                        }
+                                                    }
+                                                }
+                                                handle: null
+                                                readonly property real fixedStartAngle: 130
+                                                readonly property real fixedEndAngle: 270
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    onWheel: {
+                                                        if (wheel.angleDelta.y > 0) {
+                                                            trackVolumeDial.value = Math.min(trackVolumeDial.to, trackVolumeDial.value + 5);
+                                                        } else {
+                                                            trackVolumeDial.value = Math.max(trackVolumeDial.from, trackVolumeDial.value - 5);
+                                                        }
+                                                        wheel.accepted = true;
                                                     }
                                                 }
 
-                                                ToolButton {
-                                                    text: "🗑"
-                                                    implicitWidth: 30
-                                                    implicitHeight: 30
-                                                    onClicked: {
-                                                        viewModel.deleteTrack(index) 
+                                                background: Rectangle {
+                                                    color: "transparent"
+                                                    border.color: "white"
+                                                    border.width: 2
+                                                    radius: width / 2
+
+                                                    Rectangle {
+                                                        width: 2
+                                                        height: parent.width * 0.4
+                                                        color: "white"
+                                                        antialiasing: true
+                                                        x: parent.width / 2 - width / 2
+                                                        y: parent.height / 2 - height
+                                                        rotation: trackVolumeDial.angle
+                                                        transformOrigin: Item.Bottom
+                                                    }
+                                                }
+
+                                                Shape {
+                                                    anchors.fill: parent
+                                                    ShapePath {
+                                                        fillColor: "transparent"
+                                                        strokeColor: "#8690fa"
+                                                        strokeWidth: 2
+                                                        capStyle: ShapePath.RoundCap
+                                                        PathAngleArc {
+                                                            centerX: trackVolumeDial.width / 2
+                                                            centerY: trackVolumeDial.height / 2
+                                                            radiusX: trackVolumeDial.width / 2 - 1
+                                                            radiusY: trackVolumeDial.height / 2 - 1
+                                                            startAngle: trackVolumeDial.fixedStartAngle
+                                                            sweepAngle: trackVolumeDial.fixedEndAngle - trackVolumeDial.fixedStartAngle + trackVolumeDial.angle
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        
+                                            // Колонка с меткой и кнопками справа
+                                            Column {
+                                                anchors.left: trackVolumeDial.right
+                                                anchors.right: parent.right
+                                                anchors.top: parent.top
+                                                anchors.bottom: parent.bottom
+                                                anchors.leftMargin: 4
+                                            
+                                                Label {
+                                                    width: parent.width
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    text: (index + 1) + " (" + model.trackType + ")"
+                                                    color: "#CCC"
+                                                    font.pixelSize: 12
+                                                    elide: Text.ElideRight
+                                                }
+                                            
+                                                Row {
+                                                    anchors.horizontalCenter: parent.horizontalCenter
+                                                    spacing: 2
+                                                
+                                                    // Кнопка Mute/Unmute
+                                                    RoundButton {
+                                                        id: muteButton
+                                                        width: 30
+                                                        height: 30
+                                                        radius: width / 2
+                                                        ToolTip.visible: hovered
+                                                        ToolTip.delay: 500
+                                                        ToolTip.text: (trackVolumeDial.value === 0) ? "Unmute" : "Mute"
+                                                    
+                                                        // Состояние кнопки зависит от значения Dial
+                                                        property bool isMuted: trackVolumeDial.value === 0
+                                                    
+                                                        background: Rectangle {
+                                                            radius: parent.radius
+                                                            color: muteButton.hovered ? "#d0d0d0" : "transparent"
+                                                            border.color: muteButton.hovered ? "#a0a0a0" : "transparent"
+                                                            border.width: 1
+                                                            Behavior on color { ColorAnimation { duration: 100 } }
+                                                            Behavior on border.color { ColorAnimation { duration: 100 } }
+                                                        }
+
+                                                        Image {
+                                                            anchors.centerIn: parent
+                                                            width: 18
+                                                            height: 18
+                                                            source: muteButton.isMuted ? imagesPath + "muted.png" : imagesPath + "unmuted.png"
+                                                            sourceSize.width: 18
+                                                            sourceSize.height: 18
+                                                            opacity: muteButton.down ? 0.7 : 1.0
+                                                            fillMode: Image.PreserveAspectFit
+                                                            Behavior on opacity { NumberAnimation { duration: 100 } }
+                                                        }
+
+                                                        onClicked: {
+                                                            muteButton.scale = 0.95
+                                                        
+                                                            if (trackVolumeDial.value > 0) {
+                                                                // Сохраняем текущую громкость и устанавливаем 0
+                                                                trackContainer.lastVolume = trackVolumeDial.value
+                                                                trackVolumeDial.value = 0
+                                                                viewModel.setTrackMute(index, true)
+                                                            } else {
+                                                                // Восстанавливаем последнюю громкость
+                                                                trackVolumeDial.value = trackContainer.lastVolume
+                                                                viewModel.setTrackMute(index, false)
+                                                            }
+                                                        }
+                                                    
+                                                        Behavior on scale {
+                                                            NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
+                                                        }
+                                                    }
+
+                                                    // Кнопка Solo
+                                                    RoundButton {
+                                                        id: soloButton
+                                                        width: 30
+                                                        height: 30
+                                                        radius: width / 2
+                                                        ToolTip.visible: hovered
+                                                        ToolTip.delay: 500
+                                                        ToolTip.text: "Solo"
+                                                    
+                                                        background: Rectangle {
+                                                            radius: parent.radius
+                                                            color: soloButton.hovered ? "#d0d0d0" : "transparent"
+                                                            border.color: soloButton.hovered ? "#a0a0a0" : "transparent"
+                                                            border.width: 1
+                                                        
+                                                            Behavior on color {
+                                                                ColorAnimation { duration: 100 }
+                                                            }
+                                                            Behavior on border.color {
+                                                                ColorAnimation { duration: 100 }
+                                                            }
+                                                        }
+
+                                                        Image {
+                                                            anchors.centerIn: parent
+                                                            width: 18
+                                                            height: 18
+                                                            source: imagesPath + "solo.png"
+                                                            sourceSize.width: 18
+                                                            sourceSize.height: 18
+                                                            opacity: soloButton.down ? 0.7 : 1.0
+                                                            fillMode: Image.PreserveAspectFit
+                                                        
+                                                            Behavior on opacity {
+                                                                NumberAnimation { duration: 100 }
+                                                            }
+                                                        }
+
+                                                        onClicked: {
+                                                            soloButton.scale = 0.95
+                                                            viewModel.toggleSolo(index)
+                                                        }
+                                                    
+                                                        Behavior on scale {
+                                                            NumberAnimation { 
+                                                                duration: 100
+                                                                easing.type: Easing.OutQuad 
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
