@@ -110,9 +110,15 @@ void MidiMessageModel::rebuildNoteList() {
         const auto& clips = database[m_trackIndex].clips;
         if (m_clipIndex >= 0 && m_clipIndex < clips.size()) {
             if (auto* midiClip = dynamic_cast<Engine::MidiClip*>(clips[m_clipIndex].get())) {
+                m_clipDuration = midiClip->durationBeats;
                 std::map<std::pair<int, int>, double> noteOnTimes;
+                qDebug() << "Total events in midiSequence: " << midiClip->midiSequence.getNumEvents();
                 for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
                     auto* event = midiClip->midiSequence.getEventPointer(i);
+                    qDebug() << "Event " << i << ": type=" << (event->message.isNoteOn() ? "noteOn" : event->message.isNoteOff() ? "noteOff" : "other")
+                        << ", noteNumber=" << event->message.getNoteNumber()
+                        << ", channel=" << event->message.getChannel()
+                        << ", time=" << event->message.getTimeStamp();
                     if (event->message.isNoteOn()) {
                         noteOnTimes[{event->message.getChannel(), event->message.getNoteNumber()}] = event->message.getTimeStamp();
                     }
@@ -124,22 +130,29 @@ void MidiMessageModel::rebuildNoteList() {
                             double startBeats = m_engine.SecondsToBeats(noteOnTimes[key]);
                             double endBeats = m_engine.SecondsToBeats(event->message.getTimeStamp());
                             double durationBeats = endBeats - startBeats;
+                            if (durationBeats <= 0) {
+                                qWarning() << "Skipping invalid note: noteNumber=" << noteNumber
+                                    << ", startBeats=" << startBeats
+                                    << ", endBeats=" << endBeats;
+                                continue;
+                            }
                             float velocity = event->message.getVelocity() / 127.0f;
-
-                            // Добавляем только ноты, которые не превышают текущую длительность клипа
-                            if (startBeats + durationBeats <= m_clipDuration) {
-                                m_notes.push_back({ noteNumber, startBeats, durationBeats, velocity, channel });
-                            }
-                            else {
-                                qWarning() << "MidiMessageModel: Skipping note exceeding clipDuration=" << m_clipDuration
-                                    << " startBeats=" << startBeats << " durationBeats=" << durationBeats;
-                            }
+                            m_notes.push_back({ noteNumber, startBeats, durationBeats, velocity, channel });
+                            qDebug() << "Added note: noteNumber=" << noteNumber
+                                << ", startBeats=" << startBeats
+                                << ", durationBeats=" << durationBeats
+                                << ", velocity=" << velocity
+                                << ", channel=" << channel;
+                        }
+                        else {
+                            qWarning() << "No matching noteOn for noteOff: noteNumber=" << noteNumber
+                                << ", channel=" << channel
+                                << ", time=" << event->message.getTimeStamp();
                         }
                     }
                 }
-                // Синхронизируем m_clipDuration с MidiClip::durationBeats
-                m_clipDuration = midiClip->durationBeats;
                 qDebug() << "MidiMessageModel: Loaded" << m_notes.size() << "notes, clipDuration=" << m_clipDuration;
+                emit clipDurationChanged();
             }
             else {
                 qWarning() << "MidiMessageModel: Clip is not a MidiClip at trackIndex=" << m_trackIndex << "clipIndex=" << m_clipIndex;
