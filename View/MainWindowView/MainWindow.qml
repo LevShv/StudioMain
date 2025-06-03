@@ -784,8 +784,9 @@ Window {
                 // Левая панель (FileBrowser)
                 Rectangle {
                     id: fileBrowserContainer
-                    SplitView.minimumWidth: 200
-                    SplitView.preferredWidth: 250
+                    SplitView.minimumWidth: 150
+                    SplitView.preferredWidth: 200
+                    SplitView.maximumWidth: 250
                     color: "transparent"
 
                     Browser {
@@ -1700,10 +1701,11 @@ Window {
                                                                     anchors.right: parent.right
                                                                     height: parent.height * 0.2
 
-                                                                    Label {
+                                                                   Label {
                                                                         id: clipLabel
                                                                         anchors.left: parent.left
-                                                                        anchors.verticalCenter: parent.verticalCenter
+                                                                        anchors.top: parent.top  // Фиксируем сверху вместо verticalCenter
+                                                                        topPadding: 3  // Добавляем отступ сверху
                                                                         leftPadding: 5
                                                                         text: {
                                                                             if (!model.file) return "MIDI Clip";
@@ -1716,8 +1718,8 @@ Window {
                                                                         elide: Text.ElideRight
                                                                         maximumLineCount: 1
                                                                         opacity: 1
-                                                                      /*   style: Text.Outline
-                                                                        styleColor: "#000000" */
+                                                                        style: Text.Outline
+                                                                        styleColor: "#000000"
                                                                         renderType: Text.NativeRendering
                                                                         smooth: true
                                                                         visible: clipRectangle.isLabelVisible
