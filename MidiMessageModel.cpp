@@ -33,6 +33,15 @@ void MidiMessageModel::setClipIndex(int index) {
     if (m_clipIndex != index) {
         m_clipIndex = index;
         qDebug() << "MidiMessageModel: Set clipIndex to" << m_clipIndex;
+        const auto& database = m_engine.GetdataBase();
+        if (m_trackIndex >= 0 && m_trackIndex < database.size()) {
+            const auto& clips = database[m_trackIndex].clips;
+            if (m_clipIndex >= 0 && m_clipIndex < clips.size()) {
+                if (auto* midiClip = dynamic_cast<Engine::MidiClip*>(clips[m_clipIndex].get())) {
+                    m_engine.cleanMidiSequence(midiClip); // Очистка при смене клипа
+                }
+            }
+        }
         emit clipIndexChanged();
         refresh();
     }
@@ -111,7 +120,7 @@ void MidiMessageModel::rebuildNoteList() {
         if (m_clipIndex >= 0 && m_clipIndex < clips.size()) {
             if (auto* midiClip = dynamic_cast<Engine::MidiClip*>(clips[m_clipIndex].get())) {
                 m_clipDuration = midiClip->durationBeats;
-                std::map<std::pair<int, int>, double> noteOnTimes;
+                std::map<std::pair<int, int>, std::pair<double, float>> noteOnTimes; // {channel, noteNumber} -> {time, velocity}
                 qDebug() << "Total events in midiSequence: " << midiClip->midiSequence.getNumEvents();
                 for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
                     auto* event = midiClip->midiSequence.getEventPointer(i);
@@ -120,14 +129,17 @@ void MidiMessageModel::rebuildNoteList() {
                         << ", channel=" << event->message.getChannel()
                         << ", time=" << event->message.getTimeStamp();
                     if (event->message.isNoteOn()) {
-                        noteOnTimes[{event->message.getChannel(), event->message.getNoteNumber()}] = event->message.getTimeStamp();
+                        noteOnTimes[{event->message.getChannel(), event->message.getNoteNumber()}] = {
+                            event->message.getTimeStamp(),
+                            event->message.getVelocity() / 127.0f
+                        };
                     }
                     else if (event->message.isNoteOff()) {
                         int noteNumber = event->message.getNoteNumber();
                         int channel = event->message.getChannel();
                         auto key = std::pair<int, int>{ channel, noteNumber };
                         if (noteOnTimes.count(key)) {
-                            double startBeats = m_engine.SecondsToBeats(noteOnTimes[key]);
+                            double startBeats = m_engine.SecondsToBeats(noteOnTimes[key].first);
                             double endBeats = m_engine.SecondsToBeats(event->message.getTimeStamp());
                             double durationBeats = endBeats - startBeats;
                             if (durationBeats <= 0) {
@@ -136,13 +148,14 @@ void MidiMessageModel::rebuildNoteList() {
                                     << ", endBeats=" << endBeats;
                                 continue;
                             }
-                            float velocity = event->message.getVelocity() / 127.0f;
+                            float velocity = noteOnTimes[key].second;
                             m_notes.push_back({ noteNumber, startBeats, durationBeats, velocity, channel });
                             qDebug() << "Added note: noteNumber=" << noteNumber
                                 << ", startBeats=" << startBeats
                                 << ", durationBeats=" << durationBeats
                                 << ", velocity=" << velocity
                                 << ", channel=" << channel;
+                            noteOnTimes.erase(key);
                         }
                         else {
                             qWarning() << "No matching noteOn for noteOff: noteNumber=" << noteNumber

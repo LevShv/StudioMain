@@ -154,6 +154,8 @@ public:
     double SecondsToBeats(double seconds) const;
     double BeatsToSeconds(double beats) const;
 
+    void cleanMidiSequence(MidiClip* midiClip);
+
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;
 

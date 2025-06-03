@@ -1050,93 +1050,105 @@ void Engine::Core::updateMidiNote(int trackIndex, int clipIndex, int noteIndex, 
 
     auto& clip = tracks[trackIndex].clips[clipIndex];
     if (auto* midiClip = dynamic_cast<MidiClip*>(clip.get())) {
-        // Проверка валидности общего количества событий
-        if (noteIndex < 0 || noteIndex >= midiClip->midiSequence.getNumEvents()) {
-            LOG_ERROR("Invalid noteIndex: " << noteIndex << ", total events: " << midiClip->midiSequence.getNumEvents());
+        // Собираем все пары noteOn/noteOff
+        struct NoteEvent {
+            int noteOnIndex;
+            int noteOffIndex;
+            int noteNumber;
+            int channel;
+            double startTime;
+            double endTime;
+            float velocity;
+        };
+        std::vector<NoteEvent> noteEvents;
+        std::map<std::pair<int, int>, int> noteOnIndices;
+
+        for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
+            auto* event = midiClip->midiSequence.getEventPointer(i);
+            if (event->message.isNoteOn()) {
+                noteOnIndices[{event->message.getChannel(), event->message.getNoteNumber()}] = i;
+            }
+            else if (event->message.isNoteOff()) {
+                auto key = std::pair<int, int>{ event->message.getChannel(), event->message.getNoteNumber() };
+                if (noteOnIndices.count(key)) {
+                    auto* noteOnEvent = midiClip->midiSequence.getEventPointer(noteOnIndices[key]);
+                    noteEvents.push_back({
+                        noteOnIndices[key],
+                        i,
+                        event->message.getNoteNumber(),
+                        event->message.getChannel(),
+                        noteOnEvent->message.getTimeStamp(),
+                        event->message.getTimeStamp(),
+                        noteOnEvent->message.getVelocity() / 127.0f
+                        });
+                    noteOnIndices.erase(key);
+                }
+            }
+        }
+
+        // Проверяем валидность noteIndex
+        if (noteIndex < 0 || noteIndex >= noteEvents.size()) {
+            LOG_ERROR("Invalid noteIndex: " << noteIndex << ", total notes: " << noteEvents.size());
             return;
         }
 
-        // Найти noteOn по индексу, переданному из UI
-        int actualNoteOnIndex = -1;
-        int actualNoteOffIndex = -1;
-        int targetNoteNumber = -1;
-        int targetChannel = -1;
-        for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
-            auto* event = midiClip->midiSequence.getEventPointer(i);
-            if (event->message.isNoteOn() && i == noteIndex) {
-                actualNoteOnIndex = i;
-                targetNoteNumber = event->message.getNoteNumber();
-                targetChannel = event->message.getChannel();
-                break;
-            }
-        }
-
-        if (actualNoteOnIndex == -1) {
-            LOG_ERROR("No noteOn found at index: " << noteIndex);
-            // Попробуем найти noteOn по noteNumber и channel из UI
-            for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
-                auto* event = midiClip->midiSequence.getEventPointer(i);
-                if (event->message.isNoteOn() && event->message.getNoteNumber() == noteNumber && event->message.getChannel() == channel) {
-                    actualNoteOnIndex = i;
-                    targetNoteNumber = noteNumber;
-                    targetChannel = channel;
-                    break;
-                }
-            }
-            if (actualNoteOnIndex == -1) {
-                LOG_ERROR("No matching noteOn found for noteNumber: " << noteNumber << ", channel: " << channel);
-                return;
-            }
-        }
-
-        // Найти соответствующий noteOff
-        for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
-            auto* event = midiClip->midiSequence.getEventPointer(i);
-            if (event->message.isNoteOff() && event->message.getNoteNumber() == targetNoteNumber && event->message.getChannel() == targetChannel) {
-                actualNoteOffIndex = i;
-                break;
-            }
-        }
-
         // Удаляем старую пару noteOn/noteOff
-        if (actualNoteOnIndex != -1) {
-            LOG("Deleting noteOn at index: " << actualNoteOnIndex << ", noteNumber: " << targetNoteNumber);
-            midiClip->midiSequence.deleteEvent(actualNoteOnIndex, false);
-            if (actualNoteOffIndex != -1 && actualNoteOffIndex > actualNoteOnIndex) {
-                actualNoteOffIndex--; // Корректируем индекс после удаления noteOn
-            }
+        auto& noteEvent = noteEvents[noteIndex];
+        LOG("Deleting noteOn at index: " << noteEvent.noteOnIndex << ", noteNumber: " << noteEvent.noteNumber);
+        LOG("Deleting noteOff at index: " << noteEvent.noteOffIndex << ", noteNumber: " << noteEvent.noteNumber);
+        if (noteEvent.noteOffIndex > noteEvent.noteOnIndex) {
+            midiClip->midiSequence.deleteEvent(noteEvent.noteOffIndex, false);
+            midiClip->midiSequence.deleteEvent(noteEvent.noteOnIndex, false);
         }
-        if (actualNoteOffIndex != -1) {
-            LOG("Deleting noteOff at index: " << actualNoteOffIndex << ", noteNumber: " << targetNoteNumber);
-            midiClip->midiSequence.deleteEvent(actualNoteOffIndex, false);
+        else {
+            midiClip->midiSequence.deleteEvent(noteEvent.noteOnIndex, false);
+            midiClip->midiSequence.deleteEvent(noteEvent.noteOffIndex, false);
+        }
+
+        // Используем исходную velocity, если новая velocity равна 0
+        float finalVelocity = (velocity > 0.0f) ? velocity : noteEvent.velocity;
+        if (finalVelocity == 0.0f) {
+            finalVelocity = 0.787402f; // Дефолтное значение, если velocity не задано
+            LOG_WARN("Using default velocity: " << finalVelocity);
         }
 
         // Добавляем новую ноту
         double startTimeSeconds = beatsToSeconds(startBeats);
         double endTimeSeconds = beatsToSeconds(startBeats + durationBeats);
-        LOG("Adding noteOn: noteNumber=" << noteNumber << ", time=" << startTimeSeconds);
+        LOG("Adding noteOn: noteNumber=" << noteNumber << ", time=" << startTimeSeconds << ", velocity=" << finalVelocity);
         LOG("Adding noteOff: noteNumber=" << noteNumber << ", time=" << endTimeSeconds);
-        midiClip->midiSequence.addEvent(juce::MidiMessage::noteOn(channel, noteNumber, velocity), startTimeSeconds);
+        midiClip->midiSequence.addEvent(juce::MidiMessage::noteOn(channel, noteNumber, finalVelocity), startTimeSeconds);
         midiClip->midiSequence.addEvent(juce::MidiMessage::noteOff(channel, noteNumber), endTimeSeconds);
 
         // Синхронизируем пары
         midiClip->midiSequence.updateMatchedPairs();
 
-        // Сохраняем текущую длительность клипа
-        double originalDuration = midiClip->duration;
+        // Логируем содержимое midiSequence
+        LOG("Current midiSequence events after update:");
+        for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
+            auto* event = midiClip->midiSequence.getEventPointer(i);
+            LOG("Event " << i << ": type=" << (event->message.isNoteOn() ? "noteOn" : event->message.isNoteOff() ? "noteOff" : "other")
+                << ", noteNumber=" << event->message.getNoteNumber()
+                << ", channel=" << event->message.getChannel()
+                << ", time=" << event->message.getTimeStamp()
+                << ", velocity=" << (event->message.isNoteOn() ? event->message.getVelocity() / 127.0f : 0.0f));
+        }
+
         // Обновляем длительность клипа
         double maxEndTime = 0.0;
         for (const auto& event : midiClip->midiSequence) {
             maxEndTime = juce::jmax(maxEndTime, event->message.getTimeStamp());
         }
-        midiClip->duration = juce::jmax(originalDuration, maxEndTime + 0.1);
+        midiClip->duration = juce::jmax(midiClip->duration, maxEndTime + 0.1);
         midiClip->durationBeats = secondsToBeats(midiClip->duration);
 
         updateActiveClips();
         LOG("Updated MIDI note, new durationBeats: " << midiClip->durationBeats);
     }
+    else {
+        LOG_ERROR("Clip is not a MidiClip");
+    }
 }
-
 void Engine::Core::setBPM(double newBPM) {
     if (newBPM > 0.0) {
         bpm = newBPM;
@@ -1619,6 +1631,64 @@ double Engine::SecondsToBeats(double seconds) const
 double Engine::BeatsToSeconds(double beats) const
 {
     return core.beatsToSeconds(beats);
+}
+
+void Engine::cleanMidiSequence(MidiClip* midiClip) {
+    std::vector<int> eventsToDelete;
+    std::map<std::pair<int, int>, std::pair<double, int>> noteOnTimes; // {channel, noteNumber} -> {time, index}
+
+    // Собираем все noteOn с их индексами
+    for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
+        auto* event = midiClip->midiSequence.getEventPointer(i);
+        if (event->message.isNoteOn()) {
+            noteOnTimes[{event->message.getChannel(), event->message.getNoteNumber()}] = { event->message.getTimeStamp(), i };
+        }
+    }
+
+    // Проверяем noteOff и помечаем те, у которых нет noteOn
+    for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
+        auto* event = midiClip->midiSequence.getEventPointer(i);
+        if (event->message.isNoteOff()) {
+            auto key = std::pair<int, int>{ event->message.getChannel(), event->message.getNoteNumber() };
+            if (!noteOnTimes.count(key)) {
+                LOG_WARN("Removing unmatched noteOff: noteNumber=" << event->message.getNoteNumber()
+                    << ", channel=" << event->message.getChannel()
+                    << ", time=" << event->message.getTimeStamp());
+                eventsToDelete.push_back(i);
+            }
+        }
+    }
+
+    // Удаляем noteOff без noteOn в обратном порядке
+    for (auto it = eventsToDelete.rbegin(); it != eventsToDelete.rend(); ++it) {
+        midiClip->midiSequence.deleteEvent(*it, false);
+    }
+
+    // Проверяем noteOn без noteOff и добавляем noteOff
+    for (const auto& [key, timeAndIndex] : noteOnTimes) {
+        bool hasNoteOff = false;
+        for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
+            auto* event = midiClip->midiSequence.getEventPointer(i);
+            if (event->message.isNoteOff() &&
+                event->message.getChannel() == key.first &&
+                event->message.getNoteNumber() == key.second &&
+                event->message.getTimeStamp() > timeAndIndex.first) {
+                hasNoteOff = true;
+                break;
+            }
+        }
+        if (!hasNoteOff) {
+            LOG_WARN("Adding missing noteOff for noteOn: noteNumber=" << key.second
+                << ", channel=" << key.first << ", time=" << timeAndIndex.first);
+            midiClip->midiSequence.addEvent(
+                juce::MidiMessage::noteOff(key.first, key.second),
+                timeAndIndex.first + BeatsToSeconds(0.25) // Дефолтная длительность 0.25 beats
+            );
+        }
+    }
+
+    midiClip->midiSequence.updateMatchedPairs();
+    LOG("After cleanMidiSequence, total events: " << midiClip->midiSequence.getNumEvents());
 }
 
 #pragma endregion
