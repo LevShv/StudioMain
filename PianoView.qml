@@ -318,6 +318,7 @@ Item {
                 Repeater {
                     model: viewModel.midiModel
                     delegate: Rectangle {
+                        id: noteRect
                         x: model.startBeats * (beatWidth * divisionsPerBeat) // startBeats в битах, умножаем на количество делений
                         y: (127 - model.noteNumber) * 20
                         width: model.durationBeats * (beatWidth * divisionsPerBeat) // durationBeats в битах
@@ -332,8 +333,14 @@ Item {
                                       "startBeats=", model.startBeats, "durationBeats=", model.durationBeats)
                         }
 
+                        property real tempDurationBeats: model.durationBeats
+                        property var snapIndex: 16
+
                         MouseArea {
-                            anchors.fill: parent
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            anchors.right: resizeArea.left // Не перекрываем resizeArea
                             drag.target: parent
                             drag.axis: Drag.XAndYAxis
                             drag.minimumX: 0
@@ -352,7 +359,7 @@ Item {
                                 if (drag.active && mouse.buttons === Qt.LeftButton) {
                                     // Упрощенный расчет - contentX/contentY уже учтены в parent.x/parent.y
                                     let newStartBeats = parent.x / (beatWidth * divisionsPerBeat)
-                                    let snappedStart = Math.round(newStartBeats * divisionsPerBeat) / divisionsPerBeat
+                                    let snappedStart = Math.round(newStartBeats * snapIndex) / snapIndex
                                     let newNoteNumber = 127 - Math.floor(parent.y / 20)
                                     newNoteNumber = Math.max(0, Math.min(127, newNoteNumber))
                                     
@@ -368,7 +375,7 @@ Item {
                             onReleased: {
                                 if (mouse.button === Qt.LeftButton) {
                                     let newStartBeats = parent.x / (beatWidth * divisionsPerBeat)
-                                    let snappedStart = Math.round(newStartBeats * divisionsPerBeat) / divisionsPerBeat
+                                    let snappedStart = Math.round(newStartBeats * snapIndex) / snapIndex
                                     let newNoteNumber = 127 - Math.floor(parent.y / 20)
                                     newNoteNumber = Math.max(0, Math.min(127, newNoteNumber))
                                     
@@ -380,12 +387,64 @@ Item {
                                 
                             }
                             onClicked: {
-                            if (mouse.button === Qt.RightButton) {
-                                console.log("PianoView: Right-clicked note: noteNumber=", model.noteNumber,
-                                        "startBeats=", model.startBeats, "index=", index)
-                                viewModel.midiModel.deleteNote(index)
+                                if (mouse.button === Qt.RightButton) {
+                                    console.log("PianoView: Right-clicked note: noteNumber=", model.noteNumber,
+                                            "startBeats=", model.startBeats, "index=", index)
+                                    viewModel.midiModel.deleteNote(index)
+                                }
                             }
                         }
+
+                        MouseArea {
+                            id: resizeArea
+                            x: parent.width - 5 // Фиксированное положение на правом краю
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            width: 5 // Фиксированная ширина
+                            z: 5 // Выше dragArea
+                            cursorShape: Qt.SizeHorCursor
+                            hoverEnabled: true
+
+                            onPressed: {
+                                if (mouse.button === Qt.LeftButton) {
+                                    console.log("PianoView: Resizing note: noteNumber=", model.noteNumber,
+                                            "startBeats=", model.startBeats, "durationBeats=", model.durationBeats,
+                                            "index=", index)
+                                }
+                            }
+
+                            onPositionChanged: {
+                               if (pressed && mouse.buttons === Qt.LeftButton) {
+                                    let absoluteX = parent.x + mouse.x
+                                    let newEndBeats = absoluteX / (beatWidth * divisionsPerBeat)
+                                    let snappedEnd = Math.round(newEndBeats * snapIndex) / snapIndex // Прилипание к 1/4 ноты
+                                    let newDurationBeats = snappedEnd - model.startBeats
+                                    newDurationBeats = Math.max(0.01, newDurationBeats) // Минимальная длительность почти любая
+                                    
+                                    // Обновляем ширину в реальном времени
+                                    noteRect.tempDurationBeats = newDurationBeats
+                                    noteRect.width = noteRect.tempDurationBeats * beatWidth * divisionsPerBeat
+                                    
+                                    console.log("PianoView: Resizing note: index=", index,
+                                            "newDurationBeats=", newDurationBeats, "absoluteX=", absoluteX,
+                                            "contentX=", pianoRollFlickable.contentX)
+                                }
+                            }
+
+                            onReleased: {
+                                    if (mouse.button === Qt.LeftButton) {
+                                    let absoluteX = parent.x + mouse.x
+                                    let newEndBeats = absoluteX / (beatWidth * divisionsPerBeat)
+                                    let snappedEnd = Math.round(newEndBeats * snapIndex) / snapIndex // Прилипание к 1/4 ноты
+                                    let newDurationBeats = snappedEnd - model.startBeats
+                                    newDurationBeats = Math.max(0.01, newDurationBeats)
+                                    
+                                    console.log("PianoView: Updating note duration at index=", index,
+                                            "newDurationBeats=", newDurationBeats)
+                                    viewModel.midiModel.updateNote(index, model.noteNumber, model.startBeats,
+                                                                newDurationBeats, model.velocity, model.channel)
+                                }
+                            }
                         }
 
                         MouseArea {
