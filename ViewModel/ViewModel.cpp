@@ -112,6 +112,9 @@ void ViewModel::openPluginEditor(int trackIndex, int pluginIndex) {
         QWindow* pluginWindow = new QWindow();
         pluginWindow->setTitle(QString("Plugin Editor - Track %1, Plugin %2").arg(trackIndex + 1).arg(pluginIndex + 1));
 
+        // Устанавливаем флаги для стандартного окна с заголовком и кнопками
+        pluginWindow->setFlags(Qt::Window | Qt::WindowTitleHint | Qt::WindowCloseButtonHint | Qt::WindowSystemMenuHint);
+
         auto* component = dynamic_cast<juce::Component*>(editor);
         if (component) {
             component->addToDesktop(0);

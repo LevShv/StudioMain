@@ -1381,7 +1381,7 @@ Window {
 
                                                                             if (newDurationBeats >= 0.25) {
                                                                                 clipItem.width = newWidth
-                                                                                clipsModel.setData(index, "durationBeats", newDurationBeats)
+                                                                               clipsModel.setData(clipsModel.index(index, 0), newDurationBeats, 258) // 258 = Qt::UserRole + 2, если DurationBeatsRole = 258
                                                                                 // Обновляем волноформу
                                                                                 if (model.type === "audio") {
                                                                                     waveformImage.source = "" // Очищаем перед обновлением
@@ -1479,7 +1479,7 @@ Window {
                                                                     if (drag.active) {
                                                                         var newX = clipItem.x
                                                                         var newPosition = flickableArea.beatWidth > 0 ? newX / flickableArea.beatWidth : 0
-                                                                        clipsModel.setData(index, "startBeats", newPosition)
+                                                                       // clipsModel.setData(index, "startBeats", newPosition)
                                                                         console.log("Dragging: newPosition=", newPosition)
                                                                     }
                                                                 }

@@ -9,7 +9,6 @@
 #pragma region Core
 
 Engine::Core::Core() {
-
     formatManager.registerBasicFormats();
     pluginFormatManager.addDefaultFormats();
 
@@ -23,63 +22,64 @@ Engine::Core::Core() {
         midiOutput = juce::MidiOutput::openDevice(midiOutputs[0].identifier);
     }
 
-    // Создаем треки с корректной семантикой перемещения
-    tracks.reserve(100);
+    // Резервируем место для треков
+    tracks.reserve(6);
+
+    // Создаем 4 аудиотрека (индексы 0–3)
     for (int i = 0; i < 4; i++) {
         Track track;
         track.isMidiTrack = false;
-        ClipBase clip;
         tracks.emplace_back(std::move(track));
         juce::File file("C:\\Users\\llvvv\\source\\repos\\Studio\\StudioMain\\Misc\\Step5.wav");
-        loadAudioClip(i, file, i, 1);
+        loadAudioClip(i, file, 4.0, true); // Аудиоклип с началом в 4 бита
+        LOG_SUCCESS("Added audio track " << i << " with audio clip at startBeats=4.0");
     }
 
-    Track track;
-    ClipBase clip;
-    tracks.emplace_back(std::move(track));
-    track.isMidiTrack = true;
+    // Создаем MIDI-трек 4 (индекс 4)
+    {
+        Track track;
+        track.isMidiTrack = true;
+        tracks.emplace_back(std::move(track));
 
- //   addPluginToTrack(4, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\TAL-Sampler.vst3");
-    
-    juce::MidiMessageSequence sequence;
+        juce::MidiMessageSequence sequence;
+        sequence.addEvent(juce::MidiMessage::noteOn(1, 61, 0.8f), 0.0);  // C4
+        sequence.addEvent(juce::MidiMessage::noteOff(1, 61), 1.0);
+        sequence.addEvent(juce::MidiMessage::noteOn(1, 64, 0.7f), 1.0);  // E4
+        sequence.addEvent(juce::MidiMessage::noteOff(1, 64), 2.0);
+        sequence.addEvent(juce::MidiMessage::noteOn(1, 67, 0.9f), 2.0);  // G4
+        sequence.addEvent(juce::MidiMessage::noteOff(1, 67), 3.0);
+        loadMidiClip(4, sequence, 5.0); // MIDI-клип с началом в 5 битов
+        LOG_SUCCESS("Added MIDI track 4 with MIDI clip at startBeats=5.0");
+    }
 
-    // Добавляем ноту C4 (нота включения + нота выключения)
-    sequence.addEvent(juce::MidiMessage::noteOn(1, 61, 0.8f), 0.0);  // Нота включена на канале 1, нота 60 (C4), velocity 0.8
-    sequence.addEvent(juce::MidiMessage::noteOff(1, 61), 1.0);        // Нота выключена через 1 такт
+    // Создаем MIDI-трек 5 (индекс 5)
+    {
+        Track track;
+        track.isMidiTrack = true;
+        tracks.emplace_back(std::move(track));
 
-    // Добавляем ноту E4
-    sequence.addEvent(juce::MidiMessage::noteOn(1, 64, 0.7f), 1.0);
-    sequence.addEvent(juce::MidiMessage::noteOff(1, 64), 2.0);
+        // Первый MIDI-клип (clipIndex=0)
+        juce::MidiMessageSequence sequence;
+        sequence.addEvent(juce::MidiMessage::noteOn(1, 63, 0.8f), 0.0);  // D4
+        sequence.addEvent(juce::MidiMessage::noteOff(1, 63), 1.0);
+        sequence.addEvent(juce::MidiMessage::noteOn(1, 64, 0.7f), 1.0);  // E4
+        sequence.addEvent(juce::MidiMessage::noteOff(1, 64), 2.0);
+        sequence.addEvent(juce::MidiMessage::noteOn(1, 62, 0.9f), 2.0);  // D4
+        sequence.addEvent(juce::MidiMessage::noteOff(1, 62), 3.0);
+        loadMidiClip(5, sequence, 0.0); // MIDI-клип с началом в 0 битов
+        LOG_SUCCESS("Added MIDI track 5 with MIDI clip at startBeats=0.0");
 
-    // Добавляем ноту G4
-    sequence.addEvent(juce::MidiMessage::noteOn(1, 67, 0.9f), 2.0);
-    sequence.addEvent(juce::MidiMessage::noteOff(1, 67), 3.0);
-	loadMidiClip(4, sequence, 5);
-    
+        // Второй MIDI-клип (clipIndex=1, пустой)
+        juce::MidiMessageSequence emptySequence;
+        loadMidiClip(5, emptySequence, 8.0); // Пустой клип с началом в 8 битов
+        LOG_SUCCESS("Added empty MIDI clip to track 5 at startBeats=8.0, clipIndex=1");
+    }
 
-    Track track2;
-    ClipBase clip2;
-    tracks.emplace_back(std::move(track2));
-    track2.isMidiTrack = true;
-
-    juce::MidiMessageSequence sequence2;
-
-    // Добавляем ноту C4 (нота включения + нота выключения)
-    sequence2.addEvent(juce::MidiMessage::noteOn(1, 63, 0.8f), 0.0);  // Нота включена на канале 1, нота 60 (C4), velocity 0.8
-    sequence2.addEvent(juce::MidiMessage::noteOff(1, 63), 1.0);        // Нота выключена через 1 такт
-
-    // Добавляем ноту E4
-    sequence2.addEvent(juce::MidiMessage::noteOn(1, 64, 0.7f), 1.0);
-    sequence2.addEvent(juce::MidiMessage::noteOff(1, 64), 2.0);
-
-    // Добавляем ноту G4
-    sequence2.addEvent(juce::MidiMessage::noteOn(1, 62, 0.9f), 2.0);
-    sequence2.addEvent(juce::MidiMessage::noteOff(1, 62), 3.0);
-    loadMidiClip(5, sequence2, 0.0);
-    addPluginToTrack(5, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3");
+    // Добавляем плагины к MIDI-трекам
     addPluginToTrack(4, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3");
-    audioSourcePlayer.setSource(this);
+    addPluginToTrack(5, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3");
 
+    audioSourcePlayer.setSource(this);
 }
 
 Engine::Core::~Core() {
@@ -601,49 +601,42 @@ void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file, double 
     tracks[trackIndex].clips.push_back(std::move(clip));
 }
 
-void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence,
-    double startBeats) {
-
+void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startBeats) {
     if (trackIndex < 0 || trackIndex >= tracks.size()) {
-        LOG_ERROR("Invalid track index");
+        LOG_ERROR("Invalid track index: " << trackIndex);
         return;
     }
-    if (!tracks[trackIndex].isMidiTrack) {
-        if (tracks[trackIndex].clips.size() == 0) {
-            tracks[trackIndex].isMidiTrack = true;
-        } 
-        else {
-            LOG_ERROR("This track is not a MIDI track!");
-            return;
-        }
+    if (!tracks[trackIndex].isMidiTrack && !tracks[trackIndex].clips.empty()) {
+        LOG_ERROR("This track is not a MIDI track and contains clips!");
+        return;
     }
 
     auto newClip = std::make_unique<MidiClip>();
     newClip->midiSequence = sequence;
-    newClip->startTime = beatsToSeconds(startBeats); // Переводим биты в секунды
+    newClip->startTime = beatsToSeconds(startBeats);
     newClip->startBeats = startBeats;
     newClip->clipID = newClip->generateClipID();
     LOG("StartBeat for new clip set: " << startBeats);
     LOG("StartTime for new clip set: " << newClip->startTime);
 
- // Устанавливаем опорный BPM ///
-
-    double endTime = 0;
+    double endTime = 0.0;
     for (int i = 0; i < sequence.getNumEvents(); i++) {
         auto event = sequence.getEventPointer(i);
         endTime = juce::jmax(endTime, event->message.getTimeStamp());
     }
 
-    if (endTime == 0) {
+    if (endTime == 0.0) {
+        newClip->durationBeats = 4.0; // Пустой клип: 4 бита
         newClip->duration = beatsToSeconds(4.0);
-        newClip->durationBeats = 4.0;
     }
     else {
         newClip->duration = endTime + 0.1;
         newClip->durationBeats = secondsToBeats(newClip->duration);
     }
-    ///
+
     tracks.at(trackIndex).clips.push_back(std::move(newClip));
+    updateActiveClips();
+  //  LOG_SUCCESS("Loaded MIDI clip: trackIndex=" << trackIndex << ", startBeats=" << startBeats << ", durationBeats=" << newClip->durationBeats);
 }
 
 void Engine::Core::addPluginToTrack(int trackIndex, const juce::String& pluginPath) {
@@ -765,25 +758,30 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double startBeats) {
     }
 }
 
-void Engine::Core::changeMidiclipDuration(int trackIndex, int clipIndex, double newDurationBeats)
-{
+void Engine::Core::changeMidiclipDuration(int trackIndex, int clipIndex, double newDurationBeats) {
+    if (trackIndex < 0 || trackIndex >= tracks.size() ||
+        clipIndex < 0 || clipIndex >= tracks[trackIndex].clips.size()) {
+        LOG_ERROR("Invalid track or clip index: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex);
+        return;
+    }
+
     auto& clip = tracks[trackIndex].clips[clipIndex];
-    auto* midiClip = dynamic_cast<MidiClip*>(clip.get());
-    if (!midiClip) {
-        LOG_ERROR("Clip at trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << " is not a MIDI clip");
-        return;
+    if (auto* midiClip = dynamic_cast<MidiClip*>(clip.get())) {
+        double minDurationBeats = midiClip->minDurationBeats; // Обычно 1 бит
+        if (newDurationBeats < minDurationBeats) {
+            LOG_WARN("Requested duration " << newDurationBeats << " is less than minimum " << minDurationBeats << ". Using minimum.");
+            newDurationBeats = minDurationBeats;
+        }
+
+        midiClip->durationBeats = newDurationBeats;
+        midiClip->duration = beatsToSeconds(newDurationBeats);
+        updateActiveClips();
+        LOG_SUCCESS("Changed MIDI clip duration: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex
+            << ", newDurationBeats=" << newDurationBeats << ", newDurationSeconds=" << midiClip->duration);
     }
-
-    if (newDurationBeats <= 0.0) {
-        LOG_ERROR("Invalid duration: " << newDurationBeats << " beats, duration must be positive");
-        return;
+    else {
+        LOG_ERROR("Clip is not a MIDI clip");
     }
-
-    double newDurationSeconds = beatsToSeconds(newDurationBeats); 
-
-    midiClip->duration = newDurationSeconds;
-    midiClip->durationBeats = newDurationBeats; // Уже в битах
-    LOG("MIDI clip duration changed to " << newDurationSeconds << " seconds (" << newDurationBeats << " beats)");
 }
 
 void Engine::Core::changeAudioclipDuration(int trackIndex, int clipIndex, double newDurationBeats)
@@ -1257,17 +1255,18 @@ void Engine::AddAudioClip(int trackInd, const std::string& path, double startBea
 }
 
 bool Engine::AddMidiClip(int trackInd, double startBeats) {
-
-    if (core.tracks[trackInd].isMidiTrack) {
-        juce::MidiMessageSequence sequence;
-        core.loadMidiClip(trackInd, sequence, startBeats);
-        return true;
-    }
-    else {
-        LOG_WARN("Tracks is not midi");
+    if (trackInd < 0 || trackInd >= core.tracks.size()) {
+        LOG_ERROR("Invalid track index: " << trackInd);
         return false;
     }
-   
+    if (!core.tracks[trackInd].isMidiTrack && !core.tracks[trackInd].clips.empty()) {
+        LOG_WARN("Track is not a MIDI track and contains clips");
+        return false;
+    }
+
+    juce::MidiMessageSequence sequence; // Пустая последовательность
+    core.loadMidiClip(trackInd, sequence, startBeats);
+    return true;
 }
 
 void Engine::StopMix() { core.stop(); }

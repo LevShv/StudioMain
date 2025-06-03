@@ -1,69 +1,53 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts
 
 Item {
-    id: pianoRoll
+id: pianoRoll
     Layout.fillWidth: true
     Layout.fillHeight: true
 
     // Properties passed from MainWindow.qml
     property int trackIndex: 0
     property int clipIndex: 0
-    property real clipDuration: viewModel.midiModel ? viewModel.midiModel.clipDuration : 0.25
+    property real clipDuration: viewModel.midiModel.clipDuration 
     property real beatWidth: 50 // 1/16th beat = 50 pixels
-    readonly property real minClipDuration: 0.25 // Минимальная длина клипа
-
-    function updateContentWidth() {
-        var newContentWidth = Math.max(clipDuration, minClipDuration) * 16 * beatWidth
-        if (pianoRollFlickable.contentWidth !== newContentWidth) {
-            pianoRollFlickable.contentWidth = newContentWidth
-            console.log("PianoView: Updated contentWidth to", newContentWidth, "clipDuration=", clipDuration, "beatWidth=", beatWidth)
-        } else {
-            console.log("PianoView: contentWidth unchanged at", newContentWidth, "clipDuration=", clipDuration)
-        }
-    }
 
     onTrackIndexChanged: {
         console.log("PianoView: trackIndex changed to", trackIndex, "clipDuration=", clipDuration, "contentWidth=", pianoRollFlickable.contentWidth)
-        if (viewModel.midiModel) {
-            viewModel.midiModel.setTrackIndex(trackIndex)
-            viewModel.midiModel.refresh()
-            clipDuration = viewModel.midiModel.clipDuration
-            updateContentWidth()
-        }
+        viewModel.midiModel.setTrackIndex(trackIndex)
+        viewModel.midiModel.refresh()
+        // Обновляем clipDuration при смене трека
+        clipDuration = viewModel.midiModel.clipDuration 
     }
 
     onClipIndexChanged: {
         console.log("PianoView: clipIndex changed to", clipIndex, "clipDuration=", clipDuration, "contentWidth=", pianoRollFlickable.contentWidth)
-        if (viewModel.midiModel) {
-            viewModel.midiModel.setClipIndex(clipIndex)
-            viewModel.midiModel.refresh()
-            clipDuration = viewModel.midiModel.clipDuration
-            updateContentWidth()
-        }
+        viewModel.midiModel.setClipIndex(clipIndex)
+        viewModel.midiModel.refresh()
+        // Обновляем clipDuration при смене клипа
+        clipDuration = viewModel.midiModel.clipDuration 
     }
 
-    onClipDurationChanged: {
-        console.log("PianoView: clipDuration changed to", clipDuration, "contentWidth=", pianoRollFlickable.contentWidth)
-        updateContentWidth()
-        if (viewModel.midiModel) {
-            viewModel.midiModel.refresh()
-        }
+onClipDurationChanged: {
+    console.log("PianoView: clipDuration changed to", clipDuration, "contentWidth=", pianoRollFlickable.contentWidth)
+    pianoRollFlickable.contentWidth = clipDuration * 16 * beatWidth
+    if (viewModel.midiModel) {
+        viewModel.midiModel.refresh()
     }
+}
 
     Component.onCompleted: {
         console.log("PianoView: Initializing with trackIndex=", trackIndex, "clipIndex=", clipIndex, "clipDuration=", clipDuration)
         console.log("PianoView: beatWidth=", beatWidth, "contentWidth=", pianoRollFlickable.contentWidth)
-        if (viewModel.midiModel) {
-            viewModel.midiModel.setTrackIndex(trackIndex)
-            viewModel.midiModel.setClipIndex(clipIndex)
-            viewModel.midiModel.refresh()
-            clipDuration = viewModel.midiModel.clipDuration
-            updateContentWidth()
-        }
+        viewModel.midiModel.setTrackIndex(trackIndex)
+        viewModel.midiModel.setClipIndex(clipIndex)
+        viewModel.midiModel.refresh()
+        // Устанавливаем начальный contentWidth
+        pianoRollFlickable.contentWidth = clipDuration * 16 * beatWidth
     }
-
+    // Setup midiModel from context
     Connections {
         target: viewModel.midiModel
         function onTrackIndexChanged() {
@@ -80,19 +64,15 @@ Item {
         }
         function onClipDurationChanged() {
             console.log("PianoView: midiModel.clipDuration changed to", viewModel.midiModel.clipDuration, "contentWidth=", pianoRollFlickable.contentWidth)
-            clipDuration = viewModel.midiModel.clipDuration
-            updateContentWidth()
-        }
-        function onDataChanged() {
-            console.log("PianoView: Notes changed, refreshing view, clipDuration=", clipDuration)
-            updateContentWidth()
         }
     }
 
+    // Main container
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
+        // Toolbar
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
@@ -106,13 +86,15 @@ Item {
             }
         }
 
+        // Main area
         RowLayout {
             id: pianoRollLayout
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 0
 
-             Flickable {
+            // Piano keys column
+            Flickable {
                 id: pianoKeysFlickable
                 width: 40
                 Layout.fillHeight: true
@@ -177,11 +159,12 @@ Item {
                 }
             }
 
+            // Piano Roll grid
             Flickable {
                 id: pianoRollFlickable
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                contentWidth: clipDuration * 16 * beatWidth
+                contentWidth: clipDuration * 16 * beatWidth // clipDuration in beats * 16 sub-beats * 50 pixels
                 contentHeight: 128 * 20
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -194,22 +177,17 @@ Item {
                     when: !pianoKeysFlickable.movingVertically
                 }
 
-                // Заменяем Binding на Connections для избежания цикла
-                Connections {
-                    target: flickableArea
-                    function onContentXChanged() {
-                        if (!pianoRollFlickable.movingHorizontally) {
-                            pianoRollFlickable.contentX = flickableArea.contentX * (beatWidth / (flickableArea.baseBeatWidth / 16))
-                        }
-                    }
-                }
-                Connections {
+                Binding {
                     target: pianoRollFlickable
-                    function onContentXChanged() {
-                        if (!flickableArea.movingHorizontally) {
-                            flickableArea.contentX = pianoRollFlickable.contentX * ((flickableArea.baseBeatWidth / 16) / beatWidth)
-                        }
-                    }
+                    property: "contentX"
+                    value: flickableArea.contentX * (beatWidth / (flickableArea.baseBeatWidth / 16))
+                    when: !pianoRollFlickable.movingHorizontally
+                }
+                Binding {
+                    target: flickableArea
+                    property: "contentX"
+                    value: pianoRollFlickable.contentX * ((flickableArea.baseBeatWidth / 16) / beatWidth)
+                    when: !flickableArea.movingHorizontally
                 }
 
                 Repeater {
@@ -222,12 +200,13 @@ Item {
                             let note = 127 - index
                             let octaveNote = note % 12
                             if ([1, 3, 6, 8, 10].includes(octaveNote)) {
-                                return "#252525"
+                                return "#252525" // Darker for black keys
                             } else {
-                                return "#2D2D2D"
+                                return "#2D2D2D" // Lighter for white keys
                             }
                         }
 
+                        // Octave separation line
                         Rectangle {
                             width: parent.width
                             height: 1
@@ -238,25 +217,27 @@ Item {
                     }
                 }
 
+                // Vertical lines (beat divisions)
                 Repeater {
-                    model: Math.ceil(clipDuration * 16) + 1
+                    model: Math.ceil(clipDuration * 16) + 1 // Number of 1/16th beats
                     delegate: Rectangle {
                         width: 1
                         height: pianoRollFlickable.contentHeight
                         x: index * beatWidth
                         color: "#444"
-                        property bool isStrongBeat: index % 16 === 0
+                        property bool isStrongBeat: index % 16 === 0 // Every full beat
                         opacity: isStrongBeat ? 0.8 : 0.4
                         visible: isStrongBeat || (index % 2 === 0)
                     }
                 }
 
+                // Notes
                 Repeater {
                     model: viewModel.midiModel
                     delegate: Rectangle {
-                        x: model.startBeats * beatWidth * 16
+                        x: model.startBeats * beatWidth
                         y: (127 - model.noteNumber) * 20
-                        width: model.durationBeats * beatWidth * 16
+                        width: model.durationBeats * beatWidth
                         height: 20
                         color: "#D08770"
                         border.color: "#BF616A"
@@ -279,11 +260,11 @@ Item {
                             }
 
                             onReleased: {
-                                let newStartBeats = parent.x / (beatWidth * 16)
+                                let newStartBeats = parent.x / beatWidth
                                 let snappedStart = Math.round(newStartBeats * 16) / 16
-                                parent.x = snappedStart * beatWidth * 16
+                                parent.x = snappedStart * beatWidth
                                 viewModel.midiModel.updateNote(index, model.noteNumber, snappedStart,
-                                                               model.durationBeats, model.velocity, model.channel)
+                                                            model.durationBeats, model.velocity, model.channel)
                                 console.log("PianoView: Note moved: newStartBeats=", snappedStart)
                             }
                         }
@@ -297,32 +278,34 @@ Item {
                             drag.minimumX: parent.x + 10
 
                             onReleased: {
-                                let newDurationBeats = parent.width / (beatWidth * 16)
+                                let newDurationBeats = parent.width / beatWidth
                                 let snappedDuration = Math.round(newDurationBeats * 16) / 16
-                                parent.width = snappedDuration * beatWidth * 16
+                                parent.width = snappedDuration * beatWidth
                                 viewModel.midiModel.updateNote(index, model.noteNumber, model.startBeats,
-                                                               snappedDuration, model.velocity, model.channel)
+                                                            snappedDuration, model.velocity, model.channel)
                                 console.log("PianoView: Note resized: durationBeats=", snappedDuration)
                             }
                         }
                     }
                 }
 
+                // Playback indicator
                 Rectangle {
                     id: playheadIndicator
                     width: 2
                     height: parent.height
                     color: "red"
-                    x: viewModel.playheadPosition * beatWidth * 16
+                    x: viewModel.playheadPosition * beatWidth
                     z: 5
                     visible: viewModel.isPlaying
                 }
 
+                // Adding new note on click
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
                     onClicked: (mouse) => {
-                        let beat = mouse.x / (beatWidth * 16)
+                        let beat = mouse.x / beatWidth
                         let snappedBeat = Math.round(beat * 16) / 16
                         let noteNumber = 127 - Math.floor(mouse.y / 20)
                         if (noteNumber >= 0 && noteNumber <= 127 && snappedBeat >= 0 && trackIndex >= 0 && clipIndex >= 0) {
@@ -330,11 +313,11 @@ Item {
                             let velocity = Math.min(127, Math.max(1, 100))
                             let channel = 1
                             viewModel.midiModel.addNote(noteNumber, snappedBeat, durationBeats, velocity, channel)
-                            console.log("PianoView: Added note: noteNumber=", noteNumber, "startBeats=", snappedBeat,
+                            console.log("Added note: noteNumber=", noteNumber, "startBeats=", snappedBeat,
                                         "durationBeats=", durationBeats, "velocity=", velocity, "channel=", channel,
                                         "trackIndex=", trackIndex, "clipIndex=", clipIndex)
                         } else {
-                            console.log("PianoView: Invalid note parameters: noteNumber=", noteNumber, "startBeats=", snappedBeat,
+                            console.log("Invalid note parameters: noteNumber=", noteNumber, "startBeats=", snappedBeat,
                                         "trackIndex=", trackIndex, "clipIndex=", clipIndex)
                         }
                     }
@@ -343,6 +326,7 @@ Item {
         }
     }
 
+    // Vertical scrollbar
     ScrollBar {
         anchors.right: parent.right
         anchors.top: parent.top
@@ -357,6 +341,7 @@ Item {
         }
     }
 
+    // Horizontal scrollbar
     ScrollBar {
         anchors.left: parent.left
         anchors.right: parent.right
