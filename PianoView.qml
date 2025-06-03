@@ -12,6 +12,7 @@ Item {
     property int clipIndex: 0
     property real clipDuration: viewModel.midiModel.clipDuration 
     property real beatWidth: 50 // 1/16th beat = 50 pixels
+    property int divisionsPerBeat: 4 // Количество делений на один бит (1/4 ноты)
 
     onTrackIndexChanged: {
         console.log("PianoView: trackIndex changed to", trackIndex, "clipDuration=", clipDuration, "contentWidth=", pianoRollFlickable.contentWidth)
@@ -29,7 +30,7 @@ Item {
 
     onClipDurationChanged: {
         console.log("PianoView: clipDuration changed to", clipDuration, "contentWidth=", pianoRollFlickable.contentWidth)
-        pianoRollFlickable.contentWidth = clipDuration * 16 * beatWidth
+        pianoRollFlickable.contentWidth = clipDuration * divisionsPerBeat * beatWidth
         if (viewModel.midiModel) {
             viewModel.midiModel.refresh()
         }
@@ -41,7 +42,7 @@ Item {
         viewModel.midiModel.setTrackIndex(trackIndex)
         viewModel.midiModel.setClipIndex(clipIndex)
         viewModel.midiModel.refresh()
-        pianoRollFlickable.contentWidth = clipDuration * 16 * beatWidth
+        pianoRollFlickable.contentWidth = clipDuration * divisionsPerBeat * beatWidth
     }
 
     Connections {
@@ -82,8 +83,6 @@ Item {
             }
         }
 
-        // Ruler
-        // Ruler
         // Ruler
         Rectangle {
             Layout.fillWidth: true
@@ -133,14 +132,14 @@ Item {
 
                         // Ruler beat divisions
                         Repeater {
-                            model: Math.ceil(clipDuration * 16) + 1 // Number of 1/16th beats
+                            model: Math.ceil(clipDuration * divisionsPerBeat) + 1 // Number of 1/16th beats
                             delegate: Item {
                                 x: index * beatWidth
                                 width: beatWidth
                                 height: 20
 
-                                property bool isStrongBeat: index % 16 === 0 // Whole beat
-                                property bool isQuarterBeat: index % 4 === 0 // Quarter beat (1/4)
+                                property bool isStrongBeat: index % divisionsPerBeat === 0 // Whole beat
+                                property bool isQuarterBeat: index % (divisionsPerBeat/4) === 0 // Quarter beat (1/4)
 
                                 // Vertical line
                                 Rectangle {
@@ -157,10 +156,10 @@ Item {
                                     y: 2
                                     text: {
                                         if (parent.isStrongBeat) {
-                                            return Math.floor(index / 16)  // Whole beat number (e.g., "1", "2")
+                                            return Math.floor(index / divisionsPerBeat)  // Whole beat number (e.g., "1", "2")
                                         } else if (parent.isQuarterBeat) {
-                                            let quarterBeat = (index % 16) / 4 + 1 // Quarter beat within whole beat
-                                            return Math.floor(index / 16) + 1 + "." + quarterBeat // e.g., "1.1", "1.2", "1.3", "1.4"
+                                            let quarterBeat = (index % divisionsPerBeat) / (divisionsPerBeat/4)  // Quarter beat within whole beat
+                                            return Math.floor(index / divisionsPerBeat) + "." + quarterBeat // e.g., "1.1", "1.2", "1.3", "1.4"
                                         }
                                         return "" // No label for other 1/16th beats
                                     }
@@ -253,7 +252,7 @@ Item {
                 id: pianoRollFlickable
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                contentWidth: clipDuration * 16 * beatWidth
+                contentWidth: clipDuration * divisionsPerBeat * beatWidth
                 contentHeight: 128 * 20
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -272,19 +271,6 @@ Item {
                     property: "contentY"
                     value: pianoRollFlickable.contentY
                     when: !pianoKeysFlickable.movingVertically
-                }
-
-                Binding {
-                    target: pianoRollFlickable
-                    property: "contentX"
-                    value: flickableArea.contentX * (beatWidth / (flickableArea.baseBeatWidth / 16))
-                    when: !pianoRollFlickable.movingHorizontally
-                }
-                Binding {
-                    target: flickableArea
-                    property: "contentX"
-                    value: pianoRollFlickable.contentX * ((flickableArea.baseBeatWidth / 16) / beatWidth)
-                    when: !flickableArea.movingHorizontally
                 }
 
                 Repeater {
@@ -316,26 +302,25 @@ Item {
 
                 // Vertical lines (beat divisions)
                 Repeater {
-                    model: Math.ceil(clipDuration * 16) + 1 // Number of 1/16th beats
+                    model: Math.ceil(clipDuration * divisionsPerBeat) + 1 // Number of 1/16th beats
                     delegate: Rectangle {
                         width: 1
                         height: pianoRollFlickable.contentHeight
                         x: index * beatWidth
                         color: "#444"
-                        property bool isStrongBeat: index % 16 === 0 // Every full beat
+                        property bool isStrongBeat: index % divisionsPerBeat === 0 // Every full beat
                         opacity: isStrongBeat ? 0.8 : 0.4
                         visible: isStrongBeat || (index % 2 === 0)
                     }
                 }
 
                 // Notes
-// Notes
                 Repeater {
                     model: viewModel.midiModel
                     delegate: Rectangle {
-                        x: model.startBeats * beatWidth * 8 // startBeats в 1/16-х долях
+                        x: model.startBeats * (beatWidth * divisionsPerBeat) // startBeats в битах, умножаем на количество делений
                         y: (127 - model.noteNumber) * 20
-                        width: model.durationBeats * beatWidth * 8 // durationBeats в целых битах, умножаем на 16
+                        width: model.durationBeats * (beatWidth * divisionsPerBeat) // durationBeats в битах
                         height: 20
                         color: "#D08770"
                         border.color: "#BF616A"
@@ -343,81 +328,128 @@ Item {
                         z: 4
 
                         Component.onCompleted: {
-                            console.log("PianoView: Note loaded: noteNumber=", model.noteNumber, "startBeats=", model.startBeats, "durationBeats=", model.durationBeats)
+                            console.log("PianoView: Note loaded: noteNumber=", model.noteNumber, 
+                                      "startBeats=", model.startBeats, "durationBeats=", model.durationBeats)
                         }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            drag.target: parent
-                            drag.axis: Drag.XAxis
-                            drag.minimumX: 0
-                            drag.maximumX: pianoRollFlickable.contentWidth - parent.width
+MouseArea {
+    anchors.fill: parent
+    drag.target: parent
+    drag.axis: Drag.XAndYAxis
+    drag.minimumX: 0
+    drag.maximumX: pianoRollFlickable.contentWidth - parent.width
+    drag.minimumY: (127 - 127) * 20 // Минимальная нота (0)
+    drag.maximumY: (127 - 0) * 20   // Максимальная нота (127)
 
-                            onPressed: {
-                                console.log("PianoView: Note selected: noteNumber=", model.noteNumber, "startBeats=", model.startBeats)
-                            }
+    onPressed: {
+        console.log("PianoView: Note selected: noteNumber=", model.noteNumber, 
+                  "startBeats=", model.startBeats, "x=", parent.x, "y=", parent.y);
+    }
 
-                            onReleased: {
-                                let newStartBeats = parent.x / beatWidth
-                                let snappedStart = Math.round(newStartBeats * 16) / 16
-                                parent.x = snappedStart * beatWidth
-                                viewModel.midiModel.updateNote(index, model.noteNumber, snappedStart,
-                                                            model.durationBeats, model.velocity, model.channel)
-                                console.log("PianoView: Note moved: newStartBeats=", snappedStart)
-                            }
-                        }
+    onPositionChanged: {
+        if (drag.active) {
+            // Упрощенный расчет - contentX/contentY уже учтены в parent.x/parent.y
+            let newStartBeats = parent.x / (beatWidth * divisionsPerBeat)
+            let snappedStart = Math.round(newStartBeats * divisionsPerBeat) / divisionsPerBeat
+            let newNoteNumber = 127 - Math.floor(parent.y / 20)
+            newNoteNumber = Math.max(0, Math.min(127, newNoteNumber))
+            
+            // Привязка к сетке
+            parent.x = snappedStart * beatWidth * divisionsPerBeat
+            parent.y = (127 - newNoteNumber) * 20
+            
+            console.log("PianoView: Note dragging: noteNumber=", newNoteNumber, 
+                      "newStartBeats=", snappedStart, "x=", parent.x, "y=", parent.y)
+        }
+    }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            drag.target: parent
-                            drag.axis: Drag.XAxis
-                            drag.minimumX: 0
-                            drag.maximumX: pianoRollFlickable.contentWidth - parent.width
+    onReleased: {
+        let newStartBeats = parent.x / (beatWidth * divisionsPerBeat)
+        let snappedStart = Math.round(newStartBeats * divisionsPerBeat) / divisionsPerBeat
+        let newNoteNumber = 127 - Math.floor(parent.y / 20)
+        newNoteNumber = Math.max(0, Math.min(127, newNoteNumber))
+        
+        viewModel.midiModel.updateNote(index, newNoteNumber, snappedStart,
+                                    model.durationBeats, model.velocity, model.channel)
+        console.log("PianoView: Note moved: noteNumber=", newNoteNumber, 
+                  "newStartBeats=", snappedStart)
+    }
+}
 
-                            onPressed: {
-                                console.log("PianoView: Note selected: noteNumber=", model.noteNumber, "startBeats=", model.startBeats);
-                            }
+MouseArea {
+    width: 10
+    height: parent.height
+    anchors.right: parent.right
+    cursorShape: Qt.SizeHorCursor
+    drag.axis: Drag.XAxis
+    drag.minimumX: parent.x + 10
 
-                            onReleased: {
-                                let newStartBeats = parent.x / (beatWidth * 8); // Учитываем, что startBeats в 1/16 долях
-                                let snappedStart = Math.round(newStartBeats * 16) / 16;
-                                parent.x = snappedStart * beatWidth * 8;
-                                viewModel.midiModel.updateNote(index, model.noteNumber, snappedStart, model.durationBeats, model.velocity, model.channel);
-                                console.log("PianoView: Note moved: newStartBeats=", snappedStart);
-                            }
-                        }
+    onPositionChanged: {
+        if (drag.active) {
+            let newDurationBeats = parent.width / (beatWidth * divisionsPerBeat)
+            let snappedDuration = Math.max(1/divisionsPerBeat, Math.round(newDurationBeats * divisionsPerBeat) / divisionsPerBeat)
+            parent.width = snappedDuration * beatWidth * divisionsPerBeat
+        }
+    }
+
+    onReleased: {
+        let newDurationBeats = parent.width / (beatWidth * divisionsPerBeat)
+        let snappedDuration = Math.max(1/divisionsPerBeat, Math.round(newDurationBeats * divisionsPerBeat) / divisionsPerBeat)
+        parent.width = snappedDuration * beatWidth * divisionsPerBeat
+        viewModel.midiModel.updateNote(index, model.noteNumber, model.startBeats,
+                                    snappedDuration, model.velocity, model.channel)
+        console.log("PianoView: Note resized: durationBeats=", snappedDuration)
+    }
+}
                     }
                 }
 
                 // Playback indicator
                 Rectangle {
-                    id: playheadIndicatorЫ
+                    id: playheadIndicator
                     width: 2
                     height: parent.height
                     color: "red"
-                    x: viewModel.playheadPosition * beatWidth * 8// Предполагается, что playheadPosition в 1/16-х долях
+                    x: viewModel.playheadPosition * beatWidth * divisionsPerBeat
                     z: 5
                     visible: viewModel.isPlaying
                 }
+
                 // Adding new note on click
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
                     onClicked: (mouse) => {
-                        let beat = mouse.x / (beatWidth * 16) // beatWidth для 1/16, делим на 2 для 1/32
-                        let snappedBeat = Math.round(beat * 16) / 16 // Привязка к 1/8 бита (1/32 четвертной)
-                        let noteNumber = 127 - Math.floor(mouse.y / 20)
+                        // Учитываем прокрутку при расчете позиции
+                        let absoluteX = mouse.x //+ pianoRollFlickable.contentX
+                        let absoluteY = mouse.y //+ pianoRollFlickable.contentY
+                        
+                        let beat = absoluteX / (beatWidth * divisionsPerBeat)
+                        let snappedBeat = Math.round(beat * divisionsPerBeat) / divisionsPerBeat // Привязка к 1/4 бита
+                        
+                        // Вычисляем номер ноты с учетом прокрутки
+                        let noteNumber = 127 - Math.floor(absoluteY / 20)
+                        noteNumber = Math.max(0, Math.min(127, noteNumber)) // Ограничиваем диапазон
+                        
                         if (noteNumber >= 0 && noteNumber <= 127 && snappedBeat >= 0 && trackIndex >= 0 && clipIndex >= 0) {
-                            let durationBeats = 1.0 // 1/8 бита = 8 * (1/32)
-                            let velocity = 100 / 127.0 // Приводим к [0, 1]
+                            let durationBeats = 1.0 / divisionsPerBeat // 1/4 бита по умолчанию
+                            let velocity = 100 / 127.0
                             let channel = 1
                             viewModel.midiModel.addNote(noteNumber, snappedBeat, durationBeats, velocity, channel)
-                            console.log("Added note: noteNumber=", noteNumber, "startBeats=", snappedBeat,
-                                        "durationBeats=", durationBeats, "velocity=", velocity, "channel=", channel,
-                                        "trackIndex=", trackIndex, "clipIndex=", clipIndex)
+                            console.log("Added note: noteNumber=", noteNumber, 
+                                    "startBeats=", snappedBeat,
+                                    "xPos=", snappedBeat * beatWidth * divisionsPerBeat,
+                                    "mouse.x=", mouse.x, 
+                                    "contentX=", pianoRollFlickable.contentX,
+                                    "absoluteX=", absoluteX,
+                                    "mouse.y=", mouse.y,
+                                    "contentY=", pianoRollFlickable.contentY,
+                                    "absoluteY=", absoluteY)
                         } else {
-                            console.log("Invalid note parameters: noteNumber=", noteNumber, "startBeats=", snappedBeat,
-                                        "trackIndex=", trackIndex, "clipIndex=", clipIndex)
+                            console.log("Invalid note parameters: noteNumber=", noteNumber, 
+                                    "startBeats=", snappedBeat,
+                                    "trackIndex=", trackIndex, 
+                                    "clipIndex=", clipIndex)
                         }
                     }
                 }
