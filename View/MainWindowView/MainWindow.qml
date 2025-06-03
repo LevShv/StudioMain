@@ -35,6 +35,14 @@ Window {
     property bool separatorVisible: false
     signal clearSelectedClipsRequested()
 
+    Component.onCompleted: {
+        console.log("viewModel object:", viewModel)
+        console.log("viewModel.pluginModel object:", viewModel.pluginModel)
+        if (viewModel) {
+            console.log("viewModel signals:", Object.keys(viewModel))
+        }
+    }
+
     Connections {
         target: mainWindow
         function onClearSelectedClipsRequested() {
@@ -42,28 +50,28 @@ Window {
             mainWindow.selectedClips = []
             console.log("selectedClips cleared, new count=" + mainWindow.selectedClips.length)
         }
-    }
 
-    function clearSelectedClips() {
-        console.log("clearSelectedClips called, previous selectedClips count=" + mainWindow.selectedClips.length)
-        mainWindow.selectedClips = []
-        console.log("selectedClips cleared, new count=" + mainWindow.selectedClips.length)
-    }
-
-    Component.onCompleted: {
-        console.log("MainWindow dragParent:", dragParent)
     }
 
     Connections {
         target: viewModel
-        function onIsPlayingChanged() {
-            console.log("Playback state changed, isPlaying:", viewModel.isPlaying, "position:", viewModel.playheadPosition)
+        onPluginAdded: function(trackIndex) {
+            console.log("Plugin added to track:", trackIndex, "Current selectedTrackIndex:", selectedTrackIndex, "separatorVisible:", separatorVisible)
+            if (!viewModel || !viewModel.pluginModel) {
+                console.error("viewModel or pluginModel is null!")
+                return;
+            }
+            viewModel.pluginModel.setTrackIndex(trackIndex);
+            console.log("Updated PluginModel for track:", trackIndex)
+            if (selectedTrackIndex !== trackIndex) {
+                selectedTrackIndex = trackIndex;
+                console.log("Synchronized selectedTrackIndex to:", trackIndex)
+            }
+            separatorVisible = true;
+            console.log("Set separatorVisible to true")
         }
-        function onPluginAdded(trackIndex) {
-            console.log("Plugin added to track:", trackIndex)
-        }
-        function onPluginEditorOpened(trackIndex, pluginIndex, window) {
-            // Создаем динамическое окно для плагина
+
+        onPluginEditorOpened: function(trackIndex, pluginIndex, window) {
             var component = Qt.createComponent("PluginEditorWindow.qml")
             if (component.status === Component.Ready) {
                 var pluginWindow = component.createObject(mainWindow, {
@@ -76,6 +84,34 @@ Window {
                 console.error("Failed to create PluginEditorWindow:", component.errorString())
             }
         }
+
+        onClipMoved: function(trackIndex, clipIndex, newStartTime) {
+            if (trackIndex === selectedTrackIndex) {
+                viewModel.pluginModel.setTrackIndex(trackIndex);
+            }
+        }
+
+        onClipAdded: function(trackIndex) {
+            if (trackIndex === selectedTrackIndex) {
+                viewModel.pluginModel.setTrackIndex(trackIndex);
+            }
+        }
+
+        onClipDeleted: function(trackIndex, clipIndex) {
+            if (trackIndex === selectedTrackIndex) {
+                viewModel.pluginModel.setTrackIndex(trackIndex);
+            }
+        }
+
+        onIsPlayingChanged: function() {
+            console.log("Playback state changed, isPlaying:", viewModel.isPlaying, "position:", viewModel.playheadPosition)
+        }
+    }
+
+    function clearSelectedClips() {
+        console.log("clearSelectedClips called, previous selectedClips count=" + mainWindow.selectedClips.length)
+        mainWindow.selectedClips = []
+        console.log("selectedClips cleared, new count=" + mainWindow.selectedClips.length)
     }
 
     ColumnLayout {
@@ -2426,7 +2462,8 @@ Window {
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Repeater {
-                                    model: 10  // 10 экземпляров групп кнопок
+                                    model: viewModel.pluginModel
+                                    onCountChanged: console.log("Repeater count changed to:", count)
 
                                     // Контейнер для группы кнопок (FX контейнер)
                                     Rectangle {
@@ -2442,7 +2479,7 @@ Window {
                                         // Label сверху
                                         Text {
                                             id: fxLabel
-                                            text: "FX " + (index + 1)
+                                            text: model.name || "FX " + (index + 1)
                                             color: "#ECEFF4"
                                             font {
                                                 family: "Tahoma"
@@ -2494,7 +2531,12 @@ Window {
                                                     anchors.fill: parent
                                                 }
 
-                                                onClicked: {}  // Пустой обработчик для будущих добавлений
+                                                onClicked: {
+                                                    if (model.trackIndex >= 0 && model.pluginIndex >= 0) {
+                                                        viewModel.openPluginEditor(model.trackIndex, model.pluginIndex);
+                                                        console.log("Opening plugin editor: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex);
+                                                    }
+                                                }
                                             }
 
                                             // Круглая кнопка (с иконкой minus)
@@ -2526,6 +2568,14 @@ Window {
                                                     sourceSize.height: 16
                                                     opacity: parent.down ? 0.7 : 1.0
                                                     fillMode: Image.PreserveAspectFit
+                                                }
+
+                                                onClicked: {
+                                                    if (model.trackIndex >= 0 && model.pluginIndex >= 0) {
+                                                        viewModel.deletePlugin(model.trackIndex, model.pluginIndex);
+                                                        viewModel.pluginModel.refresh();
+                                                        console.log("Deleted plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex);
+                                                    }
                                                 }
                                             }
                                         }

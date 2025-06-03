@@ -9,6 +9,7 @@ ViewModel::ViewModel(QObject* parent) : QObject(parent) {
 
     m_trackModel = new TrackModel(engine, this);
     m_midiModel = new MidiMessageModel(engine, this);
+    m_pluginModel = new PluginModel(engine, this);
 
     m_playheadTimer = new QTimer(this);
     connect(m_playheadTimer, &QTimer::timeout, this, &ViewModel::updatePlayhead);
@@ -98,13 +99,29 @@ void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBe
 }
 
 void ViewModel::addPlugin(int trackIndex, const QString& pluginPath) {
+    qDebug() << "ViewModel: Adding plugin to track" << trackIndex << "path:" << pluginPath;
     engine.AddPluginToTrack(trackIndex, pluginPath.toStdString());
+    qDebug() << "ViewModel: Plugin added to Engine for track" << trackIndex;
     emit pluginAdded(trackIndex);
+    qDebug() << "ViewModel: Emitted pluginAdded for track" << trackIndex;
 }
 
 void ViewModel::togglePluginBypass(int trackIndex, int pluginIndex) {
     engine.TogglePluginBypass(trackIndex, pluginIndex);
     emit pluginBypassed(trackIndex, pluginIndex);
+}
+
+void ViewModel::deletePlugin(int trackIndex, int pluginIndex) {
+    if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
+        engine.RemovePluginFromTrack(trackIndex, pluginIndex); // Предполагаемый метод в Engine
+        m_pluginModel->refresh(); // Обновляем модель плагинов
+        emit pluginRemoved(trackIndex, pluginIndex);
+        qDebug() << "Plugin deleted: trackIndex=" << trackIndex << "pluginIndex=" << pluginIndex;
+    }
+    else {
+        qWarning() << "Invalid track index for plugin deletion:" << trackIndex;
+    }
+    emit pluginAdded(trackIndex);
 }
 
 void ViewModel::openPluginEditor(int trackIndex, int pluginIndex) {

@@ -7,6 +7,7 @@
 #include <QTimer>
 #include <QWindow>
 #include "MidiMessageModel.h" // Добавляем для MidiMessageModel
+#include "PluginModel.h"
 
 class ViewModel : public QObject {
     Q_OBJECT
@@ -15,6 +16,7 @@ class ViewModel : public QObject {
         Q_PROPERTY(double playheadPosition READ playheadPosition NOTIFY playheadPositionChanged)
         Q_PROPERTY(TrackModel* trackModel READ trackModel CONSTANT)
         Q_PROPERTY(MidiMessageModel* midiModel READ midiModel CONSTANT) // Свойство для midiModel
+        Q_PROPERTY(PluginModel* pluginModel READ pluginModel CONSTANT)
 
 public:
     explicit ViewModel(QObject* parent = nullptr);
@@ -23,6 +25,7 @@ public:
     MidiMessageModel* midiModel() const { return m_midiModel; } // Геттер для midiModel
     double playheadPosition() const { return m_playheadPosition; }
     Engine* getEngine() { return &engine; } // Оставляем для других случаев
+    PluginModel* pluginModel() const { return m_pluginModel; }
 
     Q_INVOKABLE void togglePlayback();
     Q_INVOKABLE void setPlayheadPosition(double position);
@@ -37,6 +40,7 @@ public:
     Q_INVOKABLE void addPlugin(int trackIndex, const QString& pluginPath);
     Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
     Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
+    Q_INVOKABLE void deletePlugin(int trackIndex, int pluginIndex);
 
     Q_INVOKABLE void deleteTrack(int trackIndex);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);
@@ -56,6 +60,7 @@ public:
     Q_INVOKABLE QString applicationHomeFolder() const;
 
 
+    
    
 
     bool isPlaying() const;
@@ -73,6 +78,8 @@ signals:
     void pluginEditorOpened(int trackIndex, int pluginIndex, QWindow* window);
     void trackAdded(int trackIndex); 
     void clipDurationChanged(int trackIndex,int clipIndex, double newDuration);
+    void pluginRemoved(int trackIndex, int pluginIndex);
+
 private slots:
     void updatePlayhead();
 
@@ -82,6 +89,7 @@ private:
     Engine engine;
     TrackModel* m_trackModel;
     MidiMessageModel* m_midiModel; // Добавляем midiModel
+    PluginModel* m_pluginModel;
 	double m_bpm = 120.0; // Инициализация BPM
     double m_playheadPosition = engine.Position();
     bool m_isPlaying = false;

@@ -37,12 +37,12 @@ int main(int argc, char *argv[])
 
 	qmlRegisterType<FileBrowser>("FileBrowser", 1, 0, "FileBrowser");
 	qmlRegisterType<TimelinePainter>("CustomComponents", 1, 0, "TimelinePainter");
-	//mlRegisterType<MidiMessageModel>("MidiMessageModel", 1, 0, "MidiMessageModel");
 
     QQmlApplicationEngine engine;
 
-    ViewModel viewModel;
-    engine.rootContext()->setContextProperty("viewModel", &viewModel);
+   // ViewModel viewModel;
+	auto viewModel = new ViewModel(&app);
+    engine.rootContext()->setContextProperty("viewModel", viewModel);
 
     engine.load(QUrl(QStringLiteral("qrc:/View/MainWindowView/MainWindow.qml")));
 

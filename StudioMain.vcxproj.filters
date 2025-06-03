@@ -34,6 +34,9 @@
     <Filter Include="ClipModel">
       <UniqueIdentifier>{dd2c9099-2329-4693-84a2-6fbcd27bb969}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PluginModel">
+      <UniqueIdentifier>{677296dc-badb-4f8e-b6d6-83748a599b09}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="qml.qrc">
@@ -65,6 +68,9 @@
     <None Include="FileBrowser\Browser.qml">
       <Filter>FileBrowser</Filter>
     </None>
+    <None Include="PianoView.qml">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\engine.h">
@@ -91,6 +97,10 @@
       <Filter>ClipModel</Filter>
     </QtMoc>
     <QtMoc Include="TimelinePainter.h" />
+    <QtMoc Include="MidiMessageModel.h" />
+    <QtMoc Include="PluginModel.h">
+      <Filter>PluginModel</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -98,5 +108,11 @@
       <Filter>ClipModel</Filter>
     </ClCompile>
     <ClCompile Include="TimelinePainter.cpp" />
+    <ClCompile Include="MidiMessageModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PluginModel.cpp">
+      <Filter>PluginModel</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
