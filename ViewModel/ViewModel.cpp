@@ -439,3 +439,4 @@ void ViewModel::updateMidiNote(int trackIndex, int clipIndex, int index, int not
         qWarning() << "Cannot update note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
     }
 }
+

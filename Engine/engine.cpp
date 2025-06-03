@@ -968,74 +968,6 @@ void Engine::Core::addMidiNote(int trackIndex, int clipIndex, int noteNumber, do
         LOG_ERROR("Clip is not a MIDI clip");
     }
 }
-void Engine::Core::deleteMidiNote(int trackIndex, int clipIndex, int noteIndex) {
-    if (trackIndex < 0 || trackIndex >= tracks.size() ||
-        clipIndex < 0 || clipIndex >= tracks[trackIndex].clips.size()) {
-        LOG_ERROR("Invalid track or clip index: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex);
-        return;
-    }
-
-    auto& clip = tracks[trackIndex].clips[clipIndex];
-    if (auto* midiClip = dynamic_cast<MidiClip*>(clip.get())) {
-        std::vector<std::pair<double, juce::MidiMessage>> noteEvents;
-        std::map<std::pair<int, int>, double> noteOnTimes; // (channel, noteNumber) -> startTime
-
-        // Собираем все события
-        for (const auto& event : midiClip->midiSequence) {
-            noteEvents.emplace_back(event->message.getTimeStamp(), event->message);
-            if (event->message.isNoteOn()) {
-                noteOnTimes[{event->message.getChannel(), event->message.getNoteNumber()}] = event->message.getTimeStamp();
-            }
-        }
-
-        if (noteIndex * 2 >= noteEvents.size()) {
-            LOG_ERROR("Invalid note index: " << noteIndex);
-            return;
-        }
-
-        // Удаляем Note On и Note Off для указанной ноты
-        juce::MidiMessageSequence newSequence;
-        int currentNoteIndex = -1;
-        std::map<std::pair<int, int>, double> activeNotes;
-        for (const auto& eventPair : noteEvents) {
-            const auto& msg = eventPair.second;
-            if (msg.isNoteOn()) {
-                auto key = std::make_pair(msg.getChannel(), msg.getNoteNumber());
-                activeNotes[key] = msg.getTimeStamp();
-            }
-            else if (msg.isNoteOff()) {
-                auto key = std::make_pair(msg.getChannel(), msg.getNoteNumber());
-                if (activeNotes.find(key) != activeNotes.end()) {
-                    currentNoteIndex++;
-                    if (currentNoteIndex != noteIndex) {
-                        newSequence.addEvent(juce::MidiMessage::noteOn(key.first, key.second, noteEvents[currentNoteIndex].second.getVelocity() / 127.0f), activeNotes[key]);
-                        newSequence.addEvent(msg, msg.getTimeStamp());
-                    }
-                    activeNotes.erase(key);
-                }
-            }
-            else {
-                newSequence.addEvent(msg, eventPair.first);
-            }
-        }
-
-        midiClip->midiSequence = newSequence;
-
-        // Пересчитываем длительность клипа
-        double maxEndTime = 0.0;
-        for (const auto& event : midiClip->midiSequence) {
-            maxEndTime = juce::jmax(maxEndTime, event->message.getTimeStamp());
-        }
-        midiClip->duration = maxEndTime + 0.1;
-        midiClip->durationBeats = secondsToBeats(midiClip->duration);
-
-        updateActiveClips();
-        LOG("Deleted MIDI note at index: " << noteIndex);
-    }
-    else {
-        LOG_ERROR("Clip is not a MIDI clip");
-    }
-}
 
 void Engine::Core::updateMidiNote(int trackIndex, int clipIndex, int noteIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
     if (trackIndex < 0 || trackIndex >= tracks.size() ||
@@ -1149,6 +1081,97 @@ void Engine::Core::updateMidiNote(int trackIndex, int clipIndex, int noteIndex, 
         LOG_ERROR("Clip is not a MidiClip");
     }
 }
+
+void Engine::Core::deleteMidiNote(int trackIndex, int clipIndex, int noteIndex) {
+    if (trackIndex < 0 || trackIndex >= tracks.size() ||
+        clipIndex < 0 || clipIndex >= tracks[trackIndex].clips.size()) {
+        LOG_ERROR("Invalid track or clip index");
+        return;
+    }
+
+    auto& clip = tracks[trackIndex].clips[clipIndex];
+    if (auto* midiClip = dynamic_cast<MidiClip*>(clip.get())) {
+        // Собираем все пары noteOn/noteOff
+        struct NoteEvent {
+            int noteOnIndex;
+            int noteOffIndex;
+            int noteNumber;
+            int channel;
+            double startTime;
+            double endTime;
+        };
+        std::vector<NoteEvent> noteEvents;
+        std::map<std::pair<int, int>, int> noteOnIndices;
+
+        for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
+            auto* event = midiClip->midiSequence.getEventPointer(i);
+            if (event->message.isNoteOn()) {
+                noteOnIndices[{event->message.getChannel(), event->message.getNoteNumber()}] = i;
+            }
+            else if (event->message.isNoteOff()) {
+                auto key = std::pair<int, int>{ event->message.getChannel(), event->message.getNoteNumber() };
+                if (noteOnIndices.count(key)) {
+                    noteEvents.push_back({
+                        noteOnIndices[key],
+                        i,
+                        event->message.getNoteNumber(),
+                        event->message.getChannel(),
+                        midiClip->midiSequence.getEventPointer(noteOnIndices[key])->message.getTimeStamp(),
+                        event->message.getTimeStamp()
+                        });
+                    noteOnIndices.erase(key);
+                }
+            }
+        }
+
+        // Проверяем валидность noteIndex
+        if (noteIndex < 0 || noteIndex >= noteEvents.size()) {
+            LOG_ERROR("Invalid noteIndex: " << noteIndex << ", total notes: " << noteEvents.size());
+            return;
+        }
+
+        // Удаляем пару noteOn/noteOff
+        auto& noteEvent = noteEvents[noteIndex];
+        LOG("Deleting noteOn at index: " << noteEvent.noteOnIndex << ", noteNumber: " << noteEvent.noteNumber);
+        LOG("Deleting noteOff at index: " << noteEvent.noteOffIndex << ", noteNumber: " << noteEvent.noteNumber);
+        if (noteEvent.noteOffIndex > noteEvent.noteOnIndex) {
+            midiClip->midiSequence.deleteEvent(noteEvent.noteOffIndex, false);
+            midiClip->midiSequence.deleteEvent(noteEvent.noteOnIndex, false);
+        }
+        else {
+            midiClip->midiSequence.deleteEvent(noteEvent.noteOnIndex, false);
+            midiClip->midiSequence.deleteEvent(noteEvent.noteOffIndex, false);
+        }
+
+        // Синхронизируем пары
+        midiClip->midiSequence.updateMatchedPairs();
+
+        // Логируем содержимое midiSequence
+        LOG("Current midiSequence events after deletion:");
+        for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
+            auto* event = midiClip->midiSequence.getEventPointer(i);
+            LOG("Event " << i << ": type=" << (event->message.isNoteOn() ? "noteOn" : event->message.isNoteOff() ? "noteOff" : "other")
+                << ", noteNumber=" << event->message.getNoteNumber()
+                << ", channel=" << event->message.getChannel()
+                << ", time=" << event->message.getTimeStamp());
+        }
+
+        // Обновляем длительность клипа
+        double maxEndTime = 0.0;
+        for (const auto& event : midiClip->midiSequence) {
+            maxEndTime = juce::jmax(maxEndTime, event->message.getTimeStamp());
+        }
+        midiClip->duration = juce::jmax(4.0, maxEndTime + 0.1); // Минимальная длительность 4 beats
+        midiClip->durationBeats = secondsToBeats(midiClip->duration);
+
+        updateActiveClips();
+        LOG("Deleted MIDI note, new durationBeats: " << midiClip->durationBeats);
+    }
+    else {
+        LOG_ERROR("Clip is not a MidiClip");
+    }
+}
+
 void Engine::Core::setBPM(double newBPM) {
     if (newBPM > 0.0) {
         bpm = newBPM;
@@ -1613,14 +1636,14 @@ void Engine::AddMidiNote(int trackIndex, int clipIndex, int noteNumber, double s
     core.addMidiNote(trackIndex, clipIndex, noteNumber, startBeats, durationBeats, velocity, channel);
 }
 
-void Engine::DeleteMidiNote(int trackIndex, int clipIndex, int noteIndex) {
-    juce::ScopedLock sl(core.lock);
-    core.deleteMidiNote(trackIndex, clipIndex, noteIndex);
-}
-
 void Engine::UpdateMidiNote(int trackIndex, int clipIndex, int noteIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
     juce::ScopedLock sl(core.lock);
     core.updateMidiNote(trackIndex, clipIndex, noteIndex, noteNumber, startBeats, durationBeats, velocity, channel);
+}
+
+void Engine::DeleteMidiNote(int trackIndex, int clipIndex, int noteIndex) {
+    juce::ScopedLock sl(core.lock);
+    core.deleteMidiNote(trackIndex, clipIndex, noteIndex);
 }
 
 double Engine::SecondsToBeats(double seconds) const

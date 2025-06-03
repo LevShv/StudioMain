@@ -55,6 +55,7 @@ public:
     Q_INVOKABLE void changeClipDuration(int trackIndex, int clipIndex, double newDuration); // Новый метод
     Q_INVOKABLE QString applicationHomeFolder() const;
 
+
    
 
     bool isPlaying() const;

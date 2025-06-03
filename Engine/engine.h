@@ -191,7 +191,7 @@ private:
         void addPluginToTrack(int trackIndex, const juce::String& pluginPath);
         void removePluginFromTrack(int trackIndex, int pluginIndex);
         void togglePluginBypass(int trackIndex, int pluginIndex);
-        juce::AudioProcessorEditor* getPluginEditor(int trackIndex, int pluginIndex);
+        juce::AudioProcessorEditor* getPluginEditor(int trackIndex, int pluginIndex);;
 
         void setBPM(double newBPM);
         double getBPM() const { return bpm; }

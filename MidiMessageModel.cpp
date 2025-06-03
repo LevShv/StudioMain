@@ -93,13 +93,6 @@ void MidiMessageModel::addNote(int noteNumber, double startBeats, double duratio
     }
 }
 
-void MidiMessageModel::deleteNote(int index) {
-    if (index >= 0 && index < m_notes.size()) {
-        m_engine.DeleteMidiNote(m_trackIndex, m_clipIndex, index);
-        refresh();
-    }
-}
-
 void MidiMessageModel::updateNote(int index, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
     if (index >= 0 && index < m_notes.size() && startBeats + durationBeats <= m_clipDuration) {
         m_engine.UpdateMidiNote(m_trackIndex, m_clipIndex, index, noteNumber, startBeats, durationBeats, velocity, channel);
@@ -183,5 +176,18 @@ void MidiMessageModel::rebuildNoteList() {
         qWarning() << "MidiMessageModel: Invalid trackIndex=" << m_trackIndex;
         m_clipDuration = 4.0;
         emit clipDurationChanged();
+    }
+}
+
+void MidiMessageModel::deleteNote(int index) {
+    if (index >= 0 && index < m_notes.size()) {
+        qDebug() << "MidiMessageModel: Deleting note at index=" << index
+            << ", noteNumber=" << m_notes[index].noteNumber
+            << ", startBeats=" << m_notes[index].startBeats;
+        m_engine.DeleteMidiNote(m_trackIndex, m_clipIndex, index);
+        refresh();
+    }
+    else {
+        qWarning() << "MidiMessageModel: Cannot delete note, invalid index=" << index;
     }
 }
