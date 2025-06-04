@@ -701,16 +701,35 @@ void Engine::Core::addPluginToTrack(int trackIndex, const juce::String& pluginPa
 }
 
 juce::AudioProcessorEditor* Engine::Core::getPluginEditor(int trackIndex, int pluginIndex) {
-    if (trackIndex < 0 || trackIndex >= tracks.size() ||
-        pluginIndex < 0 || pluginIndex >= tracks[trackIndex].plugins.size()) {
-        LOG_ERROR("Invalid track or plugin index");
+    if (trackIndex < 0 || trackIndex >= tracks.size()) {
+        LOG_ERROR("Invalid track index: trackIndex=" << trackIndex << ", tracks.size=" << tracks.size());
+        return nullptr;
+    }
+    if (pluginIndex < 0 || pluginIndex >= tracks[trackIndex].plugins.size()) {
+        LOG_ERROR("Invalid plugin index: pluginIndex=" << pluginIndex << ", plugins.size="
+            << tracks[trackIndex].plugins.size() << ", trackIndex=" << trackIndex);
         return nullptr;
     }
 
     auto& pluginInstance = tracks[trackIndex].plugins[pluginIndex];
-    if (pluginInstance->plugin && !pluginInstance->editor) {
+    if (!pluginInstance->plugin) {
+        LOG_ERROR("Plugin instance is null for trackIndex=" << trackIndex << ", pluginIndex=" << pluginIndex);
+        return nullptr;
+    }
+
+    if (!pluginInstance->editor) {
         pluginInstance->editor = pluginInstance->plugin->createEditorIfNeeded();
-        LOG("Editor created for plugin at address: " << (void*)pluginInstance->plugin.get() << ", Editor address: " << (void*)pluginInstance->editor);
+        if (!pluginInstance->editor) {
+            LOG_ERROR("Failed to create editor for plugin: trackIndex=" << trackIndex
+                << ", pluginIndex=" << pluginIndex << ", plugin=" << (void*)pluginInstance->plugin.get());
+            return nullptr;
+        }
+        LOG("Editor created: trackIndex=" << trackIndex << ", pluginIndex=" << pluginIndex
+            << ", plugin=" << (void*)pluginInstance->plugin.get() << ", editor=" << (void*)pluginInstance->editor);
+    }
+    else {
+        LOG("Editor already exists: trackIndex=" << trackIndex << ", pluginIndex=" << pluginIndex
+            << ", editor=" << (void*)pluginInstance->editor);
     }
     return pluginInstance->editor;
 }

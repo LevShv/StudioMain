@@ -39,6 +39,7 @@ public:
 
     Q_INVOKABLE void addPlugin(int trackIndex, const QString& pluginPath);
     Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
+   
     Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
     Q_INVOKABLE void deletePlugin(int trackIndex, int pluginIndex);
 
@@ -60,7 +61,25 @@ public:
     Q_INVOKABLE QString applicationHomeFolder() const;
 
 
-    
+    struct WindowData {
+        juce::Component* component;
+        QPair<int, int> key;
+        QMap<QPair<int, int>, juce::Component*>* editors;
+        WNDPROC originalProc;
+    };
+
+    class ComponentListenerAdapter : public juce::ComponentListener {
+    public:
+        using ResizeCallback = std::function<void(const juce::Component&)>;
+        ComponentListenerAdapter(ResizeCallback callback) : callback_(callback) {}
+        void componentMovedOrResized(juce::Component& component, bool /*wasMoved*/, bool wasResized) override {
+            if (wasResized && callback_) {
+                callback_(component);
+            }
+        }
+    private:
+        ResizeCallback callback_;
+    };
    
 
     bool isPlaying() const;
@@ -79,6 +98,7 @@ signals:
     void trackAdded(int trackIndex); 
     void clipDurationChanged(int trackIndex,int clipIndex, double newDuration);
     void pluginRemoved(int trackIndex, int pluginIndex);
+    
 
 private slots:
     void updatePlayhead();
@@ -98,6 +118,7 @@ private:
 	const std::string samplerPath = "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3"; // ”кажите реальный путь к сэмплеру
 
 	QTimer* m_playheadTimer;
+    QMap<QPair<int, int>, juce::Component*> m_openPluginEditors;
 
     void buildModel();
 };

@@ -25,6 +25,9 @@ public:
     // Обновление данных модели
     void refresh();
 
+signals:
+    void rowCountChanged();
+
 private:
     Engine& engine;
     int currentTrackIndex;

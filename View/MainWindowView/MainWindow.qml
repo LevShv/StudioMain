@@ -106,6 +106,36 @@ Window {
         onIsPlayingChanged: function() {
             console.log("Playback state changed, isPlaying:", viewModel.isPlaying, "position:", viewModel.playheadPosition)
         }
+
+        onSelectedTrackIndexChanged: function() {
+            if (selectedTrackIndex >= 0) {
+                viewModel.pluginModel.setTrackIndex(selectedTrackIndex);
+                console.log("Selected track changed to:", selectedTrackIndex);
+                separatorVisible = true;
+            } else {
+                separatorVisible = false;
+                console.log("No track selected, separatorVisible set to false");
+            }
+        }
+    }
+
+    function updateSelectedTrackFromClip() {
+        if (selectedClips.length > 0) {
+            // Берем первый выбранный клип (можно адаптировать для множественного выбора)
+            var clip = selectedClips[0];
+            selectedTrackIndex = clip.trackIndex;
+            console.log("Updated selectedTrackIndex to:", selectedTrackIndex, "from clip:", clip)
+        } else {
+            selectedTrackIndex = -1;
+            console.log("No clips selected, setting selectedTrackIndex to:", selectedTrackIndex)
+        }
+        // Обновляем видимость separatorPanel
+       // separatorVisible = selectedTrackIndex >= 0;
+    }
+
+    // Подключение к сигналу изменения selectedClips
+    onSelectedClipsChanged: {
+        updateSelectedTrackFromClip();
     }
 
     function clearSelectedClips() {

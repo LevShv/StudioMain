@@ -3,6 +3,8 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QDesktopServices>
+#include <juce_gui_basics/juce_gui_basics.h>
+#include <windows.h>
 
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
@@ -113,47 +115,204 @@ void ViewModel::togglePluginBypass(int trackIndex, int pluginIndex) {
 
 void ViewModel::deletePlugin(int trackIndex, int pluginIndex) {
     if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
-        engine.RemovePluginFromTrack(trackIndex, pluginIndex); // Предполагаемый метод в Engine
-        m_pluginModel->refresh(); // Обновляем модель плагинов
+        // Проверяем, открыт ли редактор плагина
+        QPair<int, int> key = { trackIndex, pluginIndex };
+        if (m_openPluginEditors.contains(key)) {
+            juce::Component* component = m_openPluginEditors[key];
+            if (component) {
+                // Удаляем компонент с рабочего стола
+                if (component->isOnDesktop()) {
+                    component->removeFromDesktop();
+                    qDebug() << "Plugin editor removed from desktop: track=" << trackIndex << ", plugin=" << pluginIndex;
+                }
+                // Очищаем WindowProc и данные
+                HWND hwnd = (HWND)component->getWindowHandle();
+                if (hwnd) {
+                    WindowData* data = reinterpret_cast<WindowData*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+                    if (data) {
+                        SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)data->originalProc);
+                        delete data;
+                        SetWindowLongPtr(hwnd, GWLP_USERDATA, 0);
+                    }
+                }
+                // Удаляем из отслеживания
+                m_openPluginEditors.remove(key);
+                qDebug() << "Plugin editor removed from tracking: track=" << trackIndex << ", plugin=" << pluginIndex;
+            }
+        }
+
+        // Удаляем плагин из движка
+        engine.RemovePluginFromTrack(trackIndex, pluginIndex);
+        m_pluginModel->refresh();
         emit pluginRemoved(trackIndex, pluginIndex);
-        qDebug() << "Plugin deleted: trackIndex=" << trackIndex << "pluginIndex=" << pluginIndex;
+        qDebug() << "Plugin deleted: trackIndex=" << trackIndex << ", pluginIndex=" << pluginIndex;
     }
     else {
         qWarning() << "Invalid track index for plugin deletion:" << trackIndex;
     }
-    emit pluginAdded(trackIndex);
+    emit pluginAdded(trackIndex); // Это может быть ошибкой, возможно, стоит убрать или заменить на pluginRemoved
+}
+static LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    ViewModel::WindowData* data = reinterpret_cast<ViewModel::WindowData*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    if (data && data->editors->contains(data->key)) {
+        if (msg == WM_CLOSE) {
+            data->component->setVisible(false);
+            qDebug() << "Plugin editor hidden via WM_CLOSE: track=" << data->key.first << ", plugin=" << data->key.second;
+            return 0; // Предотвращаем закрытие
+        }
+        if (msg == WM_SYSCOMMAND && (wParam & 0xFFF0) == SC_CLOSE) {
+            data->component->setVisible(false);
+            qDebug() << "Plugin editor hidden via WM_SYSCOMMAND (SC_CLOSE): track=" << data->key.first << ", plugin=" << data->key.second;
+            return 0; // Блокируем команду закрытия
+        }
+    }
+    return CallWindowProc(data ? data->originalProc : DefWindowProc, hwnd, msg, wParam, lParam);
 }
 
 void ViewModel::openPluginEditor(int trackIndex, int pluginIndex) {
-    if (auto* editor = engine.GetPluginEditor(trackIndex, pluginIndex)) {
-        QWindow* pluginWindow = new QWindow();
-        pluginWindow->setTitle(QString("Plugin Editor - Track %1, Plugin %2").arg(trackIndex + 1).arg(pluginIndex + 1));
+    qDebug() << "Attempting to open plugin editor: track=" << trackIndex << ", plugin=" << pluginIndex;
 
-        // Устанавливаем флаги для стандартного окна с заголовком и кнопками
-        pluginWindow->setFlags(Qt::Window | Qt::WindowTitleHint | Qt::WindowCloseButtonHint | Qt::WindowSystemMenuHint);
-
-        auto* component = dynamic_cast<juce::Component*>(editor);
-        if (component) {
-            component->addToDesktop(0);
-            auto nativeHandle = component->getWindowHandle();
-
-            pluginWindow->create();
-            pluginWindow->setGeometry(100, 100, component->getWidth(), component->getHeight());
-            pluginWindow->setProperty("nativeHandle", reinterpret_cast<qlonglong>(nativeHandle));
-            QWindow::fromWinId(reinterpret_cast<WId>(nativeHandle))->setParent(pluginWindow);
-
-            pluginWindow->resize(component->getWidth(), component->getHeight());
-            pluginWindow->show();
-
-            emit pluginEditorOpened(trackIndex, pluginIndex, pluginWindow);
+    QPair<int, int> key = { trackIndex, pluginIndex };
+    // Проверяем, существует ли редактор
+    if (m_openPluginEditors.contains(key)) {
+        auto* existingComponent = m_openPluginEditors[key];
+        if (existingComponent->isVisible()) {
+            qDebug() << "Plugin editor is already visible, bringing to front: track=" << trackIndex << ", plugin=" << pluginIndex;
+            existingComponent->toFront(true);
+            emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
+            return;
         }
         else {
-            qWarning() << "Failed to cast editor to JUCE Component";
-            delete pluginWindow;
+            qDebug() << "Plugin editor exists but is hidden, showing: track=" << trackIndex << ", plugin=" << pluginIndex;
+            existingComponent->setVisible(true);
+            existingComponent->toFront(true);
+            existingComponent->repaint();
+            if (!existingComponent->isOnDesktop()) {
+                existingComponent->addToDesktop(juce::ComponentPeer::windowHasTitleBar);
+                qDebug() << "Re-added component to desktop: track=" << trackIndex << ", plugin=" << pluginIndex;
+
+                // Повторно настраиваем окно
+                HWND hwnd = (HWND)existingComponent->getWindowHandle();
+                if (hwnd) {
+                    LONG style = GetWindowLong(hwnd, GWL_STYLE);
+                    style |= WS_SYSMENU | WS_MINIMIZEBOX; // Включаем системное меню и кнопку минимизации
+                    SetWindowLong(hwnd, GWL_STYLE, style);
+                    // Отключаем команду закрытия в системном меню
+                    HMENU hMenu = GetSystemMenu(hwnd, FALSE);
+                    if (hMenu) {
+                        EnableMenuItem(hMenu, SC_CLOSE, MF_BYCOMMAND | MF_GRAYED);
+                    }
+                    qDebug() << "Enabled minimize button and disabled close button: track=" << trackIndex << ", plugin=" << pluginIndex;
+                }
+            }
+            emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
+            return;
+        }
+    }
+
+    if (auto* editor = engine.GetPluginEditor(trackIndex, pluginIndex)) {
+        qDebug() << "Editor retrieved: address=" << (void*)editor << ", type=" << typeid(*editor).name();
+        auto* component = dynamic_cast<juce::Component*>(editor);
+        if (component) {
+            // Проверяем размеры компонента
+            int width = component->getWidth();
+            int height = component->getHeight();
+            if (width == 0 || height == 0) {
+                qWarning() << "Component has invalid size, setting default: width=400, height=300";
+                width = 400;
+                height = 300;
+            }
+
+            // Добавляем JUCE Component на рабочий стол
+            component->addToDesktop(juce::ComponentPeer::windowHasTitleBar);
+            qDebug() << "Component added to desktop: isOnDesktop=" << component->isOnDesktop();
+
+            // Устанавливаем видимость и границы
+            component->setVisible(true);
+            component->setBounds(100, 100, width, height);
+            component->toFront(true);
+            component->repaint();
+            qDebug() << "Component set visible: isVisible=" << component->isVisible();
+
+            // Отслеживаем компонент
+            m_openPluginEditors[key] = component;
+
+            // Настройка окна для Windows
+            HWND hwnd = (HWND)component->getWindowHandle();
+            if (hwnd) {
+                // Настраиваем стиль окна
+                LONG style = GetWindowLong(hwnd, GWL_STYLE);
+                style |= WS_SYSMENU | WS_MINIMIZEBOX; // Включаем системное меню и кнопку минимизации
+                SetWindowLong(hwnd, GWL_STYLE, style);
+                // Отключаем команду закрытия в системном меню
+                HMENU hMenu = GetSystemMenu(hwnd, FALSE);
+                if (hMenu) {
+                    EnableMenuItem(hMenu, SC_CLOSE, MF_BYCOMMAND | MF_GRAYED);
+                }
+                // Обновляем рамку окна
+                SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+                qDebug() << "Enabled minimize button and disabled close button: track=" << trackIndex << ", plugin=" << pluginIndex;
+
+                // Сохраняем данные
+                auto* windowData = new WindowData{ component, key, &m_openPluginEditors, nullptr };
+                SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)windowData);
+
+                // Сохраняем оригинальную WindowProc
+                windowData->originalProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
+
+                // Устанавливаем WindowProc
+                SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)windowProc);
+                qDebug() << "Custom WindowProc set for Windows: track=" << trackIndex << ", plugin=" << pluginIndex;
+            }
+            else {
+                qWarning() << "Failed to get window handle: track=" << trackIndex << ", plugin=" << pluginIndex;
+            }
+
+            // Таймер для проверки состояния
+            QTimer* visibilityTimer = new QTimer(this);
+            visibilityTimer->setInterval(500);
+            QObject::connect(visibilityTimer, &QTimer::timeout, [=]() {
+                if (component && m_openPluginEditors.contains(key)) {
+                    if (!component->isVisible() || !component->isOnDesktop()) {
+                        component->setVisible(false);
+                        qDebug() << "Plugin editor hidden via timer check: track=" << trackIndex << ", plugin=" << pluginIndex;
+                        visibilityTimer->stop();
+                    }
+                }
+                });
+            visibilityTimer->start();
+
+            // Очистка при выходе
+            QObject::connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, [=]() {
+                if (component && component->isOnDesktop()) {
+                    component->removeFromDesktop();
+                    qDebug() << "JUCE Component removed from desktop on app quit: track=" << trackIndex << ", plugin=" << pluginIndex;
+                }
+                if (m_openPluginEditors.contains(key)) {
+                    m_openPluginEditors.remove(key);
+                    qDebug() << "Plugin editor removed from tracking on app quit: track=" << trackIndex << ", plugin=" << pluginIndex;
+                }
+                visibilityTimer->stop();
+                if (hwnd) {
+                    WindowData* data = reinterpret_cast<WindowData*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+                    if (data) {
+                        SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)data->originalProc);
+                        delete data;
+                        SetWindowLongPtr(hwnd, GWLP_USERDATA, 0);
+                    }
+                }
+                });
+
+            qDebug() << "Plugin editor opened: track=" << trackIndex << ", plugin=" << pluginIndex
+                << ", editor=" << (void*)editor;
+            emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
+        }
+        else {
+            qWarning() << "Failed to cast editor to JUCE Component, type=" << typeid(*editor).name();
         }
     }
     else {
-        qWarning() << "Failed to open plugin editor for track" << trackIndex << ", plugin" << pluginIndex;
+        qWarning() << "Failed to open plugin editor for track" << trackIndex << ", plugin=" << pluginIndex;
     }
 }
 

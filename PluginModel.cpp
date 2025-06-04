@@ -69,11 +69,11 @@ void PluginModel::refresh() {
                 qDebug() << "Plugin found:" << pluginName.c_str() << "at index" << i;
             }
         }
-    }
-    else {
+    } else {
         qDebug() << "PluginModel: Invalid trackIndex" << currentTrackIndex << "database size:" << engine.GetdataBase().size();
     }
 
     endResetModel();
     qDebug() << "PluginModel refreshed for trackIndex:" << currentTrackIndex << "plugin count:" << plugins.size();
+    emit rowCountChanged(); // Испускаем сигнал
 }
