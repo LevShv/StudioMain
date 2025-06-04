@@ -938,7 +938,7 @@ Window {
                                                 Rectangle {
                                                     width: 150
                                                     height: 50
-                                                    color: "transparent"
+                                                    color: "#2D2D2D"
 
                                                     Row {
                                                         anchors.centerIn: parent
