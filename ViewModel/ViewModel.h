@@ -21,9 +21,10 @@ class ViewModel : public QObject {
 public:
     explicit ViewModel(QObject* parent = nullptr);
 
+    double playheadPosition() const { return m_playheadPosition; }
+
     TrackModel* trackModel() const { return m_trackModel; }
     MidiMessageModel* midiModel() const { return m_midiModel; } // Геттер для midiModel
-    double playheadPosition() const { return m_playheadPosition; }
     Engine* getEngine() { return &engine; } // Оставляем для других случаев
     PluginModel* pluginModel() const { return m_pluginModel; }
 
@@ -37,12 +38,12 @@ public:
     Q_INVOKABLE void deleteMidiNote(int trackIndex, int clipIndex, int index);
     Q_INVOKABLE void updateMidiNote(int trackIndex, int clipIndex, int index, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
 
-    Q_INVOKABLE void addPlugin(int trackIndex, const QString& pluginPath);
-    Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
+    //Q_INVOKABLE void addPlugin(int trackIndex, const QString& pluginPath);
+    //Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
    
-    Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
-    Q_INVOKABLE void deletePlugin(int trackIndex, int pluginIndex);
-    Q_INVOKABLE void HidePlugin(int trackIndex, int pluginIndex);
+    //Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
+    //Q_INVOKABLE void deletePlugin(int trackIndex, int pluginIndex);
+    //Q_INVOKABLE void HidePlugin(int trackIndex, int pluginIndex);
 
     Q_INVOKABLE void deleteTrack(int trackIndex);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);
@@ -60,29 +61,7 @@ public:
 
     Q_INVOKABLE void changeClipDuration(int trackIndex, int clipIndex, double newDuration); // Новый метод
     Q_INVOKABLE QString applicationHomeFolder() const;
-
-
-    struct WindowData {
-        juce::Component* component;
-        QPair<int, int> key;
-        QMap<QPair<int, int>, juce::Component*>* editors;
-        WNDPROC originalProc;
-    };
-
-    class ComponentListenerAdapter : public juce::ComponentListener {
-    public:
-        using ResizeCallback = std::function<void(const juce::Component&)>;
-        ComponentListenerAdapter(ResizeCallback callback) : callback_(callback) {}
-        void componentMovedOrResized(juce::Component& component, bool /*wasMoved*/, bool wasResized) override {
-            if (wasResized && callback_) {
-                callback_(component);
-            }
-        }
-    private:
-        ResizeCallback callback_;
-    };
    
-
     bool isPlaying() const;
     int volume() const;
 
@@ -93,12 +72,13 @@ signals:
     void playheadPositionChanged(double position);
     void clipAdded(int trackIndex);
     void clipMoved(int trackIndex, int clipIndex, double newStartTime);
-    void pluginAdded(int trackIndex);
-    void pluginBypassed(int trackIndex, int pluginIndex);
-    void pluginEditorOpened(int trackIndex, int pluginIndex, QWindow* window);
+    //void pluginBypassed(int trackIndex, int pluginIndex);
+    //void pluginAdded(int trackIndex);
+    // void pluginRemoved(int trackIndex, int pluginIndex);
+   // void pluginEditorOpened(int trackIndex, int pluginIndex, QWindow* window);
     void trackAdded(int trackIndex); 
     void clipDurationChanged(int trackIndex,int clipIndex, double newDuration);
-    void pluginRemoved(int trackIndex, int pluginIndex);
+
     
 
 private slots:
@@ -106,11 +86,12 @@ private slots:
 
 private:
 
-
     Engine engine;
     TrackModel* m_trackModel;
-    MidiMessageModel* m_midiModel; // Добавляем midiModel
+    MidiMessageModel* m_midiModel;
     PluginModel* m_pluginModel;
+
+
 	double m_bpm = 120.0; // Инициализация BPM
     double m_playheadPosition = engine.Position();
     bool m_isPlaying = false;
@@ -119,7 +100,7 @@ private:
 	const std::string samplerPath = "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3"; // Укажите реальный путь к сэмплеру
 
 	QTimer* m_playheadTimer;
-    QMap<QPair<int, int>, juce::Component*> m_openPluginEditors;
+   
 
     void buildModel();
 };

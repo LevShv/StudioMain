@@ -883,7 +883,7 @@ Window {
                                         viewModel.addAudioClip(trackIndex, filePath, position)
                                         console.log("Added audio clip: trackIndex:", trackIndex, "filePath:", filePath, "position:", position)
                                     } else if (["dll", "vst3"].indexOf(fileExt) !== -1) {
-                                        viewModel.addPlugin(trackIndex, filePath)
+                                        viewModel.pluginModel.addPlugin(trackIndex, filePath)
                                         console.log("Added plugin: trackIndex:", trackIndex, "filePath:", filePath)
                                     } else {
                                         console.log("Invalid file type:", filePath)
@@ -2569,7 +2569,7 @@ Window {
 
                                                 onClicked: {
                                                     if (model.trackIndex >= 0 && model.pluginIndex >= 0) {
-                                                        viewModel.openPluginEditor(model.trackIndex, model.pluginIndex);
+                                                        viewModel.pluginModel.openPluginEditor(model.trackIndex, model.pluginIndex);
                                                         console.log("Opening plugin editor: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex);
                                                     }
                                                 }
@@ -2608,7 +2608,7 @@ Window {
 
                                                 onClicked: {
                                                     if (model.trackIndex >= 0 && model.pluginIndex >= 0) {
-                                                        viewModel.deletePlugin(model.trackIndex, model.pluginIndex);
+                                                        viewModel.pluginModel.deletePlugin(model.trackIndex, model.pluginIndex);
                                                         viewModel.pluginModel.refresh();
                                                         console.log("Deleted plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex);
                                                     }
@@ -2647,7 +2647,7 @@ Window {
 
                                                 onClicked: {
                                                     if (model.trackIndex >= 0 && model.pluginIndex >= 0) {
-                                                        viewModel.HidePlugin(model.trackIndex, model.pluginIndex);
+                                                        viewModel.pluginModel.HidePlugin(model.trackIndex, model.pluginIndex);
                                                         viewModel.pluginModel.refresh();
                                                         console.log("Deleted plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex);
                                                     }

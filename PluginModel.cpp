@@ -1,6 +1,119 @@
 #include "PluginModel.h"
 #include <QDebug>
 
+void PluginModel::addPlugin(int trackIndex, const QString& pluginPath) {
+    qDebug() << "ViewModel: Adding plugin to track" << trackIndex << "path:" << pluginPath;
+    engine.AddPluginToTrack(trackIndex, pluginPath.toStdString());
+    qDebug() << "ViewModel: Plugin added to Engine for track" << trackIndex;
+    emit pluginAdded(trackIndex);
+    qDebug() << "ViewModel: Emitted pluginAdded for track" << trackIndex;
+}
+
+void PluginModel::togglePluginBypass(int trackIndex, int pluginIndex) {
+    engine.TogglePluginBypass(trackIndex, pluginIndex);
+    emit pluginBypassed(trackIndex, pluginIndex);
+}
+
+void PluginModel::deletePlugin(int trackIndex, int pluginIndex) {
+    if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
+        // Проверяем, открыт ли редактор плагина
+        QPair<int, int> key = { trackIndex, pluginIndex };
+        if (m_openPluginEditors.contains(key)) {
+            juce::Component* component = m_openPluginEditors[key];
+            if (component) {
+                // Удаляем компонент с рабочего стола
+                if (component->isOnDesktop()) {
+                    component->removeFromDesktop();
+                    qDebug() << "Plugin editor removed from desktop: track=" << trackIndex << ", plugin=" << pluginIndex;
+                }
+                // Удаляем из отслеживания
+                m_openPluginEditors.remove(key);
+                qDebug() << "Plugin editor removed from tracking: track=" << trackIndex << ", plugin=" << pluginIndex;
+            }
+        }
+
+        // Удаляем плагин из движка
+        engine.RemovePluginFromTrack(trackIndex, pluginIndex);
+        refresh();
+        emit pluginRemoved(trackIndex, pluginIndex);
+        qDebug() << "Plugin deleted: trackIndex=" << trackIndex << ", pluginIndex=" << pluginIndex;
+    }
+    else {
+        qWarning() << "Invalid track index for plugin deletion:" << trackIndex;
+    }
+    emit pluginAdded(trackIndex);  // Это может быть ошибкой, возможно, стоит убрать или заменить на pluginRemoved
+}
+
+void PluginModel::HidePlugin(int trackIndex, int pluginIndex)
+{
+    if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
+        // Проверяем, открыт ли редактор плагина
+        QPair<int, int> key = { trackIndex, pluginIndex };
+        if (m_openPluginEditors.contains(key)) {
+            juce::Component* component = m_openPluginEditors[key];
+            if (component) {
+                // Удаляем компонент с рабочего стола
+                component->setVisible(false);
+                qDebug() << "Visible off";
+            }
+        }
+
+    }
+}
+
+void PluginModel::openPluginEditor(int trackIndex, int pluginIndex) {
+    qDebug() << "Opening plugin editor: track=" << trackIndex << ", plugin=" << pluginIndex;
+
+    QPair<int, int> key = { trackIndex, pluginIndex };
+
+    // Проверяем, существует ли уже редактор
+    if (m_openPluginEditors.contains(key)) {
+        auto* component = m_openPluginEditors[key];
+        if (component->isVisible()) {
+            qDebug() << "Plugin editor already visible, bringing to front: track=" << trackIndex << ", plugin=" << pluginIndex;
+            component->toFront(true);
+        }
+        else {
+            qDebug() << "Plugin editor exists but is hidden, showing: track=" << trackIndex << ", plugin=" << pluginIndex;
+            component->setVisible(true);
+            component->toFront(true);
+        }
+     //   emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
+        return;
+    }
+
+    // Получаем редактор плагина из движка
+    if (auto* editor = engine.GetPluginEditor(trackIndex, pluginIndex)) {
+        auto* component = dynamic_cast<juce::Component*>(editor);
+        if (component) {
+            // Устанавливаем размеры по умолчанию, если они не заданы
+            int width = component->getWidth() > 0 ? component->getWidth() : 400;
+            int height = component->getHeight() > 0 ? component->getHeight() : 300;
+
+            // Добавляем компонент на рабочий стол
+            component->addToDesktop(juce::ComponentPeer::windowHasTitleBar |
+                juce::ComponentPeer::windowHasMaximiseButton |
+                juce::ComponentPeer::windowHasCloseButton |
+                juce::ComponentPeer::windowHasDropShadow);
+            component->setBounds(100, 100, width, height);
+            component->setVisible(true);
+            component->toFront(true);
+
+            // Сохраняем компонент в список открытых редакторов
+            m_openPluginEditors[key] = component;
+
+            qDebug() << "Plugin editor opened: track=" << trackIndex << ", plugin=" << pluginIndex;
+          //  emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
+        }
+        else {
+            qWarning() << "Failed to cast editor to JUCE Component: track=" << trackIndex << ", plugin=" << pluginIndex;
+        }
+    }
+    else {
+        qWarning() << "Failed to get plugin editor: track=" << trackIndex << ", plugin=" << pluginIndex;
+    }
+}
+
 PluginModel::PluginModel(Engine& engine, QObject* parent)
     : QAbstractListModel(parent), engine(engine), currentTrackIndex(-1) {
 }
