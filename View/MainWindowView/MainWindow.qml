@@ -187,6 +187,11 @@ Window {
                             }
 
                             MenuItem {
+                                text: "Загрузить..."                                
+                                onTriggered: { /* действие */ }
+                            }
+
+                            MenuItem {
                                 text: "Открыть"                                
                                 onTriggered: {
                                     viewModel.OpenProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.json")
@@ -2127,8 +2132,9 @@ Window {
                                                                                     resetAllClipSelections()
                                                                                     clipItem.isSelected = true
                                                                                     mainWindow.multiSelectMode = false
+                                                                                     mainWindow.selectedTrackIndex = trackIndex
                                                                                     if (model.type === "midi") {
-                                                                                        mainWindow.selectedTrackIndex = trackIndex
+                                                                                       
                                                                                         mainWindow.selectedClipIndex = index
                                                                                         mainWindow.pianoRollVisible = true
                                                                                         console.log(`Opening Piano Roll: trackIndex=${trackIndex}, clipIndex=${index}`)
@@ -2498,7 +2504,7 @@ Window {
                                     // Контейнер для группы кнопок (FX контейнер)
                                     Rectangle {
                                         id: fxContainer
-                                        width: 90  // Ширина контейнера
+                                        width: 150  // Ширина контейнера
                                         height: 50  // Уменьшили высоту до 50
                                         radius: 3
                                         color: "#4C566A"
@@ -2576,7 +2582,7 @@ Window {
                                                 height: 30
                                                 radius: width / 2
                                                 anchors.left: audioButton.right
-                                                anchors.leftMargin: 4
+                                              //  anchors.leftMargin: 4
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 ToolTip.visible: hovered
                                                 ToolTip.delay: 500
@@ -2603,6 +2609,45 @@ Window {
                                                 onClicked: {
                                                     if (model.trackIndex >= 0 && model.pluginIndex >= 0) {
                                                         viewModel.deletePlugin(model.trackIndex, model.pluginIndex);
+                                                        viewModel.pluginModel.refresh();
+                                                        console.log("Deleted plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex);
+                                                    }
+                                                }
+                                            }
+
+                                            RoundButton {
+                                                id: hideButton
+                                                width: 30
+                                                height: 30
+                                                radius: width / 2
+                                                anchors.left: audioButton.right
+                                                anchors.leftMargin: 40
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                ToolTip.visible: hovered
+                                                ToolTip.delay: 500
+                                                ToolTip.text: "Скрыть FX " + (index + 1)
+
+                                                background: Rectangle {
+                                                    radius: parent.radius
+                                                    color: parent.hovered ? "#d0d0d0" : "transparent"
+                                                    border.color: parent.hovered ? "#a0a0a0" : "transparent"
+                                                    border.width: 1
+                                                }
+
+                                                Image {
+                                                    anchors.centerIn: parent
+                                                    width: 16
+                                                    height: 16
+                                                    source: imagesPath + "minus.png"
+                                                    sourceSize.width: 16
+                                                    sourceSize.height: 16
+                                                    opacity: parent.down ? 0.7 : 1.0
+                                                    fillMode: Image.PreserveAspectFit
+                                                }
+
+                                                onClicked: {
+                                                    if (model.trackIndex >= 0 && model.pluginIndex >= 0) {
+                                                        viewModel.HidePlugin(model.trackIndex, model.pluginIndex);
                                                         viewModel.pluginModel.refresh();
                                                         console.log("Deleted plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex);
                                                     }

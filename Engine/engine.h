@@ -236,6 +236,8 @@ private:
         void deleteMidiNote(int trackIndex, int clipIndex, int noteIndex);
         void updateMidiNote(int trackIndex, int clipIndex, int noteIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
 
+        void cleanMidiSequence(MidiClip* clip);
+
     private:
 
         struct ActiveClip {

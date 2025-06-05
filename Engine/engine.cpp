@@ -1101,6 +1101,47 @@ void Engine::Core::updateMidiNote(int trackIndex, int clipIndex, int noteIndex, 
     }
 }
 
+void Engine::Core::cleanMidiSequence(MidiClip* clip)
+{
+    if (!clip) {
+        LOG_ERROR("Null MidiClip passed to cleanMidiSequence");
+        return;
+    }
+
+    juce::MidiMessageSequence& sequence = clip->midiSequence;
+    juce::MidiMessageSequence cleanedSequence;
+
+    // Фиксируем ticksPerQuarterNote для последовательности
+    const int ticksPerQuarterNote = 960;
+
+    for (int i = 0; i < sequence.getNumEvents(); ++i) {
+        auto* event = sequence.getEventPointer(i);
+        if (event) {
+            double timestamp = event->message.getTimeStamp();
+            if (timestamp >= 0) {
+                if (event->message.isNoteOnOrOff() || event->message.isController() ||
+                    event->message.isProgramChange() || event->message.isPitchWheel() ||
+                    event->message.isChannelPressure() || event->message.isAftertouch() ||
+                    event->message.isMetaEvent() || event->message.isSysEx()) {
+                    cleanedSequence.addEvent(event->message, timestamp);
+                    LOG("Added MIDI event for clipID=" << clip->clipID << ", timestamp=" << timestamp);
+                }
+                else {
+                    LOG("Skipped unknown MIDI message for clipID=" << clip->clipID << ", timestamp=" << timestamp);
+                }
+            }
+            else {
+                LOG("Skipped MIDI event with negative timestamp for clipID=" << clip->clipID << ", timestamp=" << timestamp);
+            }
+        }
+    }
+
+    sequence.swapWith(cleanedSequence);
+    sequence.sort();
+    LOG("Cleaned MIDI sequence for clipID=" << clip->clipID << ", events: " << sequence.getNumEvents()
+        << ", ticksPerQuarterNote=" << ticksPerQuarterNote);
+}
+
 void Engine::Core::deleteMidiNote(int trackIndex, int clipIndex, int noteIndex) {
     if (trackIndex < 0 || trackIndex >= tracks.size() ||
         clipIndex < 0 || clipIndex >= tracks[trackIndex].clips.size()) {
@@ -1743,16 +1784,16 @@ void Engine::Saver::SaveProject(const std::string filePath)
 {
     juce::var projectJson = juce::var(new juce::DynamicObject());
 
-    //Глобальные настройки
-	projectJson.getDynamicObject()->setProperty("bpm", m_core.bpm);
+    // Глобальные настройки
+    projectJson.getDynamicObject()->setProperty("bpm", m_core.bpm);
     projectJson.getDynamicObject()->setProperty("position", m_core.position);
+    projectJson.getDynamicObject()->setProperty("version", "1.0"); // Для совместимости
 
     juce::Array<juce::var> tracksArray;
 
-    //Дорожки
+    // Дорожки
     for (const auto& track : m_core.tracks) {
         juce::DynamicObject::Ptr trackJson = new juce::DynamicObject();
-
         trackJson->setProperty("isMidiTrack", track.isMidiTrack);
         trackJson->setProperty("isSamplerTrack", track.isSamplerTrack);
         trackJson->setProperty("gain", track.gain);
@@ -1762,57 +1803,60 @@ void Engine::Saver::SaveProject(const std::string filePath)
 
         for (const auto& clip : track.clips) {
             juce::DynamicObject::Ptr clipJson = new juce::DynamicObject();
-            clipJson->setProperty("startBeats", clip->startBeats); 
-            clipJson->setProperty("durationBeats", clip->durationBeats); 
-            clipJson->setProperty("isMidiTrack", track.isMidiTrack);
-            clipJson->setProperty("isSamplerTrack", track.isSamplerTrack);
-            clipJson->setProperty("gain", track.gain);
-            clipJson->setProperty("muted", track.muted);
+            clipJson->setProperty("clipID", juce::String(clip->clipID)); // Преобразуем std::string в juce::String
+            clipJson->setProperty("startBeats", clip->startBeats);
+            clipJson->setProperty("durationBeats", clip->durationBeats);
+            clipJson->setProperty("gain", clip->gain);
+            clipJson->setProperty("muted", clip->muted);
 
-            if (auto* audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
+            if (auto* cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
+                clipJson->setProperty("type", "clone");
+                clipJson->setProperty("masterClipID", juce::String(cloneClip->masterClipID)); // Исправлено
+                LOG("Saved clone clip with clipID=" << clip->clipID << ", masterClipID=" << cloneClip->masterClipID);
+            }
+            else if (auto* audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
                 clipJson->setProperty("type", "audio");
-                clipJson->setProperty("filePath", juce::var(juce::String(audioClip->file.getFullPathName().toStdString())));
+                clipJson->setProperty("filePath", audioClip->file.getFullPathName());
                 clipJson->setProperty("useRAM", audioClip->useRAM);
+                LOG("Saved audio clip with clipID=" << clip->clipID);
             }
             else if (auto* midiClip = dynamic_cast<Engine::MidiClip*>(clip.get())) {
                 clipJson->setProperty("type", "midi");
-
                 juce::MidiFile midiFile;
-                midiFile.addTrack(midiClip->midiSequence); 
-                midiFile.setTicksPerQuarterNote(960); 
+                midiFile.addTrack(midiClip->midiSequence);
+                midiFile.setTicksPerQuarterNote(960);
 
-                // Записываем MIDI-данные в поток
                 juce::MemoryOutputStream midiStream;
                 if (!midiFile.writeTo(midiStream)) {
-                    LOG_ERROR("Failed to write MIDI sequence to stream");
+                    LOG_ERROR("Failed to write MIDI sequence to stream for clipID=" << clip->clipID);
                     continue;
                 }
 
                 juce::String midiBase64 = juce::Base64::toBase64(midiStream.getData(), midiStream.getDataSize());
                 clipJson->setProperty("midiData", midiBase64);
+                LOG("Saved MIDI clip with clipID=" << clip->clipID);
             }
+
             clipsArray.add(juce::var(clipJson));
         }
 
         trackJson->setProperty("clips", clipsArray);
 
+        // Плагины
         juce::Array<juce::var> pluginsArray;
         for (const auto& plugin : track.plugins) {
             juce::DynamicObject::Ptr pluginJson = new juce::DynamicObject();
-            pluginJson->setProperty("pluginPath", plugin->plugin ? juce::var(juce::String(plugin->Path)) : "");
-            LOG("Plugin path: " << plugin->Path);
+            pluginJson->setProperty("pluginPath", plugin->plugin ? juce::String(plugin->Path) : "");
             pluginJson->setProperty("bypass", plugin->bypass);
 
-            if (plugin->plugin) {
+            if (plugin->plugin && plugin->plugin->getName().isNotEmpty()) {
                 juce::MemoryBlock state;
                 plugin->plugin->getStateInformation(state);
-
                 if (state.getSize() > 0) {
                     plugin->state = state;
-
                     juce::String stateBase64 = juce::Base64::toBase64(state.getData(), state.getSize());
                     pluginJson->setProperty("state", stateBase64);
-                    LOG("Saved plugin state for " << plugin->plugin->getName().toStdString() << ", size: " << state.getSize() << " bytes");
+                    LOG("Saved plugin state for " << plugin->plugin->getName().toStdString() << ", size: " << state.getSize());
                 }
                 else {
                     LOG_ERROR("Failed to get plugin state for " << plugin->plugin->getName().toStdString());
@@ -1823,25 +1867,24 @@ void Engine::Saver::SaveProject(const std::string filePath)
 
         trackJson->setProperty("plugins", pluginsArray);
         tracksArray.add(juce::var(trackJson));
-
     }
 
     projectJson.getDynamicObject()->setProperty("tracks", tracksArray);
 
+    // Сохранение в файл
     juce::File projectFile(filePath);
     if (projectFile.existsAsFile()) projectFile.deleteFile();
 
-    juce::FileOutputStream OS(projectFile);
-    if (!OS.openedOk()) {
+    juce::FileOutputStream os(projectFile);
+    if (!os.openedOk()) {
         LOG_ERROR("Failed to open file for saving: " << filePath);
         return;
     }
 
-    juce::JSON::writeToStream(OS, projectJson, true);
-    OS.flush();
+    juce::JSON::writeToStream(os, projectJson, true);
+    os.flush();
 
-    LOG_SUCCESS("roject saved successfully to : " << filePath);
-
+    LOG_SUCCESS("Project saved successfully to: " << filePath);
 }
 
 bool Engine::Saver::LoadProject(const std::string filePath)
@@ -1867,37 +1910,48 @@ bool Engine::Saver::LoadProject(const std::string filePath)
     m_core.stop();
     m_core.tracks.clear();
 
+    // Загрузка глобальных настроек
     if (json.hasProperty("bpm")) {
         m_core.setBPM(json["bpm"]);
-        LOG("Set bpm:" << m_core.bpm);
+        LOG("Set BPM: " << m_core.bpm);
     }
     if (json.hasProperty("position")) {
         m_core.setPosition(json["position"]);
-        LOG("Set position:" << m_core.position);
+        LOG("Set position: " << m_core.position);
     }
 
+    // Карта для хранения мастер-клипов
+    std::map<std::string, Engine::ClipBase*> masterClips;
 
+    // Загрузка дорожек
     if (json.hasProperty("tracks")) {
         const juce::var& tracksArray = json["tracks"];
         for (const auto& trackVar : *tracksArray.getArray()) {
-
             Track track;
             track.isMidiTrack = trackVar["isMidiTrack"];
             track.isSamplerTrack = trackVar["isSamplerTrack"];
             track.gain = trackVar["gain"];
             track.muted = trackVar["muted"];
 
-            // Загружаем клипы
+            std::vector<juce::var> cloneClips;
             if (trackVar.hasProperty("clips")) {
                 for (const auto& clipVar : *trackVar["clips"].getArray()) {
                     std::string clipType = clipVar["type"].toString().toStdString();
+                    std::string clipID = clipVar["clipID"].toString().toStdString();
                     double startBeats = clipVar["startBeats"];
                     double durationBeats = clipVar["durationBeats"];
                     float gain = clipVar["gain"];
                     bool muted = clipVar["muted"];
 
+                    if (clipType == "clone") {
+                        cloneClips.push_back(clipVar);
+                        continue;
+                    }
+
+                    std::unique_ptr<ClipBase> clip;
                     if (clipType == "audio") {
                         auto audioClip = std::make_unique<AudioClip>();
+                        audioClip->clipID = clipID;
                         audioClip->startBeats = startBeats;
                         audioClip->durationBeats = durationBeats;
                         audioClip->gain = gain;
@@ -1907,14 +1961,17 @@ bool Engine::Saver::LoadProject(const std::string filePath)
                         audioClip->startTime = m_core.beatsToSeconds(startBeats);
                         audioClip->duration = m_core.beatsToSeconds(durationBeats);
 
-                        if (audioClip->useRAM) {
+                        if (audioClip->useRAM && audioClip->file.existsAsFile()) {
                             m_core.loadClipToRAM(*audioClip);
                         }
-
-                        track.clips.push_back(std::move(audioClip));
+                        else if (!audioClip->file.existsAsFile()) {
+                            LOG_ERROR("Audio file not found: " << audioClip->file.getFullPathName().toStdString());
+                        }
+                        clip = std::move(audioClip);
                     }
                     else if (clipType == "midi") {
                         auto midiClip = std::make_unique<MidiClip>();
+                        midiClip->clipID = clipID;
                         midiClip->startBeats = startBeats;
                         midiClip->durationBeats = durationBeats;
                         midiClip->gain = gain;
@@ -1922,32 +1979,38 @@ bool Engine::Saver::LoadProject(const std::string filePath)
                         midiClip->startTime = m_core.beatsToSeconds(startBeats);
                         midiClip->duration = m_core.beatsToSeconds(durationBeats);
 
-                       
                         juce::String midiBase64 = clipVar["midiData"].toString();
                         juce::MemoryOutputStream midiOutputStream;
                         if (!juce::Base64::convertFromBase64(midiOutputStream, midiBase64)) {
-                            LOG_ERROR("Failed to decode Base64 MIDI data: " << midiBase64.toStdString());
+                            LOG_ERROR("Failed to decode Base64 MIDI data for clipID=" << clipID);
                             continue;
                         }
 
                         juce::MemoryInputStream midiStream(midiOutputStream.getData(), midiOutputStream.getDataSize(), false);
-
                         juce::MidiFile midiFile;
                         if (!midiFile.readFrom(midiStream)) {
-                            LOG_ERROR("Failed to read MIDI sequence from stream");
+                            LOG_ERROR("Failed to read MIDI sequence from stream for clipID=" << clipID);
                             continue;
                         }
 
+                        // Устанавливаем ticksPerQuarterNote для согласованности
+                        midiFile.setTicksPerQuarterNote(960);
+
                         if (midiFile.getNumTracks() > 0) {
                             midiClip->midiSequence = *(midiFile.getTrack(0));
+                            m_core.cleanMidiSequence(midiClip.get());
+                            LOG("Loaded MIDI clip with clipID=" << clipID << ", events: " << midiClip->midiSequence.getNumEvents());
                         }
                         else {
-                            LOG_ERROR("No MIDI tracks found in loaded data");
+                            LOG_ERROR("No MIDI tracks found in loaded data for clipID=" << clipID);
                         }
+                        clip = std::move(midiClip);
+                    }
 
-                        track.clips.emplace_back(std::move(midiClip));
-                        
-                        
+                    if (clip) {
+                        track.clips.push_back(std::move(clip));
+                        masterClips[clipID] = track.clips.back().get();
+                        LOG("Loaded master clip with clipID=" << clipID);
                     }
                 }
             }
@@ -1955,15 +2018,12 @@ bool Engine::Saver::LoadProject(const std::string filePath)
             m_core.tracks.emplace_back(std::move(track));
             int currentTrackIndex = m_core.tracks.size() - 1;
 
-            // Загружаем плагины
+            // Загрузка плагинов
             if (trackVar.hasProperty("plugins")) {
                 for (const auto& pluginVar : *trackVar["plugins"].getArray()) {
-                    auto pluginInstance = std::make_unique<PluginInstance>();
                     std::string pluginPath = pluginVar["pluginPath"].toString().toStdString();
-                    LOG("Plugin path after load: " << pluginPath);
                     if (!pluginPath.empty()) {
                         m_core.addPluginToTrack(currentTrackIndex, pluginPath);
-
                         auto& plugins = m_core.tracks[currentTrackIndex].plugins;
                         if (plugins.empty() || !plugins.back()->plugin) {
                             LOG_ERROR("Failed to load plugin at path: " << pluginPath);
@@ -1971,6 +2031,7 @@ bool Engine::Saver::LoadProject(const std::string filePath)
                         }
 
                         auto* pluginInstance = plugins.back().get();
+                        pluginInstance->bypass = pluginVar["bypass"];
 
                         if (pluginVar.hasProperty("state")) {
                             juce::String stateBase64 = pluginVar["state"].toString();
@@ -1979,27 +2040,47 @@ bool Engine::Saver::LoadProject(const std::string filePath)
                                 juce::MemoryBlock state(stateStream.getData(), stateStream.getDataSize());
                                 pluginInstance->plugin->setStateInformation(state.getData(), static_cast<int>(state.getSize()));
                                 pluginInstance->state = state;
-                                LOG("Restored plugin state for " << pluginPath << ", size: " << state.getSize() << " bytes");
+                                LOG("Restored plugin state for " << pluginPath << ", size: " << state.getSize());
                             }
                             else {
                                 LOG_ERROR("Failed to decode plugin state for " << pluginPath);
                             }
                         }
                     }
-                    m_core.tracks[m_core.tracks.size() - 1].plugins.emplace_back(std::move(pluginInstance));
                 }
             }
 
+            // Загрузка клонов
+            for (const auto& clipVar : cloneClips) {
+                std::string clipID = clipVar["clipID"].toString().toStdString();
+                std::string masterClipID = clipVar["masterClipID"].toString().toStdString();
+                double startBeats = clipVar["startBeats"];
+                double durationBeats = clipVar["durationBeats"];
+                float gain = clipVar["gain"];
+                bool muted = clipVar["muted"];
 
-           // m_core.tracks.push_back(std::move(track));
-            
-                
-            LOG("Loaded: " << m_core.tracks.size() << "tracks");
+                if (masterClips.find(masterClipID) == masterClips.end()) {
+                    LOG_ERROR("Master clip with clipID=" << masterClipID << " not found for clone clipID=" << clipID);
+                    continue;
+                }
+
+                auto cloneClip = std::make_unique<CloneClip>(masterClips[masterClipID], startBeats);
+                cloneClip->clipID = clipID;
+                cloneClip->masterClipID = masterClipID;
+                cloneClip->gain = gain;
+                cloneClip->muted = muted;
+                cloneClip->startTime = m_core.beatsToSeconds(startBeats);
+                cloneClip->durationBeats = durationBeats;
+                cloneClip->duration = m_core.beatsToSeconds(durationBeats);
+
+                m_core.tracks[currentTrackIndex].clips.push_back(std::move(cloneClip));
+                LOG("Loaded clone clip with clipID=" << clipID << ", masterClipID=" << masterClipID);
+            }
         }
     }
 
     m_core.updateActiveClips();
-    LOG_SUCCESS("Project loaded successfully");
+    LOG_SUCCESS("Project loaded successfully from: " << filePath);
     return true;
 }
 

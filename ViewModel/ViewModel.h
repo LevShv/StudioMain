@@ -42,6 +42,7 @@ public:
    
     Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
     Q_INVOKABLE void deletePlugin(int trackIndex, int pluginIndex);
+    Q_INVOKABLE void HidePlugin(int trackIndex, int pluginIndex);
 
     Q_INVOKABLE void deleteTrack(int trackIndex);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);
