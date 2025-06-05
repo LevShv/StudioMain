@@ -53,6 +53,7 @@ public:
 
     struct MidiClip : public ClipBase {
         juce::MidiMessageSequence midiSequence;
+        double minDurationBeats = 1;
     };
 
     struct CloneClip : public ClipBase {
@@ -123,7 +124,9 @@ public:
 	void TogglePluginBypass(int trackIndex, int pluginIndex);
 
     void AddAudioClip(int trackInd, const std::string& path, double startBeats, bool loadToRAM);
-    void AddMidiClip(int trackInd, const juce::MidiMessageSequence& sequence, double startBeats);
+    bool AddMidiClip(int trackInd, double startBeats);
+    void AddCloneClip(int trackIndex, int masterClipIndex, double startBeats);
+
     void StopMix();
     void PlayMix();
     void MoveClip(int trackIndex, int clipIndex, double startBeats);
@@ -142,7 +145,16 @@ public:
     void DeleteTrack(int trackIndex);
     void DeleteClip(int trackIndex, int clipIndex);
 
-    void AddCloneClip(int trackIndex, int masterClipIndex, double startBeats);
+    void ChangeDuration(int trackIndex, int clipIndex, double newDuration);
+
+    void AddMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+    void DeleteMidiNote(int trackIndex, int clipIndex, int noteIndex);
+    void UpdateMidiNote(int trackIndex, int clipIndex, int noteIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+
+    double SecondsToBeats(double seconds) const;
+    double BeatsToSeconds(double beats) const;
+
+    void cleanMidiSequence(MidiClip* midiClip);
 
     //AddTrack();
     const std::vector<Engine::Track>& GetdataBase() const;
@@ -179,7 +191,7 @@ private:
         void addPluginToTrack(int trackIndex, const juce::String& pluginPath);
         void removePluginFromTrack(int trackIndex, int pluginIndex);
         void togglePluginBypass(int trackIndex, int pluginIndex);
-        juce::AudioProcessorEditor* getPluginEditor(int trackIndex, int pluginIndex);
+        juce::AudioProcessorEditor* getPluginEditor(int trackIndex, int pluginIndex);;
 
         void setBPM(double newBPM);
         double getBPM() const { return bpm; }
@@ -216,6 +228,15 @@ private:
         void addCloneClip(int trackIndex, int masterClipIndex, double startBeats);
 
 		void RenderToFile(std::string& Path);
+        
+        void changeMidiclipDuration(int trackIndex, int clipIndex, double newDuration);
+        void changeAudioclipDuration(int trackIndex, int clipIndex, double newDuration);
+
+        void addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+        void deleteMidiNote(int trackIndex, int clipIndex, int noteIndex);
+        void updateMidiNote(int trackIndex, int clipIndex, int noteIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+
+        void cleanMidiSequence(MidiClip* clip);
 
     private:
 

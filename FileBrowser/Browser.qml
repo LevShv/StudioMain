@@ -59,15 +59,28 @@ Item {
             spacing: 5
 
             // 1. Кнопка назад
-            Button {
+            // 1. Кнопка назад с анимациями
+            RoundButton {
                 id: backButton
                 width: 30
                 height: 30
+                radius: width / 2
                 ToolTip.visible: hovered
+                ToolTip.delay: 500
                 ToolTip.text: "Назад"
-
+    
                 background: Rectangle {
-                    color: "transparent"
+                    radius: parent.radius
+                    color: backButton.hovered ? "#d0d0d0" : "transparent"
+                    border.color: backButton.hovered ? "#a0a0a0" : "transparent"
+                    border.width: 1
+        
+                    Behavior on color {
+                        ColorAnimation { duration: 100 }
+                    }
+                    Behavior on border.color {
+                        ColorAnimation { duration: 100 }
+                    }
                 }
 
                 Image {
@@ -77,65 +90,114 @@ Item {
                     source: root.imagesPath + "left_arrow.png"
                     sourceSize.width: 24
                     sourceSize.height: 24
+                    opacity: backButton.down ? 0.7 : 1.0
+        
+                    Behavior on opacity {
+                        NumberAnimation { duration: 100 }
+                    }
                 }
 
                 onClicked: {
+                    scale: 0.95
                     var parentFolder = browser.parentFolder()
                     console.log("Navigating to parent:", parentFolder)
                     browser.setCurrentFolder(parentFolder)
                 }
+    
+                Behavior on scale {
+                    NumberAnimation { 
+                        duration: 100
+                        easing.type: Easing.OutQuad 
+                    }
+                }
             }
 
-            // 2. Кнопка домой
-            Button {
+            // 2. Кнопка домой с анимациями
+            RoundButton {
                 id: homeButton
                 width: 30
                 height: 30
-
-
+                radius: width / 2
                 ToolTip.visible: hovered
+                ToolTip.delay: 500
                 ToolTip.text: "Домашняя папка"
-
+    
                 background: Rectangle {
-                    color: "transparent"
+                    radius: parent.radius
+                    color: homeButton.hovered ? "#d0d0d0" : "transparent"
+                    border.color: homeButton.hovered ? "#a0a0a0" : "transparent"
+                    border.width: 1
+        
+                    Behavior on color {
+                        ColorAnimation { duration: 100 }
+                    }
+                    Behavior on border.color {
+                        ColorAnimation { duration: 100 }
+                    }
                 }
 
                 Image {
                     anchors.centerIn: parent
                     width: 24
                     height: 24
-                    source: root.imagesPath + "up_arrow.png";
+                    source: root.imagesPath + "up_arrow.png"
                     sourceSize.width: 24
                     sourceSize.height: 24
+                    opacity: homeButton.down ? 0.7 : 1.0
+        
+                    Behavior on opacity {
+                        NumberAnimation { duration: 100 }
+                    }
                 }
+
                 onClicked: {
-                    var homePath = browser.applicationHomeFolder();
-                    console.log("Navigating to home folder:", homePath);
-                    browser.setCurrentFolder(homePath);
+                    scale: 0.95
+                    var homePath = browser.applicationHomeFolder()
+                    console.log("Navigating to home folder:", homePath)
+                    browser.setCurrentFolder(homePath)
+                }
+    
+                Behavior on scale {
+                    NumberAnimation { 
+                        duration: 100
+                        easing.type: Easing.OutQuad 
+                    }
                 }
             }
 
-            // 3. Кнопка фильтра с индикацией
-            Button {
+            // 3. Кнопка фильтра с улучшенной индикацией и анимациями
+            RoundButton {
                 id: filterButton
                 width: 30
                 height: 30
-
+                radius: width / 2
                 ToolTip.visible: hovered
+                ToolTip.delay: 500
                 ToolTip.text: {
                     switch(root.currentFilter) {
-                    case "*": return "Все файлы";
-                    case "": return "Только папки";
-                    case "*.mp3": return "MP3 аудио";
-                    case "*.wav": return "WAV аудио";
-                    case "*.mp4": return "MP4 видео";
-                    default: return "Фильтр: " + root.currentFilter;
+                    case "*": return "Все файлы"
+                    case "": return "Только папки"
+                    case "*.mp3": return "MP3 аудио"
+                    case "*.wav": return "WAV аудио"
+                    case "*.mp4": return "MP4 видео"
+                    default: return "Фильтр: " + root.currentFilter
                     }
                 }
+    
                 background: Rectangle {
-                    color: "transparent"
+                    radius: parent.radius
+                    color: filterButton.hovered ? "#d0d0d0" : "transparent"
+                    border.color: filterButton.hovered ? "#a0a0a0" : "transparent"
+                    border.width: 1
+        
+                    Behavior on color {
+                        ColorAnimation { duration: 100 }
+                    }
+                    Behavior on border.color {
+                        ColorAnimation { duration: 100 }
+                    }
                 }
-
+    
                 Image {
                     id: filterIcon
                     anchors.centerIn: parent
@@ -143,49 +205,127 @@ Item {
                     height: 24
                     source: {
                         switch(root.currentFilter) {
-                        case "*": return root.imagesPath + "filter.png";
-                        case "": return root.imagesPath + "folder.png";
-                        case "*.mp3": return root.imagesPath + "mp3.png";
-                        case "*.wav": return root.imagesPath + "wav.png";
-                        case "*.mp4": return root.imagesPath + "mp4.png";
-                        default: return root.imagesPath + "filter.png";
+                        case "*": return root.imagesPath + "filter.png"
+                        case "": return root.imagesPath + "folder.png"
+                        case "*.mp3": return root.imagesPath + "mp3.png"
+                        case "*.wav": return root.imagesPath + "wav.png"
+                        case "*.mp4": return root.imagesPath + "mp4.png"
+                        default: return root.imagesPath + "filter.png"
                         }
                     }
                     sourceSize.width: 24
                     sourceSize.height: 24
+                    opacity: filterButton.down ? 0.7 : 1.0
+        
+                    Behavior on opacity {
+                        NumberAnimation { duration: 100 }
+                    }
+                    Behavior on source {
+                        PropertyAnimation { duration: 150 }
+                    }
                 }
 
-                onClicked: filterMenu.open()
+                onClicked: {
+                    scale: 0.95
+                    filterMenu.open()
+                }
+    
+                Behavior on scale {
+                    NumberAnimation { 
+                        duration: 100
+                        easing.type: Easing.OutQuad 
+                    }
+                }
 
                 Menu {
                     id: filterMenu
                     y: filterButton.height
+                    width: 180
+        
+                    enter: Transition {
+                        NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 150 }
+                        NumberAnimation { property: "scale"; from: 0.9; to: 1.0; duration: 150 }
+                    }
+        
+                    exit: Transition {
+                        NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 100 }
+                    }
 
                     MenuItem {
                         text: "Все файлы"
-                        icon.source: root.imagesPath + "filter.png";
+                        icon.source: root.imagesPath + "filter.png"
                         onTriggered: root.currentFilter = "*"
+
+                        background: Rectangle {
+                            implicitHeight: 30
+                            color: parent.hovered ? "#e0e0e0" : "transparent"
+    
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
                     }
                     MenuItem {
                         text: "Только папки"
-                        icon.source: root.imagesPath + "folder.png";
+                        icon.source: root.imagesPath + "folder.png"
                         onTriggered: root.currentFilter = ""
+
+                        background: Rectangle {
+                            implicitHeight: 30
+                            color: parent.hovered ? "#e0e0e0" : "transparent"
+    
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
                     }
-                    MenuSeparator {}
+                    MenuSeparator {
+                        contentItem: Rectangle {
+                            implicitHeight: 1
+                            color: "#d0d0d0"
+                        }
+                    }
                     MenuItem {
                         text: "MP3 аудио"
-                        icon.source: root.imagesPath + "mp3.png";
+                        icon.source: root.imagesPath + "mp3.png"
                         onTriggered: root.currentFilter = "*.mp3"
+
+                        background: Rectangle {
+                            implicitHeight: 30
+                            color: parent.hovered ? "#e0e0e0" : "transparent"
+    
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
                     }
                     MenuItem {
                         text: "WAV аудио"
-                        icon.source: root.imagesPath + "wav.png";
+                        icon.source: root.imagesPath + "wav.png"
                         onTriggered: root.currentFilter = "*.wav"
+
+                        background: Rectangle {
+                            implicitHeight: 30
+                            color: parent.hovered ? "#e0e0e0" : "transparent"
+    
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
                     }
                     MenuItem {
                         text: "MP4 видео"
-                        icon.source: root.imagesPath + "mp4.png";
+                        icon.source: root.imagesPath + "mp4.png"
                         onTriggered: root.currentFilter = "*.mp4"
+
+                        background: Rectangle {
+                            implicitHeight: 30
+                            color: parent.hovered ? "#e0e0e0" : "transparent"
+    
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
                     }
                 }
             }

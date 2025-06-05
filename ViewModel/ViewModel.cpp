@@ -1,9 +1,16 @@
 #include "ViewModel.h"
 #include <QDebug>
+#include <QCoreApplication>
+#include <QDir>
+#include <QDesktopServices>
+
+
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
 
     m_trackModel = new TrackModel(engine, this);
+    m_midiModel = new MidiMessageModel(engine, this);
+    m_pluginModel = new PluginModel(engine, this);
 
     m_playheadTimer = new QTimer(this);
     connect(m_playheadTimer, &QTimer::timeout, this, &ViewModel::updatePlayhead);
@@ -69,6 +76,18 @@ void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double sta
     emit clipAdded(trackIndex);
 }
 
+void ViewModel::addMidiClip(int trackIndex, double startTime)
+{
+    if (engine.AddMidiClip(trackIndex, startTime)) {
+        ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
+        if (clipModel) {
+            clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
+        }
+        emit clipAdded(trackIndex);
+    }
+    
+}
+
 void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats)
 {
     
@@ -80,45 +99,118 @@ void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBe
     emit clipAdded(trackIndex);
 }
 
-void ViewModel::addPlugin(int trackIndex, const QString& pluginPath) {
-    engine.AddPluginToTrack(trackIndex, pluginPath.toStdString());
-    emit pluginAdded(trackIndex);
-}
-
-void ViewModel::togglePluginBypass(int trackIndex, int pluginIndex) {
-    engine.TogglePluginBypass(trackIndex, pluginIndex);
-    emit pluginBypassed(trackIndex, pluginIndex);
-}
-
-void ViewModel::openPluginEditor(int trackIndex, int pluginIndex) {
-    if (auto* editor = engine.GetPluginEditor(trackIndex, pluginIndex)) {
-        QWindow* pluginWindow = new QWindow();
-        pluginWindow->setTitle(QString("Plugin Editor - Track %1, Plugin %2").arg(trackIndex + 1).arg(pluginIndex + 1));
-
-        auto* component = dynamic_cast<juce::Component*>(editor);
-        if (component) {
-            component->addToDesktop(0);
-            auto nativeHandle = component->getWindowHandle();
-
-            pluginWindow->create();
-            pluginWindow->setGeometry(100, 100, component->getWidth(), component->getHeight());
-            pluginWindow->setProperty("nativeHandle", reinterpret_cast<qlonglong>(nativeHandle));
-            QWindow::fromWinId(reinterpret_cast<WId>(nativeHandle))->setParent(pluginWindow);
-
-            pluginWindow->resize(component->getWidth(), component->getHeight());
-            pluginWindow->show();
-
-            emit pluginEditorOpened(trackIndex, pluginIndex, pluginWindow);
-        }
-        else {
-            qWarning() << "Failed to cast editor to JUCE Component";
-            delete pluginWindow;
-        }
-    }
-    else {
-        qWarning() << "Failed to open plugin editor for track" << trackIndex << ", plugin" << pluginIndex;
-    }
-}
+//void ViewModel::addPlugin(int trackIndex, const QString& pluginPath) {
+//    qDebug() << "ViewModel: Adding plugin to track" << trackIndex << "path:" << pluginPath;
+//    engine.AddPluginToTrack(trackIndex, pluginPath.toStdString());
+//    qDebug() << "ViewModel: Plugin added to Engine for track" << trackIndex;
+//    emit pluginAdded(trackIndex);
+//    qDebug() << "ViewModel: Emitted pluginAdded for track" << trackIndex;
+//}
+//
+//void ViewModel::togglePluginBypass(int trackIndex, int pluginIndex) {
+//    engine.TogglePluginBypass(trackIndex, pluginIndex);
+//    emit pluginBypassed(trackIndex, pluginIndex);
+//}
+//
+//void ViewModel::deletePlugin(int trackIndex, int pluginIndex) {
+//    if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
+//        // Проверяем, открыт ли редактор плагина
+//        QPair<int, int> key = { trackIndex, pluginIndex };
+//        if (m_openPluginEditors.contains(key)) {
+//            juce::Component* component = m_openPluginEditors[key];
+//            if (component) {
+//                // Удаляем компонент с рабочего стола
+//                if (component->isOnDesktop()) {
+//                    component->removeFromDesktop();
+//                    qDebug() << "Plugin editor removed from desktop: track=" << trackIndex << ", plugin=" << pluginIndex;
+//                }
+//                // Удаляем из отслеживания
+//                m_openPluginEditors.remove(key);
+//                qDebug() << "Plugin editor removed from tracking: track=" << trackIndex << ", plugin=" << pluginIndex;
+//            }
+//        }
+//
+//        // Удаляем плагин из движка
+//        engine.RemovePluginFromTrack(trackIndex, pluginIndex);
+//        m_pluginModel->refresh();
+//        emit pluginRemoved(trackIndex, pluginIndex);
+//        qDebug() << "Plugin deleted: trackIndex=" << trackIndex << ", pluginIndex=" << pluginIndex;
+//    }
+//    else {
+//        qWarning() << "Invalid track index for plugin deletion:" << trackIndex;
+//    }
+//    emit pluginAdded(trackIndex); // Это может быть ошибкой, возможно, стоит убрать или заменить на pluginRemoved
+//}
+//
+//Q_INVOKABLE void ViewModel::HidePlugin(int trackIndex, int pluginIndex)
+//{
+//    if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
+//        // Проверяем, открыт ли редактор плагина
+//        QPair<int, int> key = { trackIndex, pluginIndex };
+//        if (m_openPluginEditors.contains(key)) {
+//            juce::Component* component = m_openPluginEditors[key];
+//            if (component) {
+//                // Удаляем компонент с рабочего стола
+//                component->setVisible(false);
+//                qDebug() << "Visible off";
+//            }
+//        }
+//
+//    }
+//}
+//
+//void ViewModel::openPluginEditor(int trackIndex, int pluginIndex) {
+//    qDebug() << "Opening plugin editor: track=" << trackIndex << ", plugin=" << pluginIndex;
+//
+//    QPair<int, int> key = { trackIndex, pluginIndex };
+//
+//    // Проверяем, существует ли уже редактор
+//    if (m_openPluginEditors.contains(key)) {
+//        auto* component = m_openPluginEditors[key];
+//        if (component->isVisible()) {
+//            qDebug() << "Plugin editor already visible, bringing to front: track=" << trackIndex << ", plugin=" << pluginIndex;
+//            component->toFront(true);
+//        }
+//        else {
+//            qDebug() << "Plugin editor exists but is hidden, showing: track=" << trackIndex << ", plugin=" << pluginIndex;
+//            component->setVisible(true);
+//            component->toFront(true);
+//        }
+//        emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
+//        return;
+//    }
+//
+//    // Получаем редактор плагина из движка
+//    if (auto* editor = engine.GetPluginEditor(trackIndex, pluginIndex)) {
+//        auto* component = dynamic_cast<juce::Component*>(editor);
+//        if (component) {
+//            // Устанавливаем размеры по умолчанию, если они не заданы
+//            int width = component->getWidth() > 0 ? component->getWidth() : 400;
+//            int height = component->getHeight() > 0 ? component->getHeight() : 300;
+//
+//            // Добавляем компонент на рабочий стол
+//            component->addToDesktop(juce::ComponentPeer::windowHasTitleBar |
+//                                    juce::ComponentPeer::windowHasMaximiseButton |
+//                                    juce::ComponentPeer::windowHasCloseButton |
+//                                    juce::ComponentPeer::windowHasDropShadow);
+//            component->setBounds(100, 100, width, height);
+//            component->setVisible(true);
+//            component->toFront(true);
+//
+//            // Сохраняем компонент в список открытых редакторов
+//            m_openPluginEditors[key] = component;
+//
+//            qDebug() << "Plugin editor opened: track=" << trackIndex << ", plugin=" << pluginIndex;
+//            emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
+//        }
+//        else {
+//            qWarning() << "Failed to cast editor to JUCE Component: track=" << trackIndex << ", plugin=" << pluginIndex;
+//        }
+//    }
+//    else {
+//        qWarning() << "Failed to get plugin editor: track=" << trackIndex << ", plugin=" << pluginIndex;
+//    }
+//}
 
 void ViewModel::deleteTrack(int trackIndex) {
     if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
@@ -272,14 +364,14 @@ Q_INVOKABLE void ViewModel::RenderToWave(QString path)
 	qDebug() << "Render to file:" << path;
 }
 
-Q_INVOKABLE void ViewModel::SaveProject(QString path)
+void ViewModel::SaveProject(QString path)
 {
     const std::string pathStr = path.toStdString();
     engine.SaveProject(pathStr);
     qDebug() << "Save Proj to file:" << path;
 }
 
-Q_INVOKABLE void ViewModel::OpenProject(QString path)
+void ViewModel::OpenProject(QString path)
 {
     const std::string pathStr = path.toStdString();
     qDebug() << "Trying to open Proj in file:" << path;
@@ -290,6 +382,52 @@ Q_INVOKABLE void ViewModel::OpenProject(QString path)
         qDebug() << "File finnaly opened" << path;
     }
     
+
+}
+
+void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDuration)
+{
+    if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size() ||
+        clipIndex < 0 || clipIndex >= engine.GetdataBase()[trackIndex].clips.size()) {
+        qWarning() << "Invalid track or clip index for duration change: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex;
+        return;
+    }
+
+    if (newDuration <= 0.0) {
+        qWarning() << "Invalid duration: " << newDuration << ", duration must be positive";
+        return;
+    }
+
+    engine.ChangeDuration(trackIndex, clipIndex, newDuration);
+
+    // Обновляем модель клипа
+    ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
+    if (clipModel) {
+        clipModel->updateClip(clipIndex); // Уведомляем ClipModel об изменении
+    }
+
+    emit clipDurationChanged(trackIndex, clipIndex, newDuration);
+    qDebug() << "Clip duration changed: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << ", newDuration=" << newDuration << "beats";
+}
+
+ QString ViewModel::applicationHomeFolder() const
+{
+    // Получаем директорию, где находится исполняемый файл
+    QString appDir = QCoreApplication::applicationDirPath();
+
+    // Формируем путь к HomeLeTo
+    QString homePath = QDir::cleanPath(appDir + "/HomeLeTo");
+
+    // Проверяем существование папки
+    QDir dir(homePath);
+    if (!dir.exists()) {
+        qWarning() << "HomeLeTo directory does not exist:" << homePath;
+        // Если папки нет, возвращаем рабочую директорию приложения
+        return appDir;
+    }
+
+    LOG_INFO("Application home folder: " + homePath.toStdString());
+    return homePath;
 
 }
 
@@ -315,3 +453,62 @@ void ViewModel::setVolume(int volume) {
         emit volumeChanged();
     }
 }
+
+void ViewModel::addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
+    // Проверяем валидность параметров
+    if (trackIndex < 0 || clipIndex < 0 || noteNumber < 0 || noteNumber > 127 ||
+        startBeats < 0 || durationBeats <= 0 || velocity < 0 || velocity > 1.0 || channel < 1 || channel > 16) {
+        qWarning() << "ViewModel: Invalid note parameters: noteNumber=" << noteNumber
+            << "startBeats=" << startBeats << "durationBeats=" << durationBeats
+            << "velocity=" << velocity << "channel=" << channel;
+        return;
+    }
+
+    // Обновляем индексы в midiModel
+    m_midiModel->setTrackIndex(trackIndex);
+    m_midiModel->setClipIndex(clipIndex);
+
+    // Проверяем валидность индексов
+    const auto& database = engine.GetdataBase();
+    if (trackIndex >= database.size() || clipIndex >= database[trackIndex].clips.size()) {
+        qWarning() << "ViewModel: Invalid trackIndex=" << trackIndex << "or clipIndex=" << clipIndex;
+        return;
+    }
+
+    // Проверяем, является ли клип MidiClip
+    if (!dynamic_cast<Engine::MidiClip*>(database[trackIndex].clips[clipIndex].get())) {
+        qWarning() << "ViewModel: Clip at trackIndex=" << trackIndex << "clipIndex=" << clipIndex << "is not a MidiClip";
+        return;
+    }
+
+    // Добавляем ноту в Engine
+    engine.AddMidiNote(trackIndex, clipIndex, noteNumber, startBeats, durationBeats, velocity, channel);
+
+    // Синхронизируем модель с Engine
+    m_midiModel->refresh();
+    qDebug() << "ViewModel: Added MIDI note: trackIndex=" << trackIndex << "clipIndex=" << clipIndex
+        << "noteNumber=" << noteNumber << "startBeats=" << startBeats << "velocity=" << velocity;
+}
+
+void ViewModel::deleteMidiNote(int trackIndex, int clipIndex, int index) {
+    if (trackIndex == m_midiModel->trackIndex() && clipIndex == m_midiModel->clipIndex()) {
+        engine.DeleteMidiNote(trackIndex, clipIndex, index);
+        m_midiModel->deleteNote(index);
+        qDebug() << "ViewModel: Deleted MIDI note at index=" << index << "trackIndex=" << trackIndex << "clipIndex=" << clipIndex;
+    }
+    else {
+        qWarning() << "Cannot delete note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
+    }
+}
+
+void ViewModel::updateMidiNote(int trackIndex, int clipIndex, int index, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
+    if (trackIndex == m_midiModel->trackIndex() && clipIndex == m_midiModel->clipIndex()) {
+        engine.UpdateMidiNote(trackIndex, clipIndex, index, noteNumber, startBeats, durationBeats, velocity, channel);
+        m_midiModel->updateNote(index, noteNumber, startBeats, durationBeats, velocity, channel);
+        qDebug() << "ViewModel: Updated MIDI note at index=" << index << "trackIndex=" << trackIndex << "clipIndex=" << clipIndex << "noteNumber=" << noteNumber;
+    }
+    else {
+        qWarning() << "Cannot update note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
+    }
+}
+

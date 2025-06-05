@@ -26,6 +26,10 @@ public:
     void setTrackIndex(int trackIndex);
 	void deleteClip(int clipIndex); 
 
+signals:
+    void clipAdded(int clipIndex, double durationBeats);
+    void clipDurationChanged(int clipIndex, double durationBeats);
+
 private:
     Engine& m_engine;
     int m_trackIndex;

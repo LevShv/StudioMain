@@ -6,6 +6,7 @@
 #include <ViewModel.h>
 #include "filebrowser.h"
 #include "TimelinePainter.h"
+#include "MidiMessageModel.h"
 
 #include <iostream>
 #include <windows.h>
@@ -39,8 +40,9 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    ViewModel viewModel;
-    engine.rootContext()->setContextProperty("viewModel", &viewModel);
+   // ViewModel viewModel;
+	auto viewModel = new ViewModel(&app);
+    engine.rootContext()->setContextProperty("viewModel", viewModel);
 
     engine.load(QUrl(QStringLiteral("qrc:/View/MainWindowView/MainWindow.qml")));
 
