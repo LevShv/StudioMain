@@ -71,6 +71,9 @@
     <None Include="Piano\PianoView.qml">
       <Filter>Piano</Filter>
     </None>
+    <None Include="Separator\Separator.qml">
+      <Filter>Separator</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\engine.h">

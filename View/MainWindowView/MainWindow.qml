@@ -898,7 +898,10 @@ Window {
                                                 viewModel.addAudioClip(trackIndex, filePath, position)
                                                 console.log("Added audio clip: trackIndex:", trackIndex, "filePath:", filePath, "position:", position)
                                             } else if (["dll", "vst3"].indexOf(fileExt) !== -1) {
+                                                mainWindow.selectedTrackIndex = trackIndex
+                                                viewModel.pluginModel.setTrackIndex(trackIndex);
                                                 viewModel.pluginModel.addPlugin(trackIndex, filePath)
+                                                mainWindow.separatorVisible = true // Показываем SeparatorPanel
                                                 console.log("Added plugin: trackIndex:", trackIndex, "filePath:", filePath)
                                             } else {
                                                 console.log("Invalid file type:", filePath)
@@ -922,6 +925,7 @@ Window {
                             pluginModel: viewModel.pluginModel
                             imagesPath: mainWindow.imagesPath
                             selectedTrackIndex: mainWindow.selectedTrackIndex
+                            clipIndex: selectedClipIndex
                         }
                     }
                 }
@@ -2129,8 +2133,10 @@ Window {
                                                                                 clipItem.isSelected = true
                                                                                 mainWindow.multiSelectMode = false
                                                                                 mainWindow.selectedTrackIndex = trackIndex
-                                                                                if (model.type === "midi") {
-                                                                                    mainWindow.selectedClipIndex = index
+                                                                                mainWindow.selectedClipIndex = index
+                                                                                viewModel.pluginModel.setTrackIndex(trackIndex); // Синхронизируем pluginModel
+                                                                                mainWindow.separatorVisible = true; // Показываем SeparatorPanel
+                                                                                if (model.type === "midi") {                                                                                    
                                                                                     mainWindow.pianoRollVisible = true
                                                                                     console.log(`Opening Piano Roll: trackIndex=${trackIndex}, clipIndex=${index}`)
                                                                                 } else {
