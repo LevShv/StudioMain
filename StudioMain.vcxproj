@@ -115,6 +115,7 @@
     <None Include="FileBrowser\Browser.qml" />
     <None Include="Piano\PianoView.qml" />
     <None Include="Separator\Separator.qml" />
+    <None Include="View\Components\TopToolBar.qml" />
     <None Include="View\MainWindowView\MainWindow.qml" />
     <QtRcc Include="qml.qrc" />
   </ItemGroup>
