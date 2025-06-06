@@ -5,8 +5,6 @@
     <qresource prefix="/">
         <file>View/MainWindowView/MainWindow.qml</file>
         <file>FileBrowser/Browser.qml</file>
-        <file>TimelinePainter.cpp</file>
-        <file>TimelinePainter.h</file>
         <file>PianoView.qml</file>
     </qresource>
 </RCC>
