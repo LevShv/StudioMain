@@ -112,7 +112,6 @@
     <ClCompile Include="PluginModel.cpp" />
     <ClCompile Include="TrackModel\TrackModel.cpp" />
     <ClCompile Include="ViewModel\ViewModel.cpp" />
-    <ClCompile Include="View\MainWindowView\MainWindowView.cpp" />
     <None Include="FileBrowser\Browser.qml" />
     <None Include="old.qml" />
     <None Include="PianoView.qml" />
@@ -128,7 +127,6 @@
     <QtMoc Include="PluginModel.h" />
     <ClInclude Include="Tools\log.h" />
     <QtMoc Include="ViewModel\ViewModel.h" />
-    <QtMoc Include="View\MainWindowView\MainWindowView.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
