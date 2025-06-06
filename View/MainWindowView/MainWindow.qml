@@ -152,6 +152,7 @@ Window {
 
         // Верхняя панель инструментов
         Rectangle {
+            id: topToolbar
             Layout.fillWidth: true
             height: 48
             color: "#4C566A"
@@ -1868,27 +1869,6 @@ Window {
                                                                             }
                                                                         }
 
-                                                                    /*  Image {
-                                                                            id: waveformImage
-                                                                            anchors.fill: parent
-                                                                            source: ""
-                                                                            asynchronous: true
-                                                                            cache: false
-                                                                            visible: model.type === "audio" && source != ""
-                                                                        } */
-
-                                                                    /*  Timer {
-                                                                            id: imageUpdateTimer
-                                                                            interval: 1000
-                                                                            running: clipItem.visible && model.type === "audio" && waveformImage.source == "" && !flickableArea.moving
-                                                                            onTriggered: {
-                                                                                if (clipItem.visible) {
-                                                                                    waveformImage.source = clipsModel.getWaveformImage(index, Math.round(clipRectangle.width), Math.round(clipRectangle.height))
-                                                                                    console.log("Waveform updated via timer for clip:", index, "width:", clipRectangle.width, "source:", waveformImage.source)
-                                                                                }
-                                                                            }
-                                                                        } */
-
                                                                         Connections {
                                                                             target: clipItem
                                                                             function onWidthChanged() {
@@ -1921,18 +1901,6 @@ Window {
                                                                                 }
                                                                             }
                                                                         }
-
-                                                                        /* Label {
-                                                                            anchors.fill: parent
-                                                                            text: model.file ? model.file.split("/").pop() : "MIDI Clip"
-                                                                            color: "white"
-                                                                            font.pixelSize: 10
-                                                                            padding: 5
-                                                                            elide: Text.ElideRight
-                                                                            verticalAlignment: Text.AlignVCenter
-                                                                            opacity: model.type === "audio" ? 0.5 : 1.0
-                                                                            visible: !waveformImage.visible
-                                                                        } */
 
 
                                                                         MouseArea {
@@ -2160,9 +2128,8 @@ Window {
                                                                                 resetAllClipSelections()
                                                                                 clipItem.isSelected = true
                                                                                 mainWindow.multiSelectMode = false
-                                                                                    mainWindow.selectedTrackIndex = trackIndex
+                                                                                mainWindow.selectedTrackIndex = trackIndex
                                                                                 if (model.type === "midi") {
-                                                                                    
                                                                                     mainWindow.selectedClipIndex = index
                                                                                     mainWindow.pianoRollVisible = true
                                                                                     console.log(`Opening Piano Roll: trackIndex=${trackIndex}, clipIndex=${index}`)
@@ -2177,38 +2144,52 @@ Window {
                                                                             if (drag.active) {
                                                                                 var newX = clipItem.x
                                                                                 var newPosition = flickableArea.beatWidth > 0 ? newX / flickableArea.beatWidth : 0
-                                                                            // clipsModel.setData(index, "startBeats", newPosition)
                                                                                 console.log("Dragging: newPosition=", newPosition)
                                                                             }
                                                                         }
 
                                                                         onReleased: {
                                                                             var groupSize = flickableArea.cachedGroupSize
-                                                                            var snapStep = groupSize * flickableArea.beatWidth
-                                                                            var threshold = 8 // Порог для привязки к сетке
-
-                                                                            // Вычисляем смещение для главного клипа (того, который перетаскивается)
-                                                                            var deltaX = clipItem.x - (model.startBeats * flickableArea.beatWidth)
+                                                                            var snapStep = groupSize * flickableArea.beatWidth // Шаг сетки в пикселях
                                                                             var nearestGridX = Math.round(clipItem.x / snapStep) * snapStep
-                                                                            var snappedX = Math.abs(clipItem.x - nearestGridX) <= threshold ? nearestGridX : clipItem.x
+                                                                            var distanceToGrid = Math.abs(clipItem.x - nearestGridX)
+                                                                            var threshold = 8 // Порог привязки в пикселях (8 пикселей, как в кликах по contentGrid)
+
+                                                                            // Привязываем к сетке, если расстояние до ближайшей точки меньше или равно порогу
+                                                                            var snappedX = distanceToGrid <= threshold ? nearestGridX : clipItem.x
+                                                                            snappedX = Math.max(0, Math.min(snappedX, contentGrid.width - clipItem.width))
+                                                                            var deltaX = snappedX - (model.startBeats * flickableArea.beatWidth) // Смещение для главного клипа
                                                                             var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
-                                                                            var snapOffset = snappedX - clipItem.x // Смещение из-за привязки к сетке (если есть)
+                                                                            newPosition = Math.round(newPosition * 1000) / 1000 // Округление до 3 десятичных знаков
 
                                                                             // Обновляем главный клип
+                                                                            clipItem.x = snappedX
                                                                             viewModel.moveClip(trackIndex, index, newPosition)
 
                                                                             // Для всех выделенных клипов этого трека
                                                                             for (var i = 0; i < clipsRepeater.count; i++) {
                                                                                 var otherClip = clipsRepeater.itemAt(i)
                                                                                 if (otherClip && otherClip.isSelected && otherClip !== clipItem) {
-                                                                                    // Вычисляем новое положение без привязки к сетке, но с учетом snapOffset главного клипа
-                                                                                    var newX = otherClip.x + deltaX + snapOffset
-                                                                                    var newOtherPosition = flickableArea.beatWidth > 0 ? newX / flickableArea.beatWidth : 0
-                                                                                    viewModel.moveClip(trackIndex, otherClip.sourceIndex, newOtherPosition)
+                                                                                    // Вычисляем новое положение с учетом смещения главного клипа
+                                                                                    var otherX = otherClip.x + deltaX
+                                                                                    // Привязываем к сетке с тем же порогом
+                                                                                    var otherNearestGridX = Math.round(otherX / snapStep) * snapStep
+                                                                                    var otherDistanceToGrid = Math.abs(otherX - otherNearestGridX)
+                                                                                    var otherSnappedX = otherDistanceToGrid <= threshold ? otherNearestGridX : otherX
+                                                                                    otherSnappedX = Math.max(0, Math.min(otherSnappedX, contentGrid.width - otherClip.width))
+                                                                                    var otherNewPosition = flickableArea.beatWidth > 0 ? otherSnappedX / flickableArea.beatWidth : 0
+                                                                                    otherNewPosition = Math.round(otherNewPosition * 1000) / 1000
+
+                                                                                    otherClip.x = otherSnappedX
+                                                                                    viewModel.moveClip(trackIndex, otherClip.sourceIndex, otherNewPosition)
                                                                                 }
                                                                             }
 
                                                                             clipRectangle.z = 4
+                                                                            console.log("Clip snapped: trackIndex=", trackIndex, "clipIndex=", index, "x=", clipItem.x, 
+                                                                                        "newPosition=", newPosition, "distanceToGrid=", distanceToGrid, 
+                                                                                        "nearestGridX=", nearestGridX, "snapStep=", snapStep, 
+                                                                                        "zoomLevel=", flickableArea.zoomLevel)
                                                                         }
 
                                                                         function resetAllClipSelections() {
@@ -2395,10 +2376,27 @@ Window {
                                                     drag.maximumX: Math.max(0, flickableArea.contentWidth - greenline.width)
 
                                                     onReleased: {
-                                                        var snappedX = Math.round(greenline.x / flickableArea.beatWidth) * flickableArea.beatWidth
-                                                        greenline.x = snappedX
+                                                        var groupSize = flickableArea.cachedGroupSize
+                                                        var snapStep = groupSize * flickableArea.beatWidth // Шаг сетки в пикселях
+                                                        var nearestGridX = Math.round(greenline.x / snapStep) * snapStep
+                                                        var distanceToGrid = Math.abs(greenline.x - nearestGridX)
+                                                        var threshold = 8 // Порог привязки в пикселях (как у клипов)
+
+                                                        // Привязываем к сетке, если расстояние до ближайшей точки меньше или равно порогу
+                                                        var snappedX = distanceToGrid <= threshold ? nearestGridX : greenline.x
+                                                        snappedX = Math.max(0, Math.min(snappedX, flickableArea.contentWidth - greenline.width))
                                                         var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
+                                                        newPosition = Math.round(newPosition * 1000) / 1000 // Округление до 3 десятичных знаков
+
+                                                        greenline.x = snappedX
                                                         viewModel.setPlayheadPosition(newPosition)
+
+                                                        console.log("Greenline snapped: x=", greenline.x, 
+                                                                    "newPosition=", newPosition, 
+                                                                    "distanceToGrid=", distanceToGrid, 
+                                                                    "nearestGridX=", nearestGridX, 
+                                                                    "snapStep=", snapStep, 
+                                                                    "zoomLevel=", flickableArea.zoomLevel)
                                                     }
 
                                                     Connections {
@@ -2422,7 +2420,6 @@ Window {
                                                     }
                                                 }
                                             }
-
                                             Timer {
                                                 id: initialUpdateTimer
                                                 interval: 1
