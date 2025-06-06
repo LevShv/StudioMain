@@ -1,10 +1,13 @@
 <RCC>
     <qresource prefix="/qt/qml/studiomain">
         <file>main.qml</file>
+        <file>View/MainWindowView/MainWindow.qml</file>
     </qresource>
     <qresource prefix="/">
         <file>View/MainWindowView/MainWindow.qml</file>
         <file>FileBrowser/Browser.qml</file>
         <file>Piano/PianoView.qml</file>
+        <file>Separator/Separator.qml</file>
+        <file>View/Components/TopToolBar.qml</file>
     </qresource>
 </RCC>

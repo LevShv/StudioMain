@@ -8,7 +8,7 @@ class PluginModel : public QAbstractListModel {
 public:
 
     explicit PluginModel(Engine& engine, QObject* parent = nullptr);
-
+    Q_PROPERTY(int trackIndex READ getTrackIndex WRITE setTrackIndex NOTIFY trackIndexChanged)
     Q_INVOKABLE void addPlugin(int trackIndex, const QString& pluginPath);
     Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
     Q_INVOKABLE void deletePlugin(int trackIndex, int pluginIndex);
@@ -31,6 +31,7 @@ public:
     Q_INVOKABLE void setTrackIndex(int trackIndex);
 
     // Обновление данных модели
+    int getTrackIndex() const { return currentTrackIndex; }
     void refresh();
 
 signals:
@@ -40,6 +41,7 @@ signals:
     void clipAdded(int trackIndex);
     void clipMoved(int trackIndex, int clipIndex, double newStartTime);
     void pluginBypassed(int trackIndex, int pluginIndex);
+    void trackIndexChanged();
   //  void pluginEditorOpened(int trackIndex, int pluginIndex, QWindow* window);
 
 private:

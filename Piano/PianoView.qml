@@ -80,7 +80,7 @@ Item {
 
             Label {
                 anchors.centerIn: parent
-                text: "Piano Roll: Track " + (trackIndex + 1) + ", Clip " + (clipIndex + 1)
+                text: "Пианино: Дорожка " + (trackIndex + 1) + ", Клип " + (clipIndex + 1)
                 color: "#ECEFF4"
                 font.pixelSize: 12
             }
