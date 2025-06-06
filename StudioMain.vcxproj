@@ -66,7 +66,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Separator;$(ProjectDir)Piano;$(ProjectDir)FileBrowser;$(ProjectDir)ClipModel;$(ProjectDir)TrackModel;$(ProjectDir)Tools;C:\JUCE\modules;$(ProjectDir)\Engine\engineLibs\Juce;$(ProjectDir)Engine;$(ProjectDir)ViewModel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Separator;$(ProjectDir)Piano;$(ProjectDir)FileBrowser;$(ProjectDir)ClipModel;$(ProjectDir)TrackModel;$(ProjectDir)Tools;C:\JUCE\modules;$(ProjectDir)\Engine\engineLibs\Juce;$(ProjectDir)Engine\Header;$(ProjectDir)Engine\Structures;$(ProjectDir)Engine\Engine imp;$(ProjectDir)Engine\Core;$(ProjectDir)Engine;$(ProjectDir)ViewModel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -105,7 +105,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClipModel\ClipModel.cpp" />
-    <ClCompile Include="Engine\engine.cpp" />
+    <ClCompile Include="Engine\Core\Core.cpp" />
+    <ClCompile Include="Engine\Engine imp\engine.cpp" />
+    <ClCompile Include="Engine\Saver\Saver.cpp" />
+    <ClCompile Include="Engine\Structures\Structures.cpp" />
     <ClCompile Include="FileBrowser\FileBrowser.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Piano\MidiMessageModel.cpp" />
@@ -121,11 +124,11 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="ClipModel\ClipModel.h" />
-    <ClInclude Include="Engine\engine.h" />
     <QtMoc Include="TrackModel\TrackModel.h" />
     <QtMoc Include="FileBrowser\FileBrowser.h" />
     <QtMoc Include="Piano\MidiMessageModel.h" />
     <QtMoc Include="Separator\PluginModel.h" />
+    <ClInclude Include="Engine\Header\engine.h" />
     <ClInclude Include="Tools\log.h" />
     <QtMoc Include="ViewModel\ViewModel.h" />
   </ItemGroup>
