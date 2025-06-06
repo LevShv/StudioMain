@@ -5,6 +5,6 @@
     <qresource prefix="/">
         <file>View/MainWindowView/MainWindow.qml</file>
         <file>FileBrowser/Browser.qml</file>
-        <file>PianoView.qml</file>
+        <file>Piano/PianoView.qml</file>
     </qresource>
 </RCC>

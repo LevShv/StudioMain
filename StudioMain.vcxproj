@@ -113,7 +113,7 @@
     <ClCompile Include="TrackModel\TrackModel.cpp" />
     <ClCompile Include="ViewModel\ViewModel.cpp" />
     <None Include="FileBrowser\Browser.qml" />
-    <None Include="PianoView.qml" />
+    <None Include="Piano\PianoView.qml" />
     <None Include="View\MainWindowView\MainWindow.qml" />
     <QtRcc Include="qml.qrc" />
   </ItemGroup>

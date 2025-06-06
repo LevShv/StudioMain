@@ -7,7 +7,7 @@ import "qrc:/FileBrowser"
 import Qt.labs.folderlistmodel
 import QtQuick.Dialogs
 import QtQuick.Shapes 1.15
-import "qrc:/"
+import "qrc:/Piano"
 
 
 
