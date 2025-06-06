@@ -37,22 +37,19 @@
     <Filter Include="PluginModel">
       <UniqueIdentifier>{677296dc-badb-4f8e-b6d6-83748a599b09}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Piano">
+      <UniqueIdentifier>{7468a2cd-40d4-43d7-a984-3ece89862fa7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="qml.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
-    <ClCompile Include="View\MainWindowView\MainWindowView.cpp">
-      <Filter>MainWindowWiew</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\engine.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="ViewModel\ViewModel.cpp">
       <Filter>ViewModel</Filter>
-    </ClCompile>
-    <ClCompile Include="FileBrowser.cpp">
-      <Filter>FileBrowser</Filter>
     </ClCompile>
     <ClCompile Include="TrackModel\TrackModel.cpp">
       <Filter>TrackModel</Filter>
@@ -62,14 +59,11 @@
     <None Include="View\MainWindowView\MainWindow.qml">
       <Filter>MainWindowWiew</Filter>
     </None>
-    <None Include="old.qml">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="FileBrowser\Browser.qml">
       <Filter>FileBrowser</Filter>
     </None>
     <None Include="PianoView.qml">
-      <Filter>Source Files</Filter>
+      <Filter>Piano</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -84,22 +78,18 @@
     <QtMoc Include="ViewModel\ViewModel.h">
       <Filter>ViewModel</Filter>
     </QtMoc>
-    <QtMoc Include="View\MainWindowView\MainWindowView.h">
-      <Filter>MainWindowWiew</Filter>
-    </QtMoc>
-    <QtMoc Include="FileBrowser.h">
-      <Filter>FileBrowser</Filter>
-    </QtMoc>
     <QtMoc Include="TrackModel\TrackModel.h">
       <Filter>TrackModel</Filter>
     </QtMoc>
     <QtMoc Include="ClipModel\ClipModel.h">
       <Filter>ClipModel</Filter>
     </QtMoc>
-    <QtMoc Include="TimelinePainter.h" />
-    <QtMoc Include="MidiMessageModel.h" />
     <QtMoc Include="PluginModel.h">
       <Filter>PluginModel</Filter>
+    </QtMoc>
+    <QtMoc Include="FileBrowser\FileBrowser.h" />
+    <QtMoc Include="Piano\MidiMessageModel.h">
+      <Filter>Piano</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -107,12 +97,14 @@
     <ClCompile Include="ClipModel\ClipModel.cpp">
       <Filter>ClipModel</Filter>
     </ClCompile>
-    <ClCompile Include="TimelinePainter.cpp" />
-    <ClCompile Include="MidiMessageModel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="PluginModel.cpp">
       <Filter>PluginModel</Filter>
+    </ClCompile>
+    <ClCompile Include="FileBrowser\FileBrowser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Piano\MidiMessageModel.cpp">
+      <Filter>Piano</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

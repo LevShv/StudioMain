@@ -66,7 +66,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)FileBrowser;C:\Users\user\source\repos\LevShv\StudioMain\ClipModel;C:\Users\llvvv\source\repos\Studio\StudioMain\ClipModel;C:\Users\user\source\repos\LevShv\StudioMain\TrackModel;C:\Users\llvvv\source\repos\Studio\StudioMain\TrackModel;C:\Users\llvvv\source\repos\Studio\StudioMain\Tools;C:\JUCE\modules;C:\Users\user\source\repos\LevShv\StudioMain\Tools;C:\Users\user\source\repos\LevShv\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine;C:\Users\llvvv\source\repos\Studio\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\Engine;C:\Users\user\source\repos\LevShv\StudioMain\View\MainWindowView;C:\Users\llvvv\source\repos\Studio\StudioMain\View\MainWindowView;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Piano;$(ProjectDir)FileBrowser;C:\Users\user\source\repos\LevShv\StudioMain\ClipModel;C:\Users\llvvv\source\repos\Studio\StudioMain\ClipModel;C:\Users\user\source\repos\LevShv\StudioMain\TrackModel;C:\Users\llvvv\source\repos\Studio\StudioMain\TrackModel;C:\Users\llvvv\source\repos\Studio\StudioMain\Tools;C:\JUCE\modules;C:\Users\user\source\repos\LevShv\StudioMain\Tools;C:\Users\user\source\repos\LevShv\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine\engineLibs\Juce;C:\Users\llvvv\source\repos\Studio\StudioMain\Engine;C:\Users\llvvv\source\repos\Studio\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\ViewModel;C:\Users\user\source\repos\LevShv\StudioMain\Engine;C:\Users\user\source\repos\LevShv\StudioMain\View\MainWindowView;C:\Users\llvvv\source\repos\Studio\StudioMain\View\MainWindowView;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -108,7 +108,7 @@
     <ClCompile Include="Engine\engine.cpp" />
     <ClCompile Include="FileBrowser\FileBrowser.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MidiMessageModel.cpp" />
+    <ClCompile Include="Piano\MidiMessageModel.cpp" />
     <ClCompile Include="PluginModel.cpp" />
     <ClCompile Include="TrackModel\TrackModel.cpp" />
     <ClCompile Include="ViewModel\ViewModel.cpp" />
@@ -121,9 +121,9 @@
     <QtMoc Include="ClipModel\ClipModel.h" />
     <ClInclude Include="Engine\engine.h" />
     <QtMoc Include="TrackModel\TrackModel.h" />
-    <QtMoc Include="MidiMessageModel.h" />
     <QtMoc Include="PluginModel.h" />
     <QtMoc Include="FileBrowser\FileBrowser.h" />
+    <QtMoc Include="Piano\MidiMessageModel.h" />
     <ClInclude Include="Tools\log.h" />
     <QtMoc Include="ViewModel\ViewModel.h" />
   </ItemGroup>
