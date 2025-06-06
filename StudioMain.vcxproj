@@ -114,6 +114,7 @@
     <ClCompile Include="ViewModel\ViewModel.cpp" />
     <None Include="FileBrowser\Browser.qml" />
     <None Include="Piano\PianoView.qml" />
+    <None Include="Separator\Separator.qml" />
     <None Include="View\MainWindowView\MainWindow.qml" />
     <QtRcc Include="qml.qrc" />
   </ItemGroup>
