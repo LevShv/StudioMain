@@ -77,6 +77,48 @@ Rectangle {
                         border.color: "#ECEFF4"
                         border.width: 1
 
+                        RoundButton {
+                            id: pinButton
+                            width: 20
+                            height: 20
+                            radius: width / 2
+                            anchors.top: parent.top
+                            anchors.right: parent.right
+                            anchors.topMargin: 4
+                            anchors.rightMargin: 4
+                            ToolTip.visible: hovered
+                            ToolTip.delay: 500
+                            ToolTip.text: fxContainer.isPinned ? "Открепить" : "Закрепить"
+
+                            background: Rectangle {
+                                radius: parent.radius
+                                color: pinButton.hovered ? "#d0d0d0" : "transparent"
+                                border.color: pinButton.hovered ? "#a0a0a0" : "transparent"
+                                border.width: 1
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Behavior on border.color { ColorAnimation { duration: 100 } }
+                            }
+
+                            Image {
+                                anchors.centerIn: parent
+                                width: 20
+                                height: 20
+                                source: fxContainer.isPinned ? imagesPath + "закреплено.png" : imagesPath + "откреплено.png"
+                                sourceSize.width: 12
+                                sourceSize.height: 12
+                                opacity: pinButton.down ? 0.7 : 1.0
+                                fillMode: Image.PreserveAspectFit
+                                Behavior on opacity { NumberAnimation { duration: 100 } }
+                            }
+
+                            onClicked: {
+                                fxContainer.isPinned = !fxContainer.isPinned
+                                pinButton.scale = 0.95
+                                console.log("Pin button clicked for plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex, "isPinned=", fxContainer.isPinned)
+                                
+                            }
+                        }
+
                         // Контекстное меню для удаления
                         MouseArea {
                             anchors.fill: parent
