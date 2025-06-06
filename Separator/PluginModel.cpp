@@ -7,7 +7,6 @@ void PluginModel::addPlugin(int trackIndex, const QString& pluginPath) {
     qDebug() << "ViewModel: Plugin added to Engine for track" << trackIndex;
     emit pluginAdded(trackIndex);
     qDebug() << "ViewModel: Emitted pluginAdded for track" << trackIndex;
-    
 }
 
 void PluginModel::togglePluginBypass(int trackIndex, int pluginIndex) {
