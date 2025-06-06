@@ -110,7 +110,6 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MidiMessageModel.cpp" />
     <ClCompile Include="PluginModel.cpp" />
-    <ClCompile Include="TimelinePainter.cpp" />
     <ClCompile Include="TrackModel\TrackModel.cpp" />
     <ClCompile Include="ViewModel\ViewModel.cpp" />
     <ClCompile Include="View\MainWindowView\MainWindowView.cpp" />
@@ -125,7 +124,6 @@
     <ClInclude Include="Engine\engine.h" />
     <QtMoc Include="TrackModel\TrackModel.h" />
     <QtMoc Include="FileBrowser.h" />
-    <QtMoc Include="TimelinePainter.h" />
     <QtMoc Include="MidiMessageModel.h" />
     <QtMoc Include="PluginModel.h" />
     <ClInclude Include="Tools\log.h" />
