@@ -13,14 +13,8 @@
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
-    <Filter Include="MainWindowWiew">
-      <UniqueIdentifier>{3af7ff94-dc89-4513-b262-27eeac9fde07}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Engine">
       <UniqueIdentifier>{13f8d1b3-9352-4e9b-8025-bd566cc849f2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ViewModel">
-      <UniqueIdentifier>{29308329-de07-405c-94ab-636ed39b67ea}</UniqueIdentifier>
     </Filter>
     <Filter Include="Tools">
       <UniqueIdentifier>{61892b3f-5ef5-4a27-99e2-706bf69b4ba6}</UniqueIdentifier>
@@ -28,17 +22,29 @@
     <Filter Include="FileBrowser">
       <UniqueIdentifier>{057a07f6-2fc5-4dae-b6ed-8afcbc2255e6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="TrackModel">
-      <UniqueIdentifier>{65d07f7d-47c1-455a-94c4-71520dd340e3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ClipModel">
-      <UniqueIdentifier>{dd2c9099-2329-4693-84a2-6fbcd27bb969}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="PluginModel">
-      <UniqueIdentifier>{677296dc-badb-4f8e-b6d6-83748a599b09}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Piano">
       <UniqueIdentifier>{7468a2cd-40d4-43d7-a984-3ece89862fa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Separator">
+      <UniqueIdentifier>{7809bbad-7db9-4824-81b1-ce927dea9461}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Separator\PluginModel">
+      <UniqueIdentifier>{677296dc-badb-4f8e-b6d6-83748a599b09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MainWindow">
+      <UniqueIdentifier>{6cf4ff60-b943-4883-bab1-0c36e49e4af8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MainWindow\MainWindowWiew">
+      <UniqueIdentifier>{3af7ff94-dc89-4513-b262-27eeac9fde07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MainWindow\TrackModel">
+      <UniqueIdentifier>{65d07f7d-47c1-455a-94c4-71520dd340e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MainWindow\ClipModel">
+      <UniqueIdentifier>{dd2c9099-2329-4693-84a2-6fbcd27bb969}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MainWindow\ViewModel">
+      <UniqueIdentifier>{29308329-de07-405c-94ab-636ed39b67ea}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -49,20 +55,20 @@
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="ViewModel\ViewModel.cpp">
-      <Filter>ViewModel</Filter>
+      <Filter>MainWindow\ViewModel</Filter>
     </ClCompile>
     <ClCompile Include="TrackModel\TrackModel.cpp">
-      <Filter>TrackModel</Filter>
+      <Filter>MainWindow\TrackModel</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="View\MainWindowView\MainWindow.qml">
-      <Filter>MainWindowWiew</Filter>
+      <Filter>MainWindow\MainWindowWiew</Filter>
     </None>
     <None Include="FileBrowser\Browser.qml">
       <Filter>FileBrowser</Filter>
     </None>
-    <None Include="PianoView.qml">
+    <None Include="Piano\PianoView.qml">
       <Filter>Piano</Filter>
     </None>
   </ItemGroup>
@@ -76,35 +82,39 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="ViewModel\ViewModel.h">
-      <Filter>ViewModel</Filter>
+      <Filter>MainWindow\ViewModel</Filter>
     </QtMoc>
     <QtMoc Include="TrackModel\TrackModel.h">
-      <Filter>TrackModel</Filter>
+      <Filter>MainWindow\TrackModel</Filter>
     </QtMoc>
     <QtMoc Include="ClipModel\ClipModel.h">
-      <Filter>ClipModel</Filter>
+      <Filter>MainWindow\ClipModel</Filter>
     </QtMoc>
-    <QtMoc Include="PluginModel.h">
-      <Filter>PluginModel</Filter>
-    </QtMoc>
-    <QtMoc Include="FileBrowser\FileBrowser.h" />
     <QtMoc Include="Piano\MidiMessageModel.h">
       <Filter>Piano</Filter>
     </QtMoc>
+    <QtMoc Include="FileBrowser\FileBrowser.h">
+      <Filter>FileBrowser</Filter>
+    </QtMoc>
+    <QtMoc Include="Separator\PluginModel.h">
+      <Filter>Separator\PluginModel</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="ClipModel\ClipModel.cpp">
-      <Filter>ClipModel</Filter>
-    </ClCompile>
-    <ClCompile Include="PluginModel.cpp">
-      <Filter>PluginModel</Filter>
-    </ClCompile>
-    <ClCompile Include="FileBrowser\FileBrowser.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>MainWindow\ClipModel</Filter>
     </ClCompile>
     <ClCompile Include="Piano\MidiMessageModel.cpp">
       <Filter>Piano</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Separator\PluginModel.cpp">
+      <Filter>Separator\PluginModel</Filter>
+    </ClCompile>
+    <ClCompile Include="FileBrowser\FileBrowser.cpp">
+      <Filter>FileBrowser</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
