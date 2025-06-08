@@ -102,6 +102,7 @@ QHash<int, QByteArray> MidiMessageModel::roleNames() const {
 void MidiMessageModel::addNote(int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
     if (startBeats + durationBeats <= m_clipDuration) {
         m_engine.AddMidiNote(m_trackIndex, m_clipIndex, noteNumber, startBeats, durationBeats, velocity, channel);
+       // m_engine.PlayNote(m_trackIndex, noteNumber, startBeats, durationBeats, velocity, channel);
         refresh();
     }
     else {
@@ -282,3 +283,5 @@ void MidiMessageModel::updateMidiNote(int trackIndex, int clipIndex, int index, 
         qWarning() << "Cannot update note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
     }
 }
+
+

@@ -502,6 +502,11 @@ void Engine::cleanMidiSequence(MidiClip* midiClip) {
     LOG("After cleanMidiSequence, total events: " << midiClip->midiSequence.getNumEvents());
 }
 
+void Engine::PlayNote(int trackIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel)
+{
+    core.playNote(trackIndex, noteNumber, startBeats, durationBeats, velocity, channel);
+}
+
 #pragma endregion
 
 

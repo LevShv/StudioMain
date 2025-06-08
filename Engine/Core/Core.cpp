@@ -130,10 +130,16 @@ void Engine::Core::releaseResources() {
 }
 
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
-    const juce::ScopedLock sl(lock);
+    if (!audioProcessingEnabled) {
+        info.clearActiveBufferRegion();
+        return;
+    }
+
+    info.clearActiveBufferRegion();
 
     if (!transportPlaying) {
-        info.clearActiveBufferRegion();
+        // Если проект на паузе, обрабатываем только разовые ноты (если они есть)
+        // Это будет реализовано в playNote
         return;
     }
 
@@ -462,6 +468,91 @@ void Engine::Core::RenderToFile(std::string& outputPath) {
     LOG_SUCCESS("Render completed successfully to: " << outputPath);
 }
 
+void Engine::Core::playNote(int trackIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel)
+{
+    const juce::ScopedLock sl(lock); // Защищаем доступ
+
+    // Проверка параметров
+    if (trackIndex < 0 || trackIndex >= tracks.size()) {
+        LOG_ERROR("Invalid track index: " << trackIndex);
+        return;
+    }
+    if (!tracks[trackIndex].isMidiTrack) {
+        LOG_ERROR("Track at index " << trackIndex << " is not a MIDI track");
+        return;
+    }
+    if (noteNumber < 0 || noteNumber > 127 || velocity < 0.0f || velocity > 1.0f || channel < 1 || channel > 16) {
+        LOG_ERROR("Invalid note parameters: noteNumber=" << noteNumber
+            << ", velocity=" << velocity << ", channel=" << channel);
+        return;
+    }
+    if (durationBeats <= 0.0) {
+        LOG_ERROR("Invalid duration: " << durationBeats << " beats");
+        return;
+    }
+
+    // Создаем MIDI-сообщения
+    juce::MidiMessage noteOn = juce::MidiMessage::noteOn(channel, noteNumber, velocity);
+    juce::MidiMessage noteOff = juce::MidiMessage::noteOff(channel, noteNumber);
+
+    // Подготавливаем буфер
+    const int blockSize = 256; // Увеличиваем до 256 для стабильности
+    juce::AudioBuffer<float> tempBuffer(2, blockSize); // Стерео
+    juce::MidiBuffer midiBuffer;
+
+    // Сохраняем состояние
+    bool wasPlaying = transportPlaying;
+    transportPlaying = true; // Включаем для обработки
+
+    // Обрабатываем noteOn
+    tempBuffer.clear();
+    midiBuffer.addEvent(noteOn, 0);
+    for (auto& pluginInstance : tracks[trackIndex].plugins) {
+        if (pluginInstance->plugin && !pluginInstance->bypass) {
+            // Убедимся, что плагин готов
+            pluginInstance->plugin->prepareToPlay(sampleRate, blockSize);
+            pluginInstance->plugin->processBlock(tempBuffer, midiBuffer);
+            LOG("Processed noteOn through plugin: " << pluginInstance->Path);
+        }
+    }
+
+    // Проверяем буфер
+    float maxSample = tempBuffer.getMagnitude(0, blockSize);
+    LOG("noteOn buffer magnitude: " << maxSample);
+
+
+
+    // Планируем noteOff
+    double durationSeconds = beatsToSeconds(durationBeats);
+    juce::Timer::callAfterDelay(
+        static_cast<int>((durationSeconds + 0.1) * 1000.0), // 100 мс запас для затухания
+        [this, trackIndex, channel, noteNumber, wasPlaying]() {
+            const juce::ScopedLock sl(lock);
+            transportPlaying = true;
+            juce::AudioBuffer<float> tempBuffer(2, 256);
+            juce::MidiBuffer midiBuffer;
+            midiBuffer.addEvent(juce::MidiMessage::noteOff(channel, noteNumber), 0);
+            for (auto& pluginInstance : tracks[trackIndex].plugins) {
+                if (pluginInstance->plugin && !pluginInstance->bypass) {
+                    pluginInstance->plugin->prepareToPlay(sampleRate, 256);
+                    pluginInstance->plugin->processBlock(tempBuffer, midiBuffer);
+                    LOG("Processed noteOff through plugin: " << pluginInstance->Path);
+                }
+            }
+            float maxSample = tempBuffer.getMagnitude(0, 256);
+            LOG("noteOff buffer magnitude: " << maxSample);
+            if (midiOutput) {
+                midiOutput->sendMessageNow(juce::MidiMessage::noteOff(channel, noteNumber));
+                LOG("Sent noteOff to MIDI output: noteNumber=" << noteNumber);
+            }
+            transportPlaying = wasPlaying;
+        }
+    );
+
+    transportPlaying = wasPlaying; // Восстанавливаем
+    LOG_SUCCESS("Played note: trackIndex=" << trackIndex << ", noteNumber=" << noteNumber
+        << ", durationBeats=" << durationBeats);
+}
 void Engine::Core::processMidiBlocks(const juce::AudioSourceChannelInfo& info,
     double startTime, double endTime) {
     juce::MidiBuffer midiBuffer;
@@ -491,6 +582,7 @@ void Engine::Core::processMidiBlocks(const juce::AudioSourceChannelInfo& info,
 void Engine::Core::play() {
     const juce::ScopedLock sl(lock);
     transportPlaying = true;
+    audioProcessingEnabled = true;
     LOG("Playback STARTED at position: " << position << " seconds (" << positionInBeats << " beats)");
     updateActiveClips();
 }

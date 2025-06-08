@@ -407,6 +407,7 @@ Item {
                     
                                     viewModel.midiModel.updateNote(index, newNoteNumber, snappedStart,
                                                                 model.durationBeats, model.velocity, model.channel)
+                                                                
                                     console.log("PianoView: Note moved: noteNumber=", newNoteNumber, 
                                             "newStartBeats=", snappedStart)
                                 }
@@ -551,7 +552,7 @@ Item {
                             let velocity = 100 / 127.0
                             let channel = 1
                             viewModel.midiModel.addNote(noteNumber, snappedBeat, durationBeats, velocity, channel)
-                            console.log("Added note: noteNumber=", noteNumber, 
+                             console.log("Added note: noteNumber=", noteNumber, 
                                     "startBeats=", snappedBeat,
                                     "xPos=", snappedBeat * beatWidth * divisionsPerBeat,
                                     "mouse.x=", mouse.x, 

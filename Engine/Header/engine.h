@@ -139,6 +139,11 @@ public:
     void SaveProject(const std::string& Path);
     bool LoadProject(const std::string& Path);
 
+    //Prepaly
+
+    void PlayNote(int trackIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+
+
 #pragma endregion
 
 private:
@@ -235,6 +240,13 @@ private:
 
         void RenderToFile(std::string& Path);
 
+
+        //Preplay
+
+        void playNote(int trackIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+
+
+
     private:
 
         struct ActiveClip {
@@ -254,6 +266,7 @@ private:
         double sampleRate = 44100.0;
         
         bool transportPlaying = false;
+        bool audioProcessingEnabled = true;
 
         void processMidiBlocks(const juce::AudioSourceChannelInfo&, double startTime, double endTime);
     };
