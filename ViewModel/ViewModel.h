@@ -34,10 +34,6 @@ public:
  
     Q_INVOKABLE void setVolume(int volume);
 
-    Q_INVOKABLE void addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
-    Q_INVOKABLE void deleteMidiNote(int trackIndex, int clipIndex, int index);
-    Q_INVOKABLE void updateMidiNote(int trackIndex, int clipIndex, int index, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
-
     Q_INVOKABLE void deleteTrack(int trackIndex);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);
     Q_INVOKABLE void deleteClips(const QVariantList& clips); // Новый метод

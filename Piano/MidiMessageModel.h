@@ -19,6 +19,11 @@ public:
         Q_PROPERTY(int clipIndex READ clipIndex WRITE setClipIndex NOTIFY clipIndexChanged)
         Q_PROPERTY(double clipDuration READ clipDuration WRITE setClipDuration NOTIFY clipDurationChanged)
         Q_PROPERTY(double clipStartTime READ getClipStartTime NOTIFY clipStartTimeChanged)
+    
+    Q_INVOKABLE void addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+    Q_INVOKABLE void deleteMidiNote(int trackIndex, int clipIndex, int index);
+    Q_INVOKABLE void updateMidiNote(int trackIndex, int clipIndex, int index, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+
 
     int trackIndex() const { return m_trackIndex; }
     Q_INVOKABLE void setTrackIndex(int index);

@@ -99,8 +99,6 @@ void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBe
     emit clipAdded(trackIndex);
 }
 
-
-
 void ViewModel::deleteTrack(int trackIndex) {
     if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
         bool wasPlaying = isPlaying();
@@ -343,61 +341,5 @@ void ViewModel::setVolume(int volume) {
     }
 }
 
-void ViewModel::addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
-    // Проверяем валидность параметров
-    if (trackIndex < 0 || clipIndex < 0 || noteNumber < 0 || noteNumber > 127 ||
-        startBeats < 0 || durationBeats <= 0 || velocity < 0 || velocity > 1.0 || channel < 1 || channel > 16) {
-        qWarning() << "ViewModel: Invalid note parameters: noteNumber=" << noteNumber
-            << "startBeats=" << startBeats << "durationBeats=" << durationBeats
-            << "velocity=" << velocity << "channel=" << channel;
-        return;
-    }
 
-    // Обновляем индексы в midiModel
-    m_midiModel->setTrackIndex(trackIndex);
-    m_midiModel->setClipIndex(clipIndex);
-
-    // Проверяем валидность индексов
-    const auto& database = engine.GetdataBase();
-    if (trackIndex >= database.size() || clipIndex >= database[trackIndex].clips.size()) {
-        qWarning() << "ViewModel: Invalid trackIndex=" << trackIndex << "or clipIndex=" << clipIndex;
-        return;
-    }
-
-    // Проверяем, является ли клип MidiClip
-    if (!dynamic_cast<Engine::MidiClip*>(database[trackIndex].clips[clipIndex].get())) {
-        qWarning() << "ViewModel: Clip at trackIndex=" << trackIndex << "clipIndex=" << clipIndex << "is not a MidiClip";
-        return;
-    }
-
-    // Добавляем ноту в Engine
-    engine.AddMidiNote(trackIndex, clipIndex, noteNumber, startBeats, durationBeats, velocity, channel);
-
-    // Синхронизируем модель с Engine
-    m_midiModel->refresh();
-    qDebug() << "ViewModel: Added MIDI note: trackIndex=" << trackIndex << "clipIndex=" << clipIndex
-        << "noteNumber=" << noteNumber << "startBeats=" << startBeats << "velocity=" << velocity;
-}
-
-void ViewModel::deleteMidiNote(int trackIndex, int clipIndex, int index) {
-    if (trackIndex == m_midiModel->trackIndex() && clipIndex == m_midiModel->clipIndex()) {
-        engine.DeleteMidiNote(trackIndex, clipIndex, index);
-        m_midiModel->deleteNote(index);
-        qDebug() << "ViewModel: Deleted MIDI note at index=" << index << "trackIndex=" << trackIndex << "clipIndex=" << clipIndex;
-    }
-    else {
-        qWarning() << "Cannot delete note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
-    }
-}
-
-void ViewModel::updateMidiNote(int trackIndex, int clipIndex, int index, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
-    if (trackIndex == m_midiModel->trackIndex() && clipIndex == m_midiModel->clipIndex()) {
-        engine.UpdateMidiNote(trackIndex, clipIndex, index, noteNumber, startBeats, durationBeats, velocity, channel);
-        m_midiModel->updateNote(index, noteNumber, startBeats, durationBeats, velocity, channel);
-        qDebug() << "ViewModel: Updated MIDI note at index=" << index << "trackIndex=" << trackIndex << "clipIndex=" << clipIndex << "noteNumber=" << noteNumber;
-    }
-    else {
-        qWarning() << "Cannot update note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
-    }
-}
 
