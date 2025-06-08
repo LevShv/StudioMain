@@ -484,21 +484,43 @@ Item {
                     height: parent.height
                     color: "red"
                     x: {
-                        let relativePosition = viewModel.playheadPosition - viewModel.midiModel.clipStartTime // Исправлено
+                        let relativePosition = viewModel.playheadPosition - viewModel.midiModel.clipStartTime
                         if (relativePosition >= 0 && relativePosition <= clipDuration) {
                             return relativePosition * beatWidth * divisionsPerBeat
                         }
-                        return -width // Сдвигаем за пределы видимости
+                        return -5 // Показываем в начале клипа, если вне диапазона
                     }
                     z: 5
-                    visible: {
-                        let relativePosition = viewModel.playheadPosition - viewModel.midiModel.clipStartTime // Исправлено
-                        return viewModel.isPlaying && relativePosition >= 0 && relativePosition <= clipDuration
+                    visible: true // Всегда видим
+
+                    MouseArea {
+                        z: 10
+                        width: 10
+                        anchors.fill: parent
+                        drag.target: parent
+                        drag.axis: Drag.XAxis
+                        drag.minimumX: 0 // Ограничиваем перемещение в пределах клипа
+                        drag.maximumX: clipDuration * beatWidth * divisionsPerBeat
+
+                        onPositionChanged: {
+                            if (drag.active) {
+                                // Вычисляем новый playheadPosition
+                                let newRelativePosition = playheadIndicator.x / (beatWidth * divisionsPerBeat)
+                                let newPlayheadPosition = viewModel.midiModel.clipStartTime + newRelativePosition
+                                console.log("PlayheadIndicator: Dragging, newPlayheadPosition=", newPlayheadPosition)
+                                viewModel.setPlayheadPosition(newPlayheadPosition) // Обновляем playheadPosition
+                            }
+                        }
+
+                        onPressed: {
+                            viewModel.isPlaying = false // Останавливаем воспроизведение
+                        }
                     }
-                    onVisibleChanged: {
-                        console.log("PlayheadIndicator: visible=", visible, 
+
+                    onXChanged: {
+                        console.log("PlayheadIndicator: x=", x, 
                                     "playheadPosition=", viewModel.playheadPosition, 
-                                    "clipStartTime=", viewModel.midiModel.clipStartTime, // Исправлено
+                                    "clipStartTime=", viewModel.midiModel.clipStartTime, 
                                     "clipDuration=", clipDuration)
                     }
                 }

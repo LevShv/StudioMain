@@ -1709,6 +1709,12 @@ Window {
                                                     drag.minimumX: 0
                                                     drag.maximumX: Math.max(0, flickableArea.contentWidth - greenline.width)
 
+                                                    onPressed: {
+                                                        viewModel.setIsDraggingPlayhead(true) // Устанавливаем флаг
+                                                        viewModel.setIsPlaying(false) // Приостанавливаем воспроизведение (опционально)
+                                                        console.log("MainWindow: Green line pressed, isDraggingPlayhead=", viewModel.isDraggingPlayhead)
+                                                    }
+
                                                     onReleased: {
                                                         var groupSize = flickableArea.cachedGroupSize
                                                         var snapStep = groupSize * flickableArea.beatWidth // Шаг сетки в пикселях
@@ -1724,6 +1730,8 @@ Window {
 
                                                         greenline.x = snappedX
                                                         viewModel.setPlayheadPosition(newPosition)
+
+
 
                                                         console.log("Greenline snapped: x=", greenline.x, 
                                                                     "newPosition=", newPosition, 
