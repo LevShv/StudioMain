@@ -495,7 +495,9 @@ Item {
 
                     MouseArea {
                         z: 10
-                        width: 10
+                        anchors.leftMargin: -14
+                        anchors.rightMargin: -14
+                        width: 30
                         anchors.fill: parent
                         drag.target: parent
                         drag.axis: Drag.XAxis
