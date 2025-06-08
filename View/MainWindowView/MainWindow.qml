@@ -35,6 +35,8 @@ Window {
     property bool separatorVisible: false
     signal clearSelectedClipsRequested()
 
+    signal clipMoved(int trackIndex, int clipIndex, double newStartBeats)
+
     Component.onCompleted: {
         console.log("viewModel object:", viewModel)
         console.log("viewModel.pluginModel object:", viewModel.pluginModel)
@@ -49,6 +51,13 @@ Window {
             console.log("clearSelectedClipsRequested received, previous selectedClips count=" + mainWindow.selectedClips.length)
             mainWindow.selectedClips = []
             console.log("selectedClips cleared, new count=" + mainWindow.selectedClips.length)
+        }
+        function onClipMoved(trackIndex, clipIndex, newStartBeats) {
+            console.log("MainWindow: Handling clipMoved signal: trackIndex=", trackIndex,
+                        "clipIndex=", clipIndex, "newStartBeats=", newStartBeats)
+            if (trackIndex === viewModel.midiModel.trackIndex && clipIndex === viewModel.midiModel.clipIndex) {
+                viewModel.midiModel.setRedlineStartime()
+            }
         }
 
     }
@@ -1488,6 +1497,8 @@ Window {
                                                                             // Обновляем главный клип
                                                                             clipItem.x = snappedX
                                                                             viewModel.moveClip(trackIndex, index, newPosition)
+
+                                                                            mainWindow.clipMoved(trackIndex, index, newPosition)
 
                                                                             // Для всех выделенных клипов этого трека
                                                                             for (var i = 0; i < clipsRepeater.count; i++) {

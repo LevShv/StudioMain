@@ -47,6 +47,22 @@ void MidiMessageModel::setClipIndex(int index) {
     }
 }
 
+void MidiMessageModel::setRedlineStartime()
+{
+    qDebug() << "MidiMessageModel: set redline startime to" << m_clipIndex;
+    const auto& database = m_engine.GetdataBase();
+    if (m_trackIndex >= 0 && m_trackIndex < database.size()) {
+        const auto& clips = database[m_trackIndex].clips;
+        if (m_clipIndex >= 0 && m_clipIndex < clips.size()) {
+            if (auto* ClipBase = dynamic_cast<Engine::ClipBase*>(clips[m_clipIndex].get())) {
+                m_clipStartTime = ClipBase->startBeats; 
+                qDebug() << "MidiMessageModel: set redline startime: " << m_clipDuration;
+                emit clipStartTimeChanged();
+            }
+        }
+    }
+}
+
 void MidiMessageModel::refresh() {
     beginResetModel();
     rebuildNoteList();
@@ -113,7 +129,8 @@ void MidiMessageModel::rebuildNoteList() {
         if (m_clipIndex >= 0 && m_clipIndex < clips.size()) {
             if (auto* midiClip = dynamic_cast<Engine::MidiClip*>(clips[m_clipIndex].get())) {
                 m_clipDuration = midiClip->durationBeats;
-                std::map<std::pair<int, int>, std::pair<double, float>> noteOnTimes; // {channel, noteNumber} -> {time, velocity}
+                m_clipStartTime = midiClip->startBeats; // Обновляем startBeats
+                std::map<std::pair<int, int>, std::pair<double, float>> noteOnTimes;
                 qDebug() << "Total events in midiSequence: " << midiClip->midiSequence.getNumEvents();
                 for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
                     auto* event = midiClip->midiSequence.getEventPointer(i);
@@ -157,25 +174,33 @@ void MidiMessageModel::rebuildNoteList() {
                         }
                     }
                 }
-                qDebug() << "MidiMessageModel: Loaded" << m_notes.size() << "notes, clipDuration=" << m_clipDuration;
+                qDebug() << "MidiMessageModel: Loaded" << m_notes.size() << "notes, clipDuration=" << m_clipDuration
+                    << ", clipStartTime=" << m_clipStartTime;
                 emit clipDurationChanged();
+                emit clipStartTimeChanged();
             }
             else {
                 qWarning() << "MidiMessageModel: Clip is not a MidiClip at trackIndex=" << m_trackIndex << "clipIndex=" << m_clipIndex;
                 m_clipDuration = 4.0;
+                m_clipStartTime = 0.0;
                 emit clipDurationChanged();
+                emit clipStartTimeChanged();
             }
         }
         else {
             qWarning() << "MidiMessageModel: Invalid clipIndex=" << m_clipIndex << "for trackIndex=" << m_trackIndex;
             m_clipDuration = 4.0;
+            m_clipStartTime = 0.0;
             emit clipDurationChanged();
+            emit clipStartTimeChanged();
         }
     }
     else {
         qWarning() << "MidiMessageModel: Invalid trackIndex=" << m_trackIndex;
         m_clipDuration = 4.0;
+        m_clipStartTime = 0.0;
         emit clipDurationChanged();
+        emit clipStartTimeChanged();
     }
 }
 
@@ -191,3 +216,12 @@ void MidiMessageModel::deleteNote(int index) {
         qWarning() << "MidiMessageModel: Cannot delete note, invalid index=" << index;
     }
 }
+
+void MidiMessageModel::onClipMoved(int trackIndex, int clipIndex, double newStartBeats) {
+    qDebug() << "MidiMessageModel: Received clipMoved signal: trackIndex=" << trackIndex
+        << ", clipIndex=" << clipIndex << ", newStartBeats=" << newStartBeats;
+    if (trackIndex == m_trackIndex && clipIndex == m_clipIndex) {
+        setRedlineStartime(); // Обновляем только для текущего клипа
+    }
+}
+

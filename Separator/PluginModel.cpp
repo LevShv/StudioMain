@@ -159,7 +159,11 @@ void PluginModel::setTrackIndex(int trackIndex) {
     else {
         qDebug() << "PluginModel: setTrackIndex called but no change, trackIndex:" << trackIndex;
     }
+
+
 }
+
+
 
 void PluginModel::refresh() {
     qDebug() << "PluginModel: Refreshing for trackIndex" << currentTrackIndex;
