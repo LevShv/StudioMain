@@ -92,12 +92,12 @@ void PluginModel::openPluginEditor(int trackIndex, int pluginIndex) {
             int height = component->getHeight() > 0 ? component->getHeight() : 300;
 
             // Добавляем компонент на рабочий стол
-            component->addToDesktop(juce::ComponentPeer::windowHasTitleBar |
-                juce::ComponentPeer::windowHasMaximiseButton |
-                juce::ComponentPeer::windowHasCloseButton |
-                juce::ComponentPeer::windowHasDropShadow);
+            component->addToDesktop(
+                juce::ComponentPeer::windowHasTitleBar |
+                juce::ComponentPeer::windowHasDropShadow );
             component->setBounds(100, 100, width, height);
             component->setVisible(true);
+            component->setAlwaysOnTop(true); 
             component->toFront(true);
 
             // Сохраняем компонент в список открытых редакторов

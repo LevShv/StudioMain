@@ -51,9 +51,6 @@
     <QtRcc Include="qml.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
-    <ClCompile Include="Engine\engine.cpp">
-      <Filter>Engine</Filter>
-    </ClCompile>
     <ClCompile Include="ViewModel\ViewModel.cpp">
       <Filter>MainWindow\ViewModel</Filter>
     </ClCompile>
@@ -74,13 +71,16 @@
     <None Include="Separator\Separator.qml">
       <Filter>Separator</Filter>
     </None>
+    <None Include="View\Components\TopToolBar.qml">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\engine.h">
-      <Filter>Engine</Filter>
-    </ClInclude>
     <ClInclude Include="Tools\log.h">
       <Filter>Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Header\engine.h">
+      <Filter>Engine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -110,14 +110,26 @@
     <ClCompile Include="Piano\MidiMessageModel.cpp">
       <Filter>Piano</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Separator\PluginModel.cpp">
       <Filter>Separator\PluginModel</Filter>
     </ClCompile>
     <ClCompile Include="FileBrowser\FileBrowser.cpp">
       <Filter>FileBrowser</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Structures\Structures.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Saver\Saver.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Engine imp\engine.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Core.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
