@@ -50,6 +50,9 @@ public:
 
     Q_INVOKABLE void changeClipDuration(int trackIndex, int clipIndex, double newDuration); // Новый метод
     Q_INVOKABLE QString applicationHomeFolder() const;
+
+    Q_INVOKABLE void enableLoopMode(int trackIndex, int clipIndex);
+    Q_INVOKABLE void disableLoopMode();
    
     bool isPlaying() const;
     int volume() const;

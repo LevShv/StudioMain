@@ -139,6 +139,16 @@ const std::vector<Engine::Track>& Engine::GetdataBase() const
     return core.tracks;
 }
 
+void Engine::EnableLoopMode(int trackIndex, int clipIndex)
+{
+    core.enableLoopMode(trackIndex, clipIndex);
+}
+
+void Engine::DisableLoopMode()
+{
+    core.disableLoopMode();
+}
+
 void Engine::configureMidiDevices() {
     auto midiOutputs = juce::MidiOutput::getAvailableDevices();
 

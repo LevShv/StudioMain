@@ -125,6 +125,12 @@ public:
     const std::vector<Engine::Track>& GetdataBase() const;
 
 
+    //Clip loop mode
+
+    void EnableLoopMode(int trackIndex, int clipIndex);
+    void DisableLoopMode();
+
+
     //Plugins
 
     void AddPluginToTrack(int trackIndex, const std::string& pluginPath);
@@ -236,6 +242,18 @@ private:
         juce::AudioProcessorEditor* getPluginEditor(int trackIndex, int pluginIndex);
 
 
+        //Clip loop mode
+        
+        bool loopModeEnabled = false;// Флаг режима циклического воспроизведения
+        int loopTrackIndex = -1;     // Индекс трека для циклического воспроизведения
+        int loopClipIndex = -1;      // Индекс клипа для циклического воспроизведения
+        double loopStartTime = 0.0;  // Начальная позиция воспроизведения в секундах относительно клипа
+        double loopDuration = 0.0;   // Длительность циклического воспроизведения (длительность клипа)
+        
+        void enableLoopMode(int trackIndex, int clipIndex);
+        void disableLoopMode();
+
+
         //Render
 
         void RenderToFile(std::string& Path);
@@ -245,6 +263,7 @@ private:
 
         void playNote(int trackIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
 
+        
 
 
     private:

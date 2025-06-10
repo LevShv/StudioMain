@@ -152,29 +152,32 @@ Rectangle {
                 anchors.centerIn: parent
                 spacing: 10
                 // Переключатель Pattern/Song (добавлен слева от центрального ряда)
+
+
                 TabBar {
                     id: modeTabBar
-                    Material.accent: "transparent"  // Убираем акцентный цвет (красный)
+                    Material.accent: "transparent"
                     Material.background: "transparent"
-                    anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку
-
+                    anchors.verticalCenter: parent.verticalCenter
                     spacing: 10
-                    currentIndex: 1  // По умолчанию SONG
-                    // Убираем стандартный индикатор TabBar
+                    currentIndex: 1 // По умолчанию SONG
 
-            
-    
+                    // Вычисляемое свойство для проверки валидности индексов
+                    readonly property bool isValidIndices: selectedTrackIndex >= 0 && selectedClipIndex >= 0
+
                     background: Rectangle {
                         color: "transparent"
-                    }                      
+                    }
 
                     TabButton {
+                        id: patButton
                         width: 35
-                        height: 25  // Уменьшенная высота
+                        height: 25
                         text: "PAT"
+                        enabled: modeTabBar.isValidIndices // Отключаем, если индексы некорректны
                         ToolTip.visible: hovered
                         ToolTip.delay: 500
-                        ToolTip.text: "Проигрывать только pattern"
+                        ToolTip.text: modeTabBar.isValidIndices ? "Проигрывать только pattern" : "Выберите MIDI-клип для активации режима PAT"
 
                         font {
                             family: "Tahoma"
@@ -182,16 +185,17 @@ Rectangle {
                         }
 
                         background: Rectangle {
-                            radius: 5  // Более закругленные углы
-                            color: parent.checked ? "#8690FA" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
+                            radius: 5
+                            color: parent.checked ? "#8690FA" : (parent.hovered && parent.enabled ? "#D8DDFC" : "#CCD2FC")
                             border.color: "#8293FC"
-                            border.width: 2  // Более широкий контур
+                            border.width: 2
+                            opacity: parent.enabled ? 1.0 : 0.5 // Визуально показываем, что кнопка отключена
                         }
 
                         contentItem: Text {
                             text: parent.text
                             font: parent.font
-                            color: parent.checked ? "#FFFFFF" : "#5153FF"  // Белый текст при выборе
+                            color: parent.checked ? "#FFFFFF" : (parent.enabled ? "#5153FF" : "#888888") // Серый текст для отключенной кнопки
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             anchors.fill: parent
@@ -199,9 +203,11 @@ Rectangle {
                     }
 
                     TabButton {
+                        id: songButton
                         width: 35
-                        height: 25  // Уменьшенная высота
+                        height: 25
                         text: "SONG"
+                        enabled: true // Кнопка SONG всегда активна
                         ToolTip.visible: hovered
                         ToolTip.delay: 500
                         ToolTip.text: "Проигрывать вместе с треками"
@@ -212,21 +218,53 @@ Rectangle {
                         }
 
                         background: Rectangle {
-                            radius: 5  // Более закругленные углы
+                            radius: 5
                             color: parent.checked ? "#8690FA" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
                             border.color: "#8293FC"
-                            border.width: 2  // Более широкий контур
+                            border.width: 2
                         }
 
                         contentItem: Text {
                             text: parent.text
                             font: parent.font
-                            color: parent.checked ? "#FFFFFF" : "#5153FF"  // Белый текст при выборе
+                            color: parent.checked ? "#FFFFFF" : "#5153FF"
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             anchors.fill: parent
                         }
-                    }                    
+                    }
+
+                    // Обработка смены вкладки
+                    onCurrentIndexChanged: {
+                        if (currentIndex === 0) { // PAT
+                            if (isValidIndices) {
+                                console.log("Switching to PAT mode: trackIndex=" + selectedTrackIndex + ", clipIndex=" + selectedClipIndex)
+                                viewModel.enableLoopMode(selectedTrackIndex, selectedClipIndex)
+                            } else {
+                                console.log("Cannot switch to PAT mode: trackIndex or clipIndex is invalid")
+                                currentIndex = 1 // Возвращаемся к SONG
+                                ToolTip.show("Выберите MIDI-клип для активации режима PAT", 3000)
+                            }
+                        } else { // SONG
+                            console.log("Switching to SONG mode")
+                            viewModel.disableLoopMode()
+                            
+                        }
+                    }
+
+                    // Реакция на изменение trackIndex или clipIndex
+                    Connections {
+                        target: modeTabBar
+                        function onIsValidIndicesChanged() {
+                            if (!isValidIndices && modeTabBar.currentIndex === 0) {
+                                console.log("Invalid indices detected, switching back to SONG mode")
+                                modeTabBar.currentIndex = 1 // Переключаемся на SONG, если индексы стали некорректными
+                                engine.DisableLoopMode()
+                                engine.PlayMix()
+                                ToolTip.show("MIDI-клип не выбран, режим PAT отключен", 3000)
+                            }
+                        }
+                    }
                 }
                 Row {
                     anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку

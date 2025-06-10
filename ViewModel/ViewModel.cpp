@@ -297,7 +297,7 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
     qDebug() << "Clip duration changed: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << ", newDuration=" << newDuration << "beats";
 }
 
- QString ViewModel::applicationHomeFolder() const
+QString ViewModel::applicationHomeFolder() const
 {
     // Получаем директорию, где находится исполняемый файл
     QString appDir = QCoreApplication::applicationDirPath();
@@ -316,6 +316,16 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
     LOG_INFO("Application home folder: " + homePath.toStdString());
     return homePath;
 
+}
+
+void ViewModel::enableLoopMode(int trackIndex, int clipIndex)
+{
+    engine.EnableLoopMode(trackIndex, clipIndex);
+}
+
+void ViewModel::disableLoopMode()
+{
+    engine.DisableLoopMode();
 }
 
 void ViewModel::addMidiTrack() {
