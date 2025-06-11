@@ -38,6 +38,10 @@ public:
     Q_INVOKABLE void addMidiTrack();
     Q_INVOKABLE void addSamplerTrack();
 
+    Q_INVOKABLE void changeTrackGain();
+    Q_INVOKABLE void toggleMuteTrack();
+  //  Q_INVOKABLE void toggle
+
     Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);
     Q_INVOKABLE void deleteClips(const QVariantList& clips); // Новый метод
