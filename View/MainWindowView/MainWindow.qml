@@ -551,13 +551,13 @@ Window {
                                             Repeater {
                                                 model: viewModel.trackModel
                                                 Rectangle {
+                                                    id: trackControl
                                                     width: 150
                                                     height: 52
                                                     color: "#2D2D2D"
                                                     border.color: "#444"
-                                                    // Свойство для хранения предыдущего значения громкости
-                                                    property real lastVolume: model.volume !== undefined ? model.volume : 30
-                                                    // Контекстное меню для удаления
+                                                    property real lastVolume: model.gain !== undefined ? model.gain : 30
+
                                                     MouseArea {
                                                         anchors.fill: parent
                                                         acceptedButtons: Qt.RightButton
@@ -567,19 +567,16 @@ Window {
                                                             }
                                                         }
                                                     }
-                                                
+
                                                     Menu {
                                                         id: contextMenu
-                                                        width: 130  // Минимальная ширина под текст
+                                                        width: 130
                                                         topPadding: 2
-                                                        bottomPadding: 2          
-                                                        
-                                                    
+                                                        bottomPadding: 2
                                                         delegate: MenuItem {
                                                             id: menuItem
-                                                            implicitHeight: 10  // Минимальная высота
+                                                            implicitHeight: 10
                                                             padding: 4
-                                                        
                                                             contentItem: Text {
                                                                 text: parent.text
                                                                 color: "#EEE"
@@ -587,42 +584,37 @@ Window {
                                                                 horizontalAlignment: Text.AlignLeft
                                                                 verticalAlignment: Text.AlignVCenter
                                                             }
-                                                        
                                                             background: Rectangle {
                                                                 color: parent.highlighted ? "#555" : "transparent"
                                                                 radius: 2
                                                             }
                                                         }
-                                                    
                                                         MenuItem {
                                                             text: "Удалить дорожку"
                                                             onTriggered: viewModel.deleteTrack(index)
                                                         }
                                                     }
-                                                
-                                                    // Dial для управления громкостью своей дорожки
+
                                                     Dial {
                                                         id: trackVolumeDial
                                                         width: 35
                                                         height: 35
                                                         from: 0
-                                                        to: 100
-                                                        value: model.volume !== undefined ? model.volume : 30  // Если в модели нет volume, ставим 30
+                                                        to: 200
+                                                        value: model.gain * 100 !== undefined ? model.gain * 100 : 30 // Начальное значение
                                                         anchors.left: parent.left
                                                         anchors.verticalCenter: parent.verticalCenter
                                                         anchors.leftMargin: 25
                                                         onValueChanged: {
-                                                            if (value !== undefined) {
-                                                                // Обновляем последнее значение громкости, если не в режиме mute
+                                                            if (Math.abs(value - (model.gain || 30)) > 0.001) { // Защита от цикла
                                                                 if (value > 0) {
-                                                                    trackContainer.lastVolume = value
+                                                                    trackControl.lastVolume = value
                                                                 }
-                                                                viewModel.setTrackVolume(index, value)
-                                                            
-                                                                // Если громкость стала больше 0, автоматически выключаем mute
+                                                                viewModel.setTrackGain(index, value / 100)
                                                                 if (value > 0 && model.muted) {
                                                                     viewModel.setTrackMute(index, false)
                                                                 }
+                                                                console.log("Track " + index + " gain set to " + value)
                                                             }
                                                         }
                                                         handle: null
@@ -634,11 +626,11 @@ Window {
                                                             hoverEnabled: true
                                                             onWheel: {
                                                                 if (wheel.angleDelta.y > 0) {
-                                                                    trackVolumeDial.value = Math.min(trackVolumeDial.to, trackVolumeDial.value + 5);
+                                                                    trackVolumeDial.value = Math.min(trackVolumeDial.to, trackVolumeDial.value + 5)
                                                                 } else {
-                                                                    trackVolumeDial.value = Math.max(trackVolumeDial.from, trackVolumeDial.value - 5);
+                                                                    trackVolumeDial.value = Math.max(trackVolumeDial.from, trackVolumeDial.value - 5)
                                                                 }
-                                                                wheel.accepted = true;
+                                                                wheel.accepted = true
                                                             }
                                                         }
 
@@ -647,7 +639,6 @@ Window {
                                                             border.color: "white"
                                                             border.width: 2
                                                             radius: width / 2
-
                                                             Rectangle {
                                                                 width: 2
                                                                 height: parent.width * 0.4
@@ -678,15 +669,14 @@ Window {
                                                             }
                                                         }
                                                     }
-                                                
-                                                    // Колонка с меткой и кнопками справа
+
                                                     Column {
                                                         anchors.left: trackVolumeDial.right
                                                         anchors.right: parent.right
                                                         anchors.top: parent.top
                                                         anchors.bottom: parent.bottom
                                                         anchors.leftMargin: 4
-                                                    
+
                                                         Label {
                                                             width: parent.width
                                                             horizontalAlignment: Text.AlignHCenter
@@ -695,12 +685,11 @@ Window {
                                                             font.pixelSize: 12
                                                             elide: Text.ElideRight
                                                         }
-                                                    
+
                                                         Row {
                                                             anchors.horizontalCenter: parent.horizontalCenter
                                                             spacing: 2
-                                                        
-                                                            // Кнопка Mute/Unmute
+
                                                             RoundButton {
                                                                 id: muteButton
                                                                 width: 30
@@ -709,10 +698,8 @@ Window {
                                                                 ToolTip.visible: hovered
                                                                 ToolTip.delay: 500
                                                                 ToolTip.text: (trackVolumeDial.value === 0) ? "Unmute" : "Mute"
-                                                            
-                                                                // Состояние кнопки зависит от значения Dial
                                                                 property bool isMuted: trackVolumeDial.value === 0
-                                                            
+
                                                                 background: Rectangle {
                                                                     radius: parent.radius
                                                                     color: muteButton.hovered ? "#d0d0d0" : "transparent"
@@ -736,25 +723,23 @@ Window {
 
                                                                 onClicked: {
                                                                     muteButton.scale = 0.95
-                                                                
                                                                     if (trackVolumeDial.value > 0) {
-                                                                        // Сохраняем текущую громкость и устанавливаем 0
-                                                                        trackContainer.lastVolume = trackVolumeDial.value
+                                                                        trackControl.lastVolume = trackVolumeDial.value
                                                                         trackVolumeDial.value = 0
                                                                         viewModel.setTrackMute(index, true)
+                                                                        console.log("Track " + index + " muted, saved gain: " + trackControl.lastVolume)
                                                                     } else {
-                                                                        // Восстанавливаем последнюю громкость
-                                                                        trackVolumeDial.value = trackContainer.lastVolume
+                                                                        trackVolumeDial.value = trackControl.lastVolume
                                                                         viewModel.setTrackMute(index, false)
+                                                                        console.log("Track " + index + " unmuted, restored gain: " + trackVolumeDial.value)
                                                                     }
                                                                 }
-                                                            
+
                                                                 Behavior on scale {
                                                                     NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
                                                                 }
                                                             }
 
-                                                            // Кнопка Solo
                                                             RoundButton {
                                                                 id: soloButton
                                                                 width: 30
@@ -763,19 +748,14 @@ Window {
                                                                 ToolTip.visible: hovered
                                                                 ToolTip.delay: 500
                                                                 ToolTip.text: "Solo"
-                                                            
+
                                                                 background: Rectangle {
                                                                     radius: parent.radius
                                                                     color: soloButton.hovered ? "#d0d0d0" : "transparent"
                                                                     border.color: soloButton.hovered ? "#a0a0a0" : "transparent"
                                                                     border.width: 1
-                                                                
-                                                                    Behavior on color {
-                                                                        ColorAnimation { duration: 100 }
-                                                                    }
-                                                                    Behavior on border.color {
-                                                                        ColorAnimation { duration: 100 }
-                                                                    }
+                                                                    Behavior on color { ColorAnimation { duration: 100 } }
+                                                                    Behavior on border.color { ColorAnimation { duration: 100 } }
                                                                 }
 
                                                                 Image {
@@ -787,22 +767,17 @@ Window {
                                                                     sourceSize.height: 18
                                                                     opacity: soloButton.down ? 0.7 : 1.0
                                                                     fillMode: Image.PreserveAspectFit
-                                                                
-                                                                    Behavior on opacity {
-                                                                        NumberAnimation { duration: 100 }
-                                                                    }
+                                                                    Behavior on opacity { NumberAnimation { duration: 100 } }
                                                                 }
 
                                                                 onClicked: {
                                                                     soloButton.scale = 0.95
                                                                     viewModel.toggleSolo(index)
+                                                                    console.log("Track " + index + " solo toggled")
                                                                 }
-                                                            
+
                                                                 Behavior on scale {
-                                                                    NumberAnimation { 
-                                                                        duration: 100
-                                                                        easing.type: Easing.OutQuad 
-                                                                    }
+                                                                    NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
                                                                 }
                                                             }
                                                         }

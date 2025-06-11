@@ -77,7 +77,7 @@ Engine::Core::Core() {
     // Добавляем плагины к MIDI-трекам
     addPluginToTrack(4, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3");
     addPluginToTrack(5, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3");
-
+  //  tracks[5].gain = -0.8f;
     audioSourcePlayer.setSource(this);
 }
 

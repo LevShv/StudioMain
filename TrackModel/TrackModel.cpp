@@ -47,49 +47,12 @@ QVariant TrackModel::data(const QModelIndex& index, int role) const {
         }
         return "Audio"; 
     }
+    case GainRole:
+        return track.gain; 
     default:
         return QVariant();
     }
 }
-
-//QVariant TrackModel::clipData(int trackIndex, int clipIndex, int role) const {
-//    const auto& tracks = m_engine.GetdataBase();
-//    if (trackIndex < 0 || trackIndex >= tracks.size()) {
-//        qWarning() << "Invalid track index in clipData:" << trackIndex;
-//        return QVariant();
-//    }
-//
-//    const auto& track = tracks[trackIndex];
-//    if (clipIndex < 0 || clipIndex >= track.clips.size()) {
-//        qWarning() << "Invalid clip index:" << clipIndex << "for track:" << trackIndex;
-//        return QVariant();
-//    }
-//
-//    const auto& clip = track.clips[clipIndex];
-//
-//    switch (role) {
-//    case StartBeatsRole:
-//        return clip->startBeats;
-//    case DurationBeatsRole:
-//        return clip->durationBeats;
-//    case ClipTypeRole:
-//        if (dynamic_cast<Engine::AudioClip*>(clip.get())) {
-//            return "audio";
-//        }
-//        return "midi";
-//    case FilePathRole:
-//        if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
-//            return QString::fromUtf8(
-//                audioClip->file.getFullPathName().toRawUTF8(),
-//                audioClip->file.getFullPathName().getNumBytesAsUTF8()
-//            );
-//        }
-//        return QVariant();
-//    default:
-//        qWarning() << "Unknown role in clipData:" << role;
-//        return QVariant();
-//    }
-//}
 
 QHash<int, QByteArray> TrackModel::roleNames() const {
     QHash<int, QByteArray> roles;
@@ -101,6 +64,7 @@ QHash<int, QByteArray> TrackModel::roleNames() const {
     roles[ClipTypeRole] = "type";
     roles[FilePathRole] = "file";
     roles[TrackTypeRole] = "trackType"; // Добавляем новую роль
+    roles[GainRole] = "gain";
 
     return roles;
 }
