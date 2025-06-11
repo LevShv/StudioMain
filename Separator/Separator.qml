@@ -4,6 +4,7 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Shapes
 
+
 Rectangle {
     id: separatorPanel
     color: "#2D2D2D"
@@ -76,6 +77,8 @@ Rectangle {
                         color: "#4C566A"
                         border.color: "#ECEFF4"
                         border.width: 1
+
+                        property bool isPinned: false // Добавляем свойство isPinned
 
                         RoundButton {
                             id: pinButton

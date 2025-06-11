@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Shapes 1.15
+import QtQuick.Dialogs
 
 Rectangle {
     id: topToolbar
@@ -16,6 +17,47 @@ Rectangle {
     // Signals to communicate actions to the main window
     signal toggleSeparator()
     signal togglePianoRoll()
+
+    // Добавляем диалоговые окна для загрузки и сохранения
+    FileDialog {
+        id: loadDialog
+        title: "Загрузить проект"
+        nameFilters: ["JSON файлы (*.json)", "Все файлы (*)"]
+        fileMode: FileDialog.OpenFile
+        currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"
+        onAccepted: {
+            var filePath = loadDialog.selectedFile.toString()
+            // Удаляем префикс "file:///" если он есть
+            if (filePath.startsWith("file:///")) {
+                filePath = filePath.substring(8)
+            }
+            console.log("Загрузка проекта из:", filePath)
+            viewModel.OpenProject(filePath)
+        }
+        onRejected: {
+            console.log("Диалог загрузки отменен")
+        }
+    }
+
+    FileDialog {
+        id: saveDialog
+        title: "Сохранить проект"
+        nameFilters: ["JSON файлы (*.json)", "Все файлы (*)"]
+        fileMode: FileDialog.SaveFile
+        currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"
+        onAccepted: {
+            var filePath = saveDialog.selectedFile.toString()
+            // Удаляем префикс "file:///" если он есть
+            if (filePath.startsWith("file:///")) {
+                filePath = filePath.substring(8)
+            }
+            console.log("Сохранение проекта в:", filePath)
+            viewModel.SaveProject(filePath)
+        }
+        onRejected: {
+            console.log("Диалог сохранения отменен")
+        }
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -52,7 +94,9 @@ Rectangle {
 
                     MenuItem {
                         text: "Загрузить..."                                
-                        onTriggered: { /* действие */ }
+                        onTriggered: {
+                            loadDialog.open() // Открываем диалог загрузки
+                        }
                     }
 
                     MenuItem {
@@ -71,7 +115,9 @@ Rectangle {
 
                     MenuItem {
                         text: "Сохранить как..."                                
-                        onTriggered: { /* действие */ }
+                        onTriggered: {
+                            saveDialog.open() // Открываем диалог сохранения
+                        }
                     }
                 }
             }    
@@ -171,7 +217,7 @@ Rectangle {
                     TabButton {
                         width: 35
                         height: 25  // Уменьшенная высота
-                        text: "PAT"
+                        text: "СLIP"
                         ToolTip.visible: hovered
                         ToolTip.delay: 500
                         ToolTip.text: "Проигрывать только pattern"

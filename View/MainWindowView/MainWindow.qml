@@ -16,6 +16,8 @@ Window {
     visible: true
     width: 1500
     height: 1080
+    minimumWidth: 800  // Минимальная ширина
+    minimumHeight: 600 // Минимальная высота
     title: "StudioMain"
     color: "#2E3440"
 
@@ -34,6 +36,17 @@ Window {
 
     property bool separatorVisible: false
     signal clearSelectedClipsRequested()
+    
+    Shortcut {
+        sequence: "F11"
+        onActivated: {
+            if (mainWindow.visibility === Window.FullScreen) {
+                mainWindow.showNormal()
+            } else {
+                mainWindow.showFullScreen()
+            }
+        }
+    }
 
     Component.onCompleted: {
         console.log("viewModel object:", viewModel)
@@ -169,7 +182,20 @@ Window {
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: "transparent"
-            
+            DropArea {
+                id: appDropArea
+                anchors.fill: parent
+                onDropped: (drop) => {
+                    if (drop.hasUrls) {
+                        var filePath = drop.urls[0].toString()
+                        var globalPos = mapToItem(mainWindow.contentItem, drop.x, drop.y)
+                        console.log("File dropped in app: filePath=", filePath, "x=", globalPos.x, "y=", globalPos.y)
+                        // Передаем событие в обработчик браузера
+                        fileBrowserContainer.children[0].fileDropped(filePath, globalPos.x, globalPos.y)
+                        drop.acceptProposedAction()
+                    }
+                }
+            }
 
             SplitView {
                 anchors.fill: parent
