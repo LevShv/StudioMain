@@ -17,6 +17,7 @@ class ViewModel : public QObject {
         Q_PROPERTY(TrackModel* trackModel READ trackModel CONSTANT)
         Q_PROPERTY(MidiMessageModel* midiModel READ midiModel CONSTANT) // Свойство для midiModel
         Q_PROPERTY(PluginModel* pluginModel READ pluginModel CONSTANT)
+        Q_PROPERTY(QString currentProjectPath READ currentProjectPath WRITE setCurrentProjectPath NOTIFY currentProjectPathChanged)
 
 public:
     explicit ViewModel(QObject* parent = nullptr);
@@ -63,6 +64,11 @@ public:
     bool isPlaying() const;
     int volume() const;
 
+    QString currentProjectPath() const { return m_currentProjectPath; }
+    void setCurrentProjectPath(const QString& path);
+    Q_SIGNAL void currentProjectPathChanged();
+    Q_INVOKABLE void prepareForExit();
+
 signals:
     void isPlayingChanged();
     void volumeChanged();
@@ -99,4 +105,5 @@ private:
 
     void buildModel();
     void stopDoplay(void (*func)(...));
+    QString m_currentProjectPath; // Путь к текущему файлу проекта
 };
