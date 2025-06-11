@@ -412,8 +412,9 @@ void Engine::Core::enableLoopMode(int trackIndex, int clipIndex) {
 
     loopStartTime = clip->startTime;
     loopDuration = clip->duration;
-    position = loopStartTime;
-    positionInBeats = secondsToBeats(position);
+    //position = loopStartTime;
+    //positionInBeats = secondsToBeats(position);
+    setPosition(position);
 
     auto& track = tracks[trackIndex];
     for (auto& pluginInstance : track.plugins) {
@@ -424,7 +425,6 @@ void Engine::Core::enableLoopMode(int trackIndex, int clipIndex) {
         }
     }
 
-    transportPlaying = true;
     updateActiveClips();
     LOG_SUCCESS("Loop mode enabled: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex
         << ", startTime=" << loopStartTime << " seconds, duration=" << loopDuration
@@ -447,13 +447,6 @@ void Engine::Core::disableLoopMode()
     loopClipIndex = -1;
     loopStartTime = 0.0;
     loopDuration = 0.0;
-
-    // Останавливаем воспроизведение и сбрасываем MIDI
-    stop();
-
-    // Возвращаем плейхед в начало клипа
-    position = clipStartTime;
-    positionInBeats = secondsToBeats(position);
 
     updateActiveClips();
     LOG_SUCCESS("Loop mode disabled, playhead set to: " << position << " seconds (" << positionInBeats << " beats)");
@@ -766,29 +759,38 @@ void Engine::Core::stop() {
 
 void Engine::Core::setPosition(double newPosition) {
     const juce::ScopedLock sl(lock);
-    position = newPosition;
-    positionInBeats = secondsToBeats(newPosition);
+
+    if (loopModeEnabled) {
+        if (loopTrackIndex < 0 || loopTrackIndex >= tracks.size() ||
+            loopClipIndex < 0 || loopClipIndex >= tracks[loopTrackIndex].clips.size()) {
+            LOG_ERROR("Invalid loop track or clip index in setPosition");
+            return;
+        }
+
+        // Ограничиваем newPosition в пределах [loopStartTime, loopStartTime + loopDuration]
+        double minPosition = loopStartTime;
+        double maxPosition = loopStartTime + loopDuration;
+        double clampedPosition = juce::jlimit(minPosition, maxPosition, newPosition);
+
+        if (clampedPosition != newPosition) {
+            LOG_WARN("Attempted to move playhead to " << newPosition << " seconds, "
+                << "clamped to " << clampedPosition << " seconds (loop boundaries: "
+                << minPosition << " to " << maxPosition << ")");
+        }
+
+        position = clampedPosition;
+    }
+    else {
+        position = newPosition;
+    }
+
+    positionInBeats = secondsToBeats(position);
     updateActiveClips();
     {
         const juce::ScopedLock noteSl(noteLock);
-        activeNotes.clear(); // Сбрасываем все активные ноты при премотке
+        activeNotes.clear();
     }
-
-    juce::MidiBuffer clearBuffer;
-    for (int channel = 1; channel <= 16; ++channel) {
-        clearBuffer.addEvent(juce::MidiMessage::allNotesOff(channel), 0);
-    }
-
-    for (auto& track : tracks) {
-        for (auto& pluginInstance : track.plugins) {
-            if (pluginInstance->plugin) {
-                juce::AudioBuffer<float> tempBuffer(2, 512); // Временный буфер
-                tempBuffer.clear();
-                pluginInstance->plugin->processBlock(tempBuffer, clearBuffer);
-            }
-        }
-    }
-    LOG("Playhead moved to: " << position << " seconds, all notes off sent");
+    LOG("Playhead moved to: " << position << " seconds (" << positionInBeats << " beats)");
 }
 
 void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file, double startBeats, bool loadToRAM) {
@@ -1006,28 +1008,57 @@ void Engine::Core::removePluginFromTrack(int trackIndex, int pluginIndex) {
 }
 
 void Engine::Core::moveClip(int trackIndex, int clipIndex, double startBeats) {
-    if (trackIndex >= 0 && trackIndex < tracks.size() &&
-        clipIndex >= 0 && clipIndex < tracks.at(trackIndex).clips.size()) {
-        const juce::ScopedLock sl(lock);
+    if (trackIndex < 0 || trackIndex >= tracks.size() ||
+        clipIndex < 0 || clipIndex >= tracks[trackIndex].clips.size()) {
+        LOG_ERROR("Invalid track or clip index: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex);
+        return;
+    }
 
-        juce::MidiBuffer clearBuffer;
-        for (int channel = 1; channel <= 16; ++channel) {
-            clearBuffer.addEvent(juce::MidiMessage::allNotesOff(channel), 0);
+    const juce::ScopedLock sl(lock);
+    auto& clip = tracks[trackIndex].clips[clipIndex];
+    double newStartTime = beatsToSeconds(startBeats);
+
+    // Сохраняем относительную позицию курсора в цикле, если в PAT mode
+    double relativePosition = 0.0;
+    if (loopModeEnabled && loopTrackIndex == trackIndex && loopClipIndex == clipIndex) {
+        relativePosition = position - loopStartTime;
+        if (relativePosition < 0 || relativePosition >= loopDuration) {
+            relativePosition = 0.0; // Если курсор вне цикла, начинаем с начала
         }
+        LOG("PAT mode active, preserving relative position: " << relativePosition << " seconds");
+    }
 
+    // Обновляем позицию клипа
+    clip->startTime = newStartTime;
+    clip->startBeats = startBeats;
+    LOG("Moved clip at trackIndex=" << trackIndex << ", clipIndex=" << clipIndex
+        << " to startBeats=" << startBeats << ", startTime=" << newStartTime << " seconds");
+
+    // Обновляем параметры цикла, если клип активен в PAT mode
+    if (loopModeEnabled && loopTrackIndex == trackIndex && loopClipIndex == clipIndex) {
+        loopStartTime = newStartTime;
+        loopDuration = clip->duration;
+        double newPosition = loopStartTime + relativePosition;
+        LOG("Updated loop parameters: loopStartTime=" << loopStartTime << ", loopDuration=" << loopDuration
+            << ", newPosition=" << newPosition << " seconds");
+        setPosition(newPosition); // Безопасное обновление позиции
+    }
+
+    // Очищаем MIDI-события только если необходимо
+    if (loopModeEnabled && loopTrackIndex == trackIndex && loopClipIndex == clipIndex) {
+        juce::MidiBuffer clearBuffer;
+        clearBuffer.addEvent(juce::MidiMessage::allNotesOff(1), 0); // Только для канала 1
         for (auto& pluginInstance : tracks[trackIndex].plugins) {
-            if (pluginInstance->plugin) {
-                juce::AudioBuffer<float> tempBuffer(2, 512); // Временный буфер
+            if (pluginInstance->plugin && !pluginInstance->bypass) {
+                juce::AudioBuffer<float> tempBuffer(2, 512);
                 tempBuffer.clear();
                 pluginInstance->plugin->processBlock(tempBuffer, clearBuffer);
             }
         }
-
-
-        tracks.at(trackIndex).clips[clipIndex]->startTime = beatsToSeconds(startBeats);
-        tracks.at(trackIndex).clips[clipIndex]->startBeats = startBeats;
-        updateActiveClips();
     }
+
+    updateActiveClips();
+
 }
 
 void Engine::Core::changeMidiclipDuration(int trackIndex, int clipIndex, double newDurationBeats) {

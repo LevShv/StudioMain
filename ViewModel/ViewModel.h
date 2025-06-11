@@ -95,4 +95,5 @@ private:
    
 
     void buildModel();
+    void stopDoplay(void (*func)(...));
 };

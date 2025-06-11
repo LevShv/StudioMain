@@ -64,6 +64,13 @@ void ViewModel::moveClip(size_t trackIdx, size_t clipIdx, double newStartTime) {
     if (clipModel) {
         clipModel->updateClip(static_cast<int>(clipIdx)); // Уведомляем ClipModel об изменении
     }
+    // Синхронизируем позицию курсора в UI
+    double newPlayheadPosition = engine.GetPlayheadPosition();
+    if (std::abs(newPlayheadPosition - m_playheadPosition) > 0.001) {
+        m_playheadPosition = newPlayheadPosition;
+        emit playheadPositionChanged(m_playheadPosition);
+        qDebug() << "Updated playhead position after moving clip: " << m_playheadPosition << " beats";
+    }
     emit clipMoved(static_cast<int>(trackIdx), static_cast<int>(clipIdx), newStartTime);
 }
 
@@ -320,7 +327,30 @@ QString ViewModel::applicationHomeFolder() const
 
 void ViewModel::enableLoopMode(int trackIndex, int clipIndex)
 {
+    bool wasPlaying = isPlaying();
+    if (wasPlaying) {
+        engine.StopMix();
+        m_playheadTimer->stop();
+        m_isPlaying = false;
+        emit isPlayingChanged();
+        qDebug() << "Stopped playback before deleting track";
+    }
+
     engine.EnableLoopMode(trackIndex, clipIndex);
+    setPlayheadPosition(engine.GetPlayheadPosition());
+    //if (m_playheadPosition != engine.GetPlayheadPosition()) {
+    //    m_playheadPosition = engine.GetPlayheadPosition();
+    //    emit playheadPositionChanged(engine.GetPlayheadPosition());
+    //}
+
+    if (wasPlaying && !engine.GetdataBase().empty()) {
+        engine.PlayMix();
+        m_playheadTimer->start(16);
+        m_isPlaying = true;
+        emit isPlayingChanged();
+        qDebug() << "Resumed playback after deleting track";
+    }
+
 }
 
 void ViewModel::disableLoopMode()
@@ -348,6 +378,28 @@ void ViewModel::setVolume(int volume) {
     if (m_volume != volume) {
         m_volume = volume;
         emit volumeChanged();
+    }
+}
+
+void ViewModel::stopDoplay(void(*func)(...))
+{
+    bool wasPlaying = isPlaying();
+    if (wasPlaying) {
+        engine.StopMix();
+        m_playheadTimer->stop();
+        m_isPlaying = false;
+        emit isPlayingChanged();
+        qDebug() << "Stopped playback before deleting track";
+    }
+
+    func();
+
+    if (wasPlaying && !engine.GetdataBase().empty()) {
+        engine.PlayMix();
+        m_playheadTimer->start(16);
+        m_isPlaying = true;
+        emit isPlayingChanged();
+        qDebug() << "Resumed playback after deleting track";
     }
 }
 

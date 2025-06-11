@@ -73,6 +73,7 @@ void PluginModel::openPluginEditor(int trackIndex, int pluginIndex) {
         if (component->isVisible()) {
             qDebug() << "Plugin editor already visible, bringing to front: track=" << trackIndex << ", plugin=" << pluginIndex;
             component->toFront(true);
+            
         }
         else {
             qDebug() << "Plugin editor exists but is hidden, showing: track=" << trackIndex << ", plugin=" << pluginIndex;
@@ -162,8 +163,6 @@ void PluginModel::setTrackIndex(int trackIndex) {
 
 
 }
-
-
 
 void PluginModel::refresh() {
     qDebug() << "PluginModel: Refreshing for trackIndex" << currentTrackIndex;
