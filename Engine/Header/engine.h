@@ -195,7 +195,9 @@ private:
         
         //Converts
 
+        double secondsToBeats(double seconds, double bpm) const;
         double secondsToBeats(double seconds) const;
+        double beatsToSeconds(double beats, double bpm) const;
         double beatsToSeconds(double beats) const;
         double secondsToMeasures(double seconds) const;
         double measuresToSeconds(double measures) const;

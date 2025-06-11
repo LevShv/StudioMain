@@ -1545,7 +1545,7 @@ void Engine::Core::deleteMidiNote(int trackIndex, int clipIndex, int noteIndex) 
 void Engine::Core::setBPM(double newBPM) {
     if (newBPM > 0.0) {
         bpm = newBPM;
-        LOG("BPM updated to: " << bpm);
+        LOG_SUCCESS("BPM updated to: " << bpm);
         updateActiveClips(); // Пересчитываем активные клипы, если нужно
     }
     else {
@@ -1565,12 +1565,29 @@ void Engine::Core::setTimeSignature(int numerator, int denominator) {
     }
 }
 
-double Engine::Core::secondsToBeats(double seconds) const {
+//double Engine::Core::secondsToBeats(double seconds) const {
+//    return seconds * (bpm / 60.0);
+//}
+//
+//double Engine::Core::beatsToSeconds(double beats) const {
+//    return beats * (60.0 / bpm);
+//}
+
+double Engine::Core::secondsToBeats(double seconds, double bpm) const {
     return seconds * (bpm / 60.0);
 }
 
-double Engine::Core::beatsToSeconds(double beats) const {
+double Engine::Core::beatsToSeconds(double beats, double bpm) const {
     return beats * (60.0 / bpm);
+}
+
+// Перегруженные версии, использующие core.bpm
+double Engine::Core::secondsToBeats(double seconds) const {
+    return secondsToBeats(seconds, bpm);
+}
+
+double Engine::Core::beatsToSeconds(double beats) const {
+    return beatsToSeconds(beats, bpm);
 }
 
 double Engine::Core::secondsToMeasures(double seconds) const {

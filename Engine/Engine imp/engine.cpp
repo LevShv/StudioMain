@@ -289,8 +289,67 @@ double Engine::GetBPM() const {
 }
 
 void Engine::SetBPM(double newBPM) {
-    juce::ScopedLock sl(core.lock);
-    core.setBPM(newBPM);
+    if (newBPM < 60.0 || newBPM > 200.0) {
+        LOG_ERROR("Invalid BPM value: value " << newBPM << ", keeping current BPM: " << core.bpm); 
+        return;
+    }
+
+    const juce::ScopedLock sl(core.lock); 
+    double oldBPM = core.bpm;
+    core.bpm = newBPM;
+    LOG("BPM changed tofrom " << oldBPM << " to " << newBPM);
+
+    // Пересчитываем startTime и duration клипов
+    for (size_t trackIdx = 0; trackIdx < core.tracks.size(); ++trackIdx) {
+        auto& track = core.tracks[trackIdx];
+        for (size_t clipIdx = 0; clipIdx < track.clips.size(); ++clipIdx) {
+            auto& clip = track.clips[clipIdx];
+            // Пересчитываем startTime и duration, сохраняя startBeats и durationBeats
+            clip->startTime = BeatsToSeconds(clip->startBeats);
+            clip->duration = BeatsToSeconds(clip->durationBeats);
+            LOG("Updated clip on track " << trackIdx << ", clip " << clipIdx
+                << ": startTime=" << clip->startTime << " seconds, duration=" << clip->duration << " seconds");
+
+            // Для MIDI-клипов обновляем midiSequence
+            if (auto* midiClip = dynamic_cast<MidiClip*>(clip.get())) {
+                juce::MidiMessageSequence newSequence;
+                for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
+                    auto* event = midiClip->midiSequence.getEventPointer(i);
+                    double oldTimeSeconds = event->message.getTimeStamp();
+                    // Пересчитываем время относительно начала клипа
+                    double beats = core.secondsToBeats(oldTimeSeconds, oldBPM);
+                    double newTimeSeconds = core.beatsToSeconds(beats);
+                    juce::MidiMessage newMessage = event->message;
+                    newMessage.setTimeStamp(newTimeSeconds);
+                    newSequence.addEvent(newMessage);
+                }
+                midiClip->midiSequence = newSequence;
+                LOG("Updated midiSequence for MIDI clip on track " << trackIdx << ", clip " << clipIdx);
+            }
+        }
+    }
+
+    // Обновляем позицию плейхеда
+    double beats = core.secondsToBeats(core.position, oldBPM);
+    core.position = core.beatsToSeconds(beats);
+    core.positionInBeats = beats;
+    LOG("Playhead position updated to " << core.position << " seconds (" << core.positionInBeats << " beats)");
+
+    // Обновляем параметры цикла в PAT mode
+    if (core.loopModeEnabled && core.loopTrackIndex >= 0 && core.loopClipIndex >= 0) {
+        auto& clip = core.tracks[core.loopTrackIndex].clips[core.loopClipIndex];
+        core.loopStartTime = clip->startTime;
+        core.loopDuration = clip->duration;
+        // Корректируем позицию плейхеда, если он вне нового цикла
+        if (core.position < core.loopStartTime || core.position >= core.loopStartTime + core.loopDuration) {
+            core.position = core.loopStartTime;
+            core.positionInBeats = clip->startBeats;
+            LOG("Playhead repositioned to loop start: " << core.position << " seconds");
+        }
+        LOG("Loop parameters updated: loopStartTime=" << core.loopStartTime << ", loopDuration=" << core.loopDuration);
+    }
+
+    core.updateActiveClips();
 }
 
 int Engine::AddAudioTrack() {

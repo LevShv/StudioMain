@@ -58,6 +58,11 @@ void ViewModel::setPlayheadPosition(double position) {
     emit playheadPositionChanged(position);
 }
 
+void ViewModel::setBpm(double newBpm)
+{
+    engine.SetBPM(newBpm);
+}
+
 void ViewModel::moveClip(size_t trackIdx, size_t clipIdx, double newStartTime) {
     engine.MoveClip(static_cast<int>(trackIdx), static_cast<int>(clipIdx), newStartTime);
     ClipModel* clipModel = m_trackModel->getClipModel(static_cast<int>(trackIdx));

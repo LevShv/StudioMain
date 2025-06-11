@@ -30,26 +30,27 @@ public:
 
     Q_INVOKABLE void togglePlayback();
     Q_INVOKABLE void setPlayheadPosition(double position);
-    Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
- 
+    Q_INVOKABLE void setBpm(double bpm);
     Q_INVOKABLE void setVolume(int volume);
 
     Q_INVOKABLE void deleteTrack(int trackIndex);
+    Q_INVOKABLE void addAudioTrack();
+    Q_INVOKABLE void addMidiTrack();
+    Q_INVOKABLE void addSamplerTrack();
+
+    Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);
     Q_INVOKABLE void deleteClips(const QVariantList& clips); // Новый метод
-    Q_INVOKABLE void addAudioTrack();
-	Q_INVOKABLE void addMidiTrack();
-    Q_INVOKABLE void addSamplerTrack();
     Q_INVOKABLE void addAudioClip(int trackIndex, const QString& filePath, double startTime);
     Q_INVOKABLE void addMidiClip(int trackIndex, double startTime);
     Q_INVOKABLE void AddCloneClip(int trackIndex, int masterClipIndex, double startBeats);
+    Q_INVOKABLE void changeClipDuration(int trackIndex, int clipIndex, double newDuration); // Новый метод
 
     Q_INVOKABLE void RenderToWave(QString path);
     Q_INVOKABLE void SaveProject(QString path);
     Q_INVOKABLE void OpenProject(QString);
     Q_INVOKABLE void createNewProject();
 
-    Q_INVOKABLE void changeClipDuration(int trackIndex, int clipIndex, double newDuration); // Новый метод
     Q_INVOKABLE QString applicationHomeFolder() const;
 
     Q_INVOKABLE void enableLoopMode(int trackIndex, int clipIndex);
