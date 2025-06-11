@@ -145,7 +145,7 @@ Item {
 
                         // Ruler beat divisions
                         Repeater {
-                            model: Math.ceil(clipDuration * divisionsPerBeat) + 1 // Number of 1/16th beats
+                            model: Math.ceil(clipDuration * divisionsPerBeat)  // Number of 1/16th beats
                             delegate: Item {
                                 x: index * beatWidth
                                 width: beatWidth
@@ -315,7 +315,7 @@ Item {
 
                 // Vertical lines (beat divisions)
                 Repeater {
-                    model: Math.ceil(clipDuration * divisionsPerBeat) + 1 // Number of 1/16th beats
+                    model: Math.ceil(clipDuration * divisionsPerBeat)  // Number of 1/16th beats
                     delegate: Rectangle {
                         width: 1
                         height: pianoRollFlickable.contentHeight
