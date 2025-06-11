@@ -7,7 +7,7 @@
 
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
-
+    m_currentProjectPath = ""; // Изначально путь пустой
     m_trackModel = new TrackModel(engine, this);
     m_midiModel  = new MidiMessageModel(engine, this);
     m_pluginModel = new PluginModel(engine, this);
@@ -267,6 +267,7 @@ void ViewModel::SaveProject(QString path)
 {
     const std::string pathStr = path.toStdString();
     engine.SaveProject(pathStr);
+    setCurrentProjectPath(path); // Обновляем путь
     qDebug() << "Save Proj to file:" << path;
 }
 
@@ -278,6 +279,7 @@ void ViewModel::OpenProject(QString path)
     if (engine.LoadProject(pathStr)) {
         buildModel();
         m_trackModel->update();
+        setCurrentProjectPath(path); // Обновляем путь
         qDebug() << "File finnaly opened" << path;
     }
     
@@ -308,7 +310,7 @@ Q_INVOKABLE void ViewModel::createNewProject()
     m_bpm = engine.GetBPM();
     emit playheadPositionChanged(m_playheadPosition);
     emit bpmChanged();
-
+    setCurrentProjectPath(""); // Сбрасываем путь
     // Сбрасываем текущие индексы в MidiMessageModel для предотвращения ошибок
     m_midiModel->setTrackIndex(-1);
     m_midiModel->setClipIndex(-1);
@@ -441,5 +443,21 @@ void ViewModel::stopDoplay(void(*func)(...))
     }
 }
 
+void ViewModel::setCurrentProjectPath(const QString& path) {
+    if (m_currentProjectPath != path) {
+        m_currentProjectPath = path;
+        emit currentProjectPathChanged();
+        qDebug() << "Current project path updated:" << m_currentProjectPath;
+    }
+}
 
-
+void ViewModel::prepareForExit() {
+    if (isPlaying()) {
+        engine.StopMix();
+        m_playheadTimer->stop();
+        m_isPlaying = false;
+        emit isPlayingChanged();
+        qDebug() << "Stopped playback before application exit";
+    }
+    // Дополнительная очистка, если требуется
+}

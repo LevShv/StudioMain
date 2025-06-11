@@ -20,6 +20,7 @@ Window {
     minimumHeight: 600 // Минимальная высота
     title: "StudioMain"
     color: "#2E3440"
+    
 
     // свойтсва piano rol
     property int selectedTrackIndex: -1

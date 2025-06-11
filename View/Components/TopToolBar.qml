@@ -24,7 +24,7 @@ Rectangle {
         title: "Загрузить проект"
         nameFilters: ["ltproj файлы (*.ltproj)"]
         fileMode: FileDialog.OpenFile
-        currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"
+        currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"       
         onAccepted: {
             var filePath = loadDialog.selectedFile.toString()
             // Удаляем префикс "file:///" если он есть
@@ -32,11 +32,12 @@ Rectangle {
                 filePath = filePath.substring(8)
             }
             console.log("Загрузка проекта из:", filePath)
-            viewModel.OpenProject(filePath)
+            viewModel.OpenProject(filePath)     
+            viewModel.setCurrentProjectPath(filePath); // Обновляем путь
         }
         onRejected: {
             console.log("Диалог загрузки отменен")
-        }
+        }        
     }
 
     FileDialog {
@@ -45,6 +46,7 @@ Rectangle {
         nameFilters: ["ltproj файлы (*.ltproj)"]
         fileMode: FileDialog.SaveFile
         currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"
+         defaultSuffix: "ltproj" // Автоматически добавляет расширение .ltproj
         onAccepted: {
             var filePath = saveDialog.selectedFile.toString()
             // Удаляем префикс "file:///" если он есть
@@ -53,12 +55,85 @@ Rectangle {
             }
             console.log("Сохранение проекта в:", filePath)
             viewModel.SaveProject(filePath)
+            viewModel.setCurrentProjectPath(filePath); // Обновляем путь
         }
         onRejected: {
             console.log("Диалог сохранения отменен")
         }
+        Component.onCompleted: {
+            // Устанавливаем имя файла по умолчанию
+            var savesFolder = viewModel.applicationHomeFolder() + "/Saves";
+            var baseName = "project";
+            var index = 0;
+            var proposedName = baseName;
+            var fileExists = true;
+            while (fileExists) {
+                var testPath = savesFolder + "/" + proposedName + ".ltproj";
+                var fileInfo = Qt.createQmlObject('import QtCore; FileInfo {}', saveDialog);
+                fileInfo.setFile(testPath);
+                fileExists = fileInfo.exists;
+                if (fileExists) {
+                    index++;
+                    proposedName = baseName + " " + index;
+                }
+            }
+            saveDialog.selectedFile = "file:///" + savesFolder + "/" + proposedName + ".ltproj";
+            console.log("Предлагаемое имя файла:", proposedName + ".ltproj");
+        }
     }
+    Dialog {
+        id: exitDialog
+        title: "Сохранить проект перед выходом?"
+        modal: true
+        standardButtons: Dialog.NoButton // Используем кастомные кнопки
+        anchors.centerIn: parent
+        y: 350// Сдвиг вниз на четверть высоты родителя
+        closePolicy: Popup.CloseOnEscape // Закрытие по Esc вызывает "Отмена"
 
+        ColumnLayout {
+            spacing: 10
+            Label {
+                text: "Вы хотите сохранить изменения в проекте перед выходом?"
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            RowLayout {
+                Layout.alignment: Qt.AlignRight
+                spacing: 10
+                Button {
+                    text: "Сохранить"
+                    onClicked: {
+                        exitDialog.accept()
+                        viewModel.prepareForExit() // Подготовка к выходу
+                        if (viewModel.currentProjectPath === "") {
+                            saveDialog.open() // Открываем диалог сохранения
+                            saveDialog.onAccepted.connect(function() {
+                                viewModel.SaveProject(saveDialog.selectedFile.toString().replace("file:///", ""))
+                                Qt.quit() // Закрываем приложение после сохранения
+                            })
+                        } else {
+                            viewModel.SaveProject(viewModel.currentProjectPath)
+                            Qt.quit() // Закрываем приложение
+                        }
+                    }
+                }
+                Button {
+                    text: "Не сохранять"
+                    onClicked: {
+                        exitDialog.accept()
+                        viewModel.prepareForExit() // Подготовка к выходу
+                        Qt.quit() // Закрываем приложение без сохранения
+                    }
+                }
+                Button {
+                    text: "Отмена"
+                    onClicked: {
+                        exitDialog.reject() // Закрываем диалог, возвращаемся в приложение
+                    }
+                }
+            }
+        }
+    }
     RowLayout {
         anchors.fill: parent
         spacing: 10
@@ -112,7 +187,13 @@ Rectangle {
                     MenuItem {
                         text: "Сохранить"
                         onTriggered: {
-                            viewModel.SaveProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.ltproj")
+                            if (viewModel.currentProjectPath === "") {
+                                saveDialog.open();
+                                console.log("Путь к проекту пуст, открываем 'Сохранить как'");
+                            } else {
+                                viewModel.SaveProject(viewModel.currentProjectPath);
+                                console.log("Сохранение в файл:", viewModel.currentProjectPath);
+                            }
                         }
                     }
 
@@ -120,6 +201,12 @@ Rectangle {
                         text: "Сохранить как..."                                
                         onTriggered: {
                             saveDialog.open() // Открываем диалог сохранения
+                        }
+                    }
+                    MenuItem {
+                        text: "Выход"
+                        onTriggered: {
+                            exitDialog.open() // Открываем диалоговое окно подтверждения
                         }
                     }
                 }
