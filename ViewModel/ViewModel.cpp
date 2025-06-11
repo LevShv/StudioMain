@@ -262,7 +262,7 @@ void ViewModel::setTrackGain(int trackIndex, float gain)
     }
 
     engine.SetTrackGain(trackIndex, gain);
-    m_trackModel->update(); // Обновляем модель для синхронизации UI
+   // m_trackModel->update(); // Обновляем модель для синхронизации UI
     emit trackGainChanged(trackIndex, gain);
     qDebug() << "Track" << trackIndex << "gain set to" << gain;
 }

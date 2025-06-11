@@ -539,7 +539,8 @@ void Engine::SetTrackGain(int trackIndex, float gain)
     }
 
     // Ограничиваем гейн в диапазоне [0.0, 2.0]
-    gain = juce::jlimit(0.0f, 2.0f, gain);
+  //  gain = juce::jlimit(0.0f, 2.0f, gain);
+    LOG_INFO(gain);
     core.tracks[trackIndex].gain = gain;
 
     LOG("Track " << trackIndex << " gain set to " << gain);
