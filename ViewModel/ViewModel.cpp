@@ -4,8 +4,6 @@
 #include <QDir>
 #include <QDesktopServices>
 
-
-
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
 
     m_trackModel = new TrackModel(engine, this);
@@ -256,7 +254,20 @@ void ViewModel::addSamplerTrack() {
     }
 }
 
-Q_INVOKABLE void ViewModel::RenderToWave(QString path)
+void ViewModel::setTrackGain(int trackIndex, float gain)
+{
+    if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size()) {
+        qWarning() << "Invalid track index for gain change:" << trackIndex;
+        return;
+    }
+
+    engine.SetTrackGain(trackIndex, gain);
+    m_trackModel->update(); // Обновляем модель для синхронизации UI
+    emit trackGainChanged(trackIndex, gain);
+    qDebug() << "Track" << trackIndex << "gain set to" << gain;
+}
+
+void ViewModel::RenderToWave(QString path)
 {
 	std::string pathStr = path.toStdString();
 	engine.RenderToFile(pathStr);

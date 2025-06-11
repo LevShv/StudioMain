@@ -529,6 +529,22 @@ void Engine::ChangeDuration(int trackIndex, int clipIndex, double newDurationBea
     core.updateActiveClips();
 }
 
+void Engine::SetTrackGain(int trackIndex, float gain)
+{
+    const juce::ScopedLock sl(core.lock);
+
+    if (trackIndex < 0 || trackIndex >= core.tracks.size()) {
+        LOG_ERROR("Invalid track index: " << trackIndex);
+        return;
+    }
+
+    // Ограничиваем гейн в диапазоне [0.0, 2.0]
+    gain = juce::jlimit(0.0f, 2.0f, gain);
+    core.tracks[trackIndex].gain = gain;
+
+    LOG("Track " << trackIndex << " gain set to " << gain);
+}
+
 void Engine::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats)
 {
     juce::ScopedLock sl(core.lock);
