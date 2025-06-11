@@ -37,6 +37,107 @@ Window {
 
     property bool separatorVisible: false
     signal clearSelectedClipsRequested()
+    property bool isExiting: false
+    
+
+    // Save dialog moved from toolbar
+    FileDialog {
+        id: saveDialog
+        title: "Сохранить проект"
+        nameFilters: ["ltproj файлы (*.ltproj)"]
+        fileMode: FileDialog.SaveFile
+        currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"
+        defaultSuffix: "ltproj"
+        onAccepted: {
+            var filePath = saveDialog.selectedFile.toString()
+            if (filePath.startsWith("file:///")) {
+                filePath = filePath.substring(8)
+            }
+            console.log("Сохранение проекта в:", filePath)
+            try {
+                viewModel.SaveProject(filePath)
+                viewModel.setCurrentProjectPath(filePath)
+                console.log("Проект успешно сохранен, устанавливаем isExiting")
+                isExiting = true
+                viewModel.prepareForExit()
+                // Даем время на завершение всех операций
+                Qt.callLater(function() {
+                    console.log("Вызываем Qt.quit()")
+                    Qt.quit()
+                })
+            } catch (error) {
+                console.error("Ошибка при сохранении проекта:", error)
+                isExiting = false // Сбрасываем флаг, чтобы можно было повторить попытку
+                exitDialog.open() // Открываем диалог для повторной попытки
+            }
+        }
+        onRejected: {
+            console.log("Диалог сохранения отменен")
+            isExiting = false // Сбрасываем флаг, если пользователь отменил
+        }
+    }
+
+    // Exit confirmation dialog
+    Dialog {
+        id: exitDialog
+        title: "Сохранить проект перед выходом?"
+        modal: true
+        standardButtons: Dialog.NoButton
+        anchors.centerIn: parent
+        y: 350
+        closePolicy: Popup.CloseOnEscape
+
+        ColumnLayout {
+            spacing: 10
+            Label {
+                text: "Вы хотите сохранить изменения в проекте перед выходом?"
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            RowLayout {
+                Layout.alignment: Qt.AlignRight
+                spacing: 10
+                Button {
+                    text: "Сохранить"
+                    onClicked: {
+                        exitDialog.accept()
+                        viewModel.prepareForExit()
+                        if (viewModel.currentProjectPath === "") {
+                            saveDialog.open()
+                            saveDialog.onAccepted.connect(function() {
+                                Qt.quit()
+                            })
+                        } else {
+                            viewModel.SaveProject(viewModel.currentProjectPath)
+                            Qt.quit()
+                        }
+                    }
+                }
+                Button {
+                    text: "Не сохранять"
+                    onClicked: {
+                        exitDialog.accept()
+                        viewModel.prepareForExit()
+                        Qt.quit()
+                    }
+                }
+                Button {
+                    text: "Отмена"
+                    onClicked: {
+                        exitDialog.reject()
+                    }
+                }
+            }
+        }
+    }
+
+    // Modified closing handler
+    onClosing: (close) => {
+        if (!exitDialog.visible) {
+            close.accepted = false
+            exitDialog.open()
+        }
+    }
     
     Shortcut {
         sequence: "F11"
