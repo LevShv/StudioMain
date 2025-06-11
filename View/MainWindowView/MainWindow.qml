@@ -16,6 +16,8 @@ Window {
     visible: true
     width: 1500
     height: 1080
+    minimumWidth: 800  // Минимальная ширина
+    minimumHeight: 600 // Минимальная высота
     title: "StudioMain"
     color: "#2E3440"
 
@@ -34,6 +36,17 @@ Window {
 
     property bool separatorVisible: false
     signal clearSelectedClipsRequested()
+    
+    Shortcut {
+        sequence: "F11"
+        onActivated: {
+            if (mainWindow.visibility === Window.FullScreen) {
+                mainWindow.showNormal()
+            } else {
+                mainWindow.showFullScreen()
+            }
+        }
+    }
 
     Component.onCompleted: {
         console.log("viewModel object:", viewModel)

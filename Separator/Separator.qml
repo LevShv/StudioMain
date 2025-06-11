@@ -4,6 +4,7 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Shapes
 
+
 Rectangle {
     id: separatorPanel
     color: "#2D2D2D"
