@@ -58,11 +58,23 @@ void ViewModel::setPlayheadPosition(double position) {
     emit playheadPositionChanged(position);
 }
 
+void ViewModel::setBpm(double newBpm)
+{
+    engine.SetBPM(newBpm);
+}
+
 void ViewModel::moveClip(size_t trackIdx, size_t clipIdx, double newStartTime) {
     engine.MoveClip(static_cast<int>(trackIdx), static_cast<int>(clipIdx), newStartTime);
     ClipModel* clipModel = m_trackModel->getClipModel(static_cast<int>(trackIdx));
     if (clipModel) {
         clipModel->updateClip(static_cast<int>(clipIdx)); // Уведомляем ClipModel об изменении
+    }
+    // Синхронизируем позицию курсора в UI
+    double newPlayheadPosition = engine.GetPlayheadPosition();
+    if (std::abs(newPlayheadPosition - m_playheadPosition) > 0.001) {
+        m_playheadPosition = newPlayheadPosition;
+        emit playheadPositionChanged(m_playheadPosition);
+        qDebug() << "Updated playhead position after moving clip: " << m_playheadPosition << " beats";
     }
     emit clipMoved(static_cast<int>(trackIdx), static_cast<int>(clipIdx), newStartTime);
 }
@@ -98,8 +110,6 @@ void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBe
     }
     emit clipAdded(trackIndex);
 }
-
-
 
 void ViewModel::deleteTrack(int trackIndex) {
     if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
@@ -274,6 +284,39 @@ void ViewModel::OpenProject(QString path)
 
 }
 
+Q_INVOKABLE void ViewModel::createNewProject()
+{
+    if (isPlaying()) {
+        engine.StopMix();
+        m_playheadTimer->stop();
+        m_isPlaying = false;
+        emit isPlayingChanged();
+        qDebug() << "Stopped playback for new project creation";
+    }
+
+    // Создаём новый проект
+    engine.CreateNewProject();
+
+    // Обновляем модели
+    buildModel();
+    m_trackModel->update(); // Обновляем модель треков
+    m_midiModel->refresh(); // Используем refresh вместо update
+    m_pluginModel->refresh(); // Используем refresh вместо update
+
+    // Сбрасываем позицию курсора и BPM в UI
+    m_playheadPosition = 0.0;
+    m_bpm = engine.GetBPM();
+    emit playheadPositionChanged(m_playheadPosition);
+    emit bpmChanged();
+
+    // Сбрасываем текущие индексы в MidiMessageModel для предотвращения ошибок
+    m_midiModel->setTrackIndex(-1);
+    m_midiModel->setClipIndex(-1);
+
+    // Убедимся, что UI переключен в SONG mode
+    qDebug() << "New project created, UI updated: bpm=" << m_bpm << ", playheadPosition=" << m_playheadPosition;
+}
+
 void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDuration)
 {
     if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size() ||
@@ -299,7 +342,7 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
     qDebug() << "Clip duration changed: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << ", newDuration=" << newDuration << "beats";
 }
 
- QString ViewModel::applicationHomeFolder() const
+QString ViewModel::applicationHomeFolder() const
 {
     // Получаем директорию, где находится исполняемый файл
     QString appDir = QCoreApplication::applicationDirPath();
@@ -318,6 +361,39 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
     LOG_INFO("Application home folder: " + homePath.toStdString());
     return homePath;
 
+}
+
+void ViewModel::enableLoopMode(int trackIndex, int clipIndex)
+{
+    bool wasPlaying = isPlaying();
+    if (wasPlaying) {
+        engine.StopMix();
+        m_playheadTimer->stop();
+        m_isPlaying = false;
+        emit isPlayingChanged();
+        qDebug() << "Stopped playback before deleting track";
+    }
+
+    engine.EnableLoopMode(trackIndex, clipIndex);
+    setPlayheadPosition(engine.GetPlayheadPosition());
+    //if (m_playheadPosition != engine.GetPlayheadPosition()) {
+    //    m_playheadPosition = engine.GetPlayheadPosition();
+    //    emit playheadPositionChanged(engine.GetPlayheadPosition());
+    //}
+
+    if (wasPlaying && !engine.GetdataBase().empty()) {
+        engine.PlayMix();
+        m_playheadTimer->start(16);
+        m_isPlaying = true;
+        emit isPlayingChanged();
+        qDebug() << "Resumed playback after deleting track";
+    }
+
+}
+
+void ViewModel::disableLoopMode()
+{
+    engine.DisableLoopMode();
 }
 
 void ViewModel::addMidiTrack() {
@@ -343,61 +419,27 @@ void ViewModel::setVolume(int volume) {
     }
 }
 
-void ViewModel::addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
-    // Проверяем валидность параметров
-    if (trackIndex < 0 || clipIndex < 0 || noteNumber < 0 || noteNumber > 127 ||
-        startBeats < 0 || durationBeats <= 0 || velocity < 0 || velocity > 1.0 || channel < 1 || channel > 16) {
-        qWarning() << "ViewModel: Invalid note parameters: noteNumber=" << noteNumber
-            << "startBeats=" << startBeats << "durationBeats=" << durationBeats
-            << "velocity=" << velocity << "channel=" << channel;
-        return;
+void ViewModel::stopDoplay(void(*func)(...))
+{
+    bool wasPlaying = isPlaying();
+    if (wasPlaying) {
+        engine.StopMix();
+        m_playheadTimer->stop();
+        m_isPlaying = false;
+        emit isPlayingChanged();
+        qDebug() << "Stopped playback before deleting track";
     }
 
-    // Обновляем индексы в midiModel
-    m_midiModel->setTrackIndex(trackIndex);
-    m_midiModel->setClipIndex(clipIndex);
+    func();
 
-    // Проверяем валидность индексов
-    const auto& database = engine.GetdataBase();
-    if (trackIndex >= database.size() || clipIndex >= database[trackIndex].clips.size()) {
-        qWarning() << "ViewModel: Invalid trackIndex=" << trackIndex << "or clipIndex=" << clipIndex;
-        return;
-    }
-
-    // Проверяем, является ли клип MidiClip
-    if (!dynamic_cast<Engine::MidiClip*>(database[trackIndex].clips[clipIndex].get())) {
-        qWarning() << "ViewModel: Clip at trackIndex=" << trackIndex << "clipIndex=" << clipIndex << "is not a MidiClip";
-        return;
-    }
-
-    // Добавляем ноту в Engine
-    engine.AddMidiNote(trackIndex, clipIndex, noteNumber, startBeats, durationBeats, velocity, channel);
-
-    // Синхронизируем модель с Engine
-    m_midiModel->refresh();
-    qDebug() << "ViewModel: Added MIDI note: trackIndex=" << trackIndex << "clipIndex=" << clipIndex
-        << "noteNumber=" << noteNumber << "startBeats=" << startBeats << "velocity=" << velocity;
-}
-
-void ViewModel::deleteMidiNote(int trackIndex, int clipIndex, int index) {
-    if (trackIndex == m_midiModel->trackIndex() && clipIndex == m_midiModel->clipIndex()) {
-        engine.DeleteMidiNote(trackIndex, clipIndex, index);
-        m_midiModel->deleteNote(index);
-        qDebug() << "ViewModel: Deleted MIDI note at index=" << index << "trackIndex=" << trackIndex << "clipIndex=" << clipIndex;
-    }
-    else {
-        qWarning() << "Cannot delete note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
+    if (wasPlaying && !engine.GetdataBase().empty()) {
+        engine.PlayMix();
+        m_playheadTimer->start(16);
+        m_isPlaying = true;
+        emit isPlayingChanged();
+        qDebug() << "Resumed playback after deleting track";
     }
 }
 
-void ViewModel::updateMidiNote(int trackIndex, int clipIndex, int index, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
-    if (trackIndex == m_midiModel->trackIndex() && clipIndex == m_midiModel->clipIndex()) {
-        engine.UpdateMidiNote(trackIndex, clipIndex, index, noteNumber, startBeats, durationBeats, velocity, channel);
-        m_midiModel->updateNote(index, noteNumber, startBeats, durationBeats, velocity, channel);
-        qDebug() << "ViewModel: Updated MIDI note at index=" << index << "trackIndex=" << trackIndex << "clipIndex=" << clipIndex << "noteNumber=" << noteNumber;
-    }
-    else {
-        qWarning() << "Cannot update note: trackIndex=" << trackIndex << "or clipIndex=" << clipIndex << "does not match midiModel";
-    }
-}
+
 

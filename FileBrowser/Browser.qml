@@ -418,29 +418,18 @@ Item {
                 }
 
                 // Элемент для перетаскивания
+                // Элемент для перетаскивания
                 Rectangle {
                     id: dragItem
                     width: Math.min(150, dragText.implicitWidth + 20)  // Автоподбор ширины с ограничением
                     height: dragText.implicitHeight + 10  // Автоподбор высоты
-                    visible: false
-                    color: "#4C566A"
-                    radius: 6  // Более скругленные углы
-                    opacity: 0.9
-                    z: 9999
-    
-                    Text {
-                        id: dragText
-                        anchors.centerIn: parent
-                        width: parent.width - 12  // Отступы от краев
-                        text: fileName
-                        color: "white"
-                        font.pixelSize: 12  // Увеличенный размер текста
-                        font.bold: true  // Полужирный шрифт
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideMiddle
-                        wrapMode: Text.NoWrap  // Текст в одну строку
-                    }
+                    visible: false  // Убираем визуальное отображение
+                    // Настройка перетаскивания
+                    Drag.active: dragArea.pressed && !fileIsDir
+                    Drag.mimeData: { "text/uri-list": "file:///" + root.dragFilePath } // MIME-данные для внешнего drop
+                    Drag.dragType: Drag.Automatic // Разрешить внешнее перетаскивание
+                    Drag.hotSpot.x: width / 2
+                    Drag.hotSpot.y: height / 2
                 }
 
                 MouseArea {

@@ -139,6 +139,16 @@ const std::vector<Engine::Track>& Engine::GetdataBase() const
     return core.tracks;
 }
 
+void Engine::EnableLoopMode(int trackIndex, int clipIndex)
+{
+    core.enableLoopMode(trackIndex, clipIndex);
+}
+
+void Engine::DisableLoopMode()
+{
+    core.disableLoopMode();
+}
+
 void Engine::configureMidiDevices() {
     auto midiOutputs = juce::MidiOutput::getAvailableDevices();
 
@@ -201,6 +211,73 @@ bool Engine::LoadProject(const std::string& Path) {
     return saver.LoadProject(Path);
 }
 
+void Engine::CreateNewProject()
+{
+    juce::ScopedLock sl(core.lock);
+
+    // 1. Останавливаем воспроизведение
+    core.stop();
+    LOG("Playback stopped for new project creation");
+
+    // 2. Очищаем все треки
+    core.tracks.clear();
+    LOG("All tracks cleared");
+
+    // 3. Сбрасываем параметры движка
+    core.position = 0.0;
+    core.positionInBeats = 0.0;
+    core.bpm = 120.0; // Дефолтный BPM
+    core.loopModeEnabled = false;
+    core.loopTrackIndex = -1;
+    core.loopClipIndex = -1;
+    core.loopStartTime = 0.0;
+    core.loopDuration = 0.0;
+   // core.activeClips.clear();
+    {
+        const juce::ScopedLock noteSl(core.noteLock);
+        core.activeNotes.clear();
+    }
+    LOG("Engine parameters reset: position=0.0, bpm=120.0, loopModeEnabled=false");
+
+    // 4. Очищаем MIDI-выход
+    if (core.midiOutput) {
+        for (int channel = 1; channel <= 16; ++channel) {
+            core.midiOutput->sendMessageNow(juce::MidiMessage::allNotesOff(channel));
+        }
+        core.midiOutput.reset();
+        LOG("MIDI output cleared and reset");
+    }
+
+    // 5. Сбрасываем плагины
+    for (auto& track : core.tracks) {
+        for (auto& pluginInstance : track.plugins) {
+            if (pluginInstance->plugin) {
+                pluginInstance->plugin->releaseResources();
+                pluginInstance->bypass = false;
+            }
+        }
+    }
+    // Поскольку треки уже очищены, этот цикл не выполнится, но оставлен для полноты
+
+    // 6. Инициализируем аудиоустройство
+    juce::AudioIODevice* audioDevice = deviceManager.getCurrentAudioDevice();
+    if (audioDevice) {
+        const int bufferSize = audioDevice->getCurrentBufferSizeSamples();
+        const double sampleRate = audioDevice->getCurrentSampleRate();
+        core.prepareToPlay(bufferSize, sampleRate);
+        LOG("Audio device reinitialized: bufferSize=" << bufferSize << ", sampleRate=" << sampleRate);
+    }
+
+    // 7. Добавляем один пустой аудиотрек по умолчанию
+    int newTrackIndex = AddAudioTrack();
+    LOG("Added default audio track at index " << newTrackIndex);
+
+    // 8. Обновляем активные клипы
+    core.updateActiveClips();
+    LOG("New project created successfully");
+
+}
+
 double Engine::GetPlayheadPosition() const {
     juce::ScopedLock sl(core.lock);
     return core.positionInBeats; // Возвращаем позицию в битах
@@ -212,8 +289,67 @@ double Engine::GetBPM() const {
 }
 
 void Engine::SetBPM(double newBPM) {
-    juce::ScopedLock sl(core.lock);
-    core.setBPM(newBPM);
+    if (newBPM < 60.0 || newBPM > 200.0) {
+        LOG_ERROR("Invalid BPM value: value " << newBPM << ", keeping current BPM: " << core.bpm); 
+        return;
+    }
+
+    const juce::ScopedLock sl(core.lock); 
+    double oldBPM = core.bpm;
+    core.bpm = newBPM;
+    LOG("BPM changed tofrom " << oldBPM << " to " << newBPM);
+
+    // Пересчитываем startTime и duration клипов
+    for (size_t trackIdx = 0; trackIdx < core.tracks.size(); ++trackIdx) {
+        auto& track = core.tracks[trackIdx];
+        for (size_t clipIdx = 0; clipIdx < track.clips.size(); ++clipIdx) {
+            auto& clip = track.clips[clipIdx];
+            // Пересчитываем startTime и duration, сохраняя startBeats и durationBeats
+            clip->startTime = BeatsToSeconds(clip->startBeats);
+            clip->duration = BeatsToSeconds(clip->durationBeats);
+            LOG("Updated clip on track " << trackIdx << ", clip " << clipIdx
+                << ": startTime=" << clip->startTime << " seconds, duration=" << clip->duration << " seconds");
+
+            // Для MIDI-клипов обновляем midiSequence
+            if (auto* midiClip = dynamic_cast<MidiClip*>(clip.get())) {
+                juce::MidiMessageSequence newSequence;
+                for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
+                    auto* event = midiClip->midiSequence.getEventPointer(i);
+                    double oldTimeSeconds = event->message.getTimeStamp();
+                    // Пересчитываем время относительно начала клипа
+                    double beats = core.secondsToBeats(oldTimeSeconds, oldBPM);
+                    double newTimeSeconds = core.beatsToSeconds(beats);
+                    juce::MidiMessage newMessage = event->message;
+                    newMessage.setTimeStamp(newTimeSeconds);
+                    newSequence.addEvent(newMessage);
+                }
+                midiClip->midiSequence = newSequence;
+                LOG("Updated midiSequence for MIDI clip on track " << trackIdx << ", clip " << clipIdx);
+            }
+        }
+    }
+
+    // Обновляем позицию плейхеда
+    double beats = core.secondsToBeats(core.position, oldBPM);
+    core.position = core.beatsToSeconds(beats);
+    core.positionInBeats = beats;
+    LOG("Playhead position updated to " << core.position << " seconds (" << core.positionInBeats << " beats)");
+
+    // Обновляем параметры цикла в PAT mode
+    if (core.loopModeEnabled && core.loopTrackIndex >= 0 && core.loopClipIndex >= 0) {
+        auto& clip = core.tracks[core.loopTrackIndex].clips[core.loopClipIndex];
+        core.loopStartTime = clip->startTime;
+        core.loopDuration = clip->duration;
+        // Корректируем позицию плейхеда, если он вне нового цикла
+        if (core.position < core.loopStartTime || core.position >= core.loopStartTime + core.loopDuration) {
+            core.position = core.loopStartTime;
+            core.positionInBeats = clip->startBeats;
+            LOG("Playhead repositioned to loop start: " << core.position << " seconds");
+        }
+        LOG("Loop parameters updated: loopStartTime=" << core.loopStartTime << ", loopDuration=" << core.loopDuration);
+    }
+
+    core.updateActiveClips();
 }
 
 int Engine::AddAudioTrack() {
@@ -500,6 +636,11 @@ void Engine::cleanMidiSequence(MidiClip* midiClip) {
 
     midiClip->midiSequence.updateMatchedPairs();
     LOG("After cleanMidiSequence, total events: " << midiClip->midiSequence.getNumEvents());
+}
+
+void Engine::PlayNote(int trackIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel)
+{
+    core.playNote(trackIndex, noteNumber, startBeats, durationBeats, velocity, channel);
 }
 
 #pragma endregion

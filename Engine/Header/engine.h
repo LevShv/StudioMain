@@ -125,6 +125,12 @@ public:
     const std::vector<Engine::Track>& GetdataBase() const;
 
 
+    //Clip loop mode
+
+    void EnableLoopMode(int trackIndex, int clipIndex);
+    void DisableLoopMode();
+
+
     //Plugins
 
     void AddPluginToTrack(int trackIndex, const std::string& pluginPath);
@@ -138,6 +144,12 @@ public:
     void RenderToFile(std::string& Path);
     void SaveProject(const std::string& Path);
     bool LoadProject(const std::string& Path);
+    void CreateNewProject();
+
+    //Prepaly
+
+    void PlayNote(int trackIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+
 
 #pragma endregion
 
@@ -183,7 +195,9 @@ private:
         
         //Converts
 
+        double secondsToBeats(double seconds, double bpm) const;
         double secondsToBeats(double seconds) const;
+        double beatsToSeconds(double beats, double bpm) const;
         double beatsToSeconds(double beats) const;
         double secondsToMeasures(double seconds) const;
         double measuresToSeconds(double measures) const;
@@ -231,9 +245,29 @@ private:
         juce::AudioProcessorEditor* getPluginEditor(int trackIndex, int pluginIndex);
 
 
+        //Clip loop mode
+        
+        bool loopModeEnabled = false;// Флаг режима циклического воспроизведения
+        int loopTrackIndex = -1;     // Индекс трека для циклического воспроизведения
+        int loopClipIndex = -1;      // Индекс клипа для циклического воспроизведения
+        double loopStartTime = 0.0;  // Начальная позиция воспроизведения в секундах относительно клипа
+        double loopDuration = 0.0;   // Длительность циклического воспроизведения (длительность клипа)
+        
+        void enableLoopMode(int trackIndex, int clipIndex);
+        void disableLoopMode();
+
+
         //Render
 
         void RenderToFile(std::string& Path);
+
+
+        //Preplay
+
+        void playNote(int trackIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
+
+        
+
 
     private:
 
@@ -254,6 +288,7 @@ private:
         double sampleRate = 44100.0;
         
         bool transportPlaying = false;
+        bool audioProcessingEnabled = true;
 
         void processMidiBlocks(const juce::AudioSourceChannelInfo&, double startTime, double endTime);
     };

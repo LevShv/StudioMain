@@ -8,7 +8,6 @@ class PluginModel : public QAbstractListModel {
 public:
 
     explicit PluginModel(Engine& engine, QObject* parent = nullptr);
-    Q_PROPERTY(int trackIndex READ getTrackIndex WRITE setTrackIndex NOTIFY trackIndexChanged)
     Q_INVOKABLE void addPlugin(int trackIndex, const QString& pluginPath);
     Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
     Q_INVOKABLE void deletePlugin(int trackIndex, int pluginIndex);
@@ -31,6 +30,7 @@ public:
     Q_INVOKABLE void setTrackIndex(int trackIndex);
 
     // Обновление данных модели
+
     int getTrackIndex() const { return currentTrackIndex; }
     void refresh();
 
@@ -46,7 +46,7 @@ signals:
 
 private:
     Engine& engine;
-
+    double redlineStartTime = 0;
     int currentTrackIndex;
     std::vector<std::pair<int, std::string>> plugins; // Пара: индекс плагина и имя
     QMap<QPair<int, int>, juce::Component*> m_openPluginEditors;

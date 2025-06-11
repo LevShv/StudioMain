@@ -16,6 +16,8 @@ Window {
     visible: true
     width: 1500
     height: 1080
+    minimumWidth: 800  // Минимальная ширина
+    minimumHeight: 600 // Минимальная высота
     title: "StudioMain"
     color: "#2E3440"
 
@@ -34,6 +36,19 @@ Window {
 
     property bool separatorVisible: false
     signal clearSelectedClipsRequested()
+    
+    Shortcut {
+        sequence: "F11"
+        onActivated: {
+            if (mainWindow.visibility === Window.FullScreen) {
+                mainWindow.showNormal()
+            } else {
+                mainWindow.showFullScreen()
+            }
+        }
+    }
+
+    signal clipMoved(int trackIndex, int clipIndex, double newStartBeats)
 
     Component.onCompleted: {
         console.log("viewModel object:", viewModel)
@@ -49,6 +64,13 @@ Window {
             console.log("clearSelectedClipsRequested received, previous selectedClips count=" + mainWindow.selectedClips.length)
             mainWindow.selectedClips = []
             console.log("selectedClips cleared, new count=" + mainWindow.selectedClips.length)
+        }
+        function onClipMoved(trackIndex, clipIndex, newStartBeats) {
+            console.log("MainWindow: Handling clipMoved signal: trackIndex=", trackIndex,
+                        "clipIndex=", clipIndex, "newStartBeats=", newStartBeats)
+            if (trackIndex === viewModel.midiModel.trackIndex && clipIndex === viewModel.midiModel.clipIndex) {
+                viewModel.midiModel.setRedlineStartime()
+            }
         }
 
     }
@@ -133,6 +155,14 @@ Window {
        // separatorVisible = selectedTrackIndex >= 0;
     }
 
+    function resetMainWindowParameters() {
+        selectedTrackIndex = -1
+        selectedClipIndex = -1
+        pianoRollVisible = false
+        clearSelectedClips()
+        separatorVisible: false
+    }
+
     // Подключение к сигналу изменения selectedClips
     onSelectedClipsChanged: {
         updateSelectedTrackFromClip();
@@ -169,7 +199,20 @@ Window {
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: "transparent"
-            
+            DropArea {
+                id: appDropArea
+                anchors.fill: parent
+                onDropped: (drop) => {
+                    if (drop.hasUrls) {
+                        var filePath = drop.urls[0].toString()
+                        var globalPos = mapToItem(mainWindow.contentItem, drop.x, drop.y)
+                        console.log("File dropped in app: filePath=", filePath, "x=", globalPos.x, "y=", globalPos.y)
+                        // Передаем событие в обработчик браузера
+                        fileBrowserContainer.children[0].fileDropped(filePath, globalPos.x, globalPos.y)
+                        drop.acceptProposedAction()
+                    }
+                }
+            }
 
             SplitView {
                 anchors.fill: parent
@@ -1489,6 +1532,8 @@ Window {
                                                                             clipItem.x = snappedX
                                                                             viewModel.moveClip(trackIndex, index, newPosition)
 
+                                                                            mainWindow.clipMoved(trackIndex, index, newPosition)
+
                                                                             // Для всех выделенных клипов этого трека
                                                                             for (var i = 0; i < clipsRepeater.count; i++) {
                                                                                 var otherClip = clipsRepeater.itemAt(i)
@@ -1698,6 +1743,12 @@ Window {
                                                     drag.minimumX: 0
                                                     drag.maximumX: Math.max(0, flickableArea.contentWidth - greenline.width)
 
+                                                    onPressed: {
+                                                        viewModel.setIsDraggingPlayhead(true) // Устанавливаем флаг
+                                                        viewModel.setIsPlaying(false) // Приостанавливаем воспроизведение (опционально)
+                                                        console.log("MainWindow: Green line pressed, isDraggingPlayhead=", viewModel.isDraggingPlayhead)
+                                                    }
+
                                                     onReleased: {
                                                         var groupSize = flickableArea.cachedGroupSize
                                                         var snapStep = groupSize * flickableArea.beatWidth // Шаг сетки в пикселях
@@ -1713,6 +1764,8 @@ Window {
 
                                                         greenline.x = snappedX
                                                         viewModel.setPlayheadPosition(newPosition)
+
+
 
                                                         console.log("Greenline snapped: x=", greenline.x, 
                                                                     "newPosition=", newPosition, 
