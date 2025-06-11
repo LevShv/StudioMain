@@ -98,7 +98,7 @@ void PluginModel::openPluginEditor(int trackIndex, int pluginIndex) {
                 juce::ComponentPeer::windowHasDropShadow );
             component->setBounds(100, 100, width, height);
             component->setVisible(true);
-            component->setAlwaysOnTop(true);
+            component->setAlwaysOnTop(true); 
             component->toFront(true);
 
             // Сохраняем компонент в список открытых редакторов
