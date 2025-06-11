@@ -22,7 +22,7 @@ Rectangle {
     FileDialog {
         id: loadDialog
         title: "Загрузить проект"
-        nameFilters: ["JSON файлы (*.json)", "Все файлы (*)"]
+        nameFilters: ["ltproj файлы (*.ltproj)"]
         fileMode: FileDialog.OpenFile
         currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"
         onAccepted: {
@@ -42,7 +42,7 @@ Rectangle {
     FileDialog {
         id: saveDialog
         title: "Сохранить проект"
-        nameFilters: ["JSON файлы (*.json)", "Все файлы (*)"]
+        nameFilters: ["ltproj файлы (*.ltproj)"]
         fileMode: FileDialog.SaveFile
         currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"
         onAccepted: {
@@ -105,14 +105,14 @@ Rectangle {
                     MenuItem {
                         text: "Открыть"                                
                         onTriggered: {
-                            viewModel.OpenProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.json")
+                            viewModel.OpenProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.ltproj")
                         }
                     }
 
                     MenuItem {
                         text: "Сохранить"
                         onTriggered: {
-                            viewModel.SaveProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.json")
+                            viewModel.SaveProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.ltproj")
                         }
                     }
 
@@ -222,7 +222,7 @@ Rectangle {
                         id: patButton
                         width: 35
                         height: 25
-                        text: "PAT"
+                        text: "CLIP"
                         enabled: modeTabBar.isValidIndices // Отключаем, если индексы некорректны
                         ToolTip.visible: hovered
                         ToolTip.delay: 500
