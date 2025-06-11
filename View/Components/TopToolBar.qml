@@ -24,7 +24,7 @@ Rectangle {
         title: "Загрузить проект"
         nameFilters: ["ltproj файлы (*.ltproj)"]
         fileMode: FileDialog.OpenFile
-        currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"
+        currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"       
         onAccepted: {
             var filePath = loadDialog.selectedFile.toString()
             // Удаляем префикс "file:///" если он есть
@@ -32,11 +32,12 @@ Rectangle {
                 filePath = filePath.substring(8)
             }
             console.log("Загрузка проекта из:", filePath)
-            viewModel.OpenProject(filePath)
+            viewModel.OpenProject(filePath)     
+            viewModel.setCurrentProjectPath(filePath); // Обновляем путь
         }
         onRejected: {
             console.log("Диалог загрузки отменен")
-        }
+        }        
     }
 
     FileDialog {
@@ -45,6 +46,7 @@ Rectangle {
         nameFilters: ["ltproj файлы (*.ltproj)"]
         fileMode: FileDialog.SaveFile
         currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"
+        defaultSuffix: "ltproj" // Автоматически добавляет расширение .ltproj
         onAccepted: {
             var filePath = saveDialog.selectedFile.toString()
             // Удаляем префикс "file:///" если он есть
@@ -53,12 +55,13 @@ Rectangle {
             }
             console.log("Сохранение проекта в:", filePath)
             viewModel.SaveProject(filePath)
+            viewModel.setCurrentProjectPath(filePath); // Обновляем путь
         }
         onRejected: {
             console.log("Диалог сохранения отменен")
         }
     }
-
+    
     RowLayout {
         anchors.fill: parent
         spacing: 10
@@ -112,7 +115,13 @@ Rectangle {
                     MenuItem {
                         text: "Сохранить"
                         onTriggered: {
-                            viewModel.SaveProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.ltproj")
+                            if (viewModel.currentProjectPath === "") {
+                                saveDialog.open();
+                                console.log("Путь к проекту пуст, открываем 'Сохранить как'");
+                            } else {
+                                viewModel.SaveProject(viewModel.currentProjectPath);
+                                console.log("Сохранение в файл:", viewModel.currentProjectPath);
+                            }
                         }
                     }
 
@@ -120,6 +129,12 @@ Rectangle {
                         text: "Сохранить как..."                                
                         onTriggered: {
                             saveDialog.open() // Открываем диалог сохранения
+                        }
+                    }
+                    MenuItem {
+                        text: "Выход"
+                        onTriggered: {
+                            Qt.quit()
                         }
                     }
                 }
