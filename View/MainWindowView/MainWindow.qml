@@ -1347,6 +1347,9 @@ Window {
                                                                                         // Обновляем clipDuration в midiModel для MIDI-клипов
                                                                                         if (model.type === "midi" && trackIndex === mainWindow.selectedTrackIndex && index === mainWindow.selectedClipIndex) {
                                                                                             viewModel.midiModel.setClipDuration(newDurationBeats)
+                                                                                            // Принудительно обновляем clipIndex, чтобы обновить PianoView
+                                                                                            mainWindow.selectedClipIndex = -1
+                                                                                            mainWindow.selectedClipIndex = index
                                                                                             console.log("Updated midiModel.clipDuration to", newDurationBeats, "for trackIndex=", trackIndex, "clipIndex=", index)
                                                                                         }
                                                                                         // Очищаем и обновляем волноформу после изменения
@@ -1440,6 +1443,9 @@ Window {
                                                                                         viewModel.changeClipDuration(trackIndex, index, newDurationBeats)
                                                                                         // Обновляем clipDuration в midiModel для MIDI-клипов
                                                                                         if (model.type === "midi" && trackIndex === mainWindow.selectedTrackIndex && index === mainWindow.selectedClipIndex) {
+                                                                                            // Принудительно обновляем clipIndex, чтобы обновить PianoView
+                                                                                            mainWindow.selectedClipIndex = -1
+                                                                                            mainWindow.selectedClipIndex = index
                                                                                             viewModel.midiModel.setClipDuration(newDurationBeats)
                                                                                             console.log("Updated midiModel.clipDuration to", newDurationBeats, "for trackIndex=", trackIndex, "clipIndex=", index)
                                                                                         }
