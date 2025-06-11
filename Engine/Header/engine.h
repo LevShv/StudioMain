@@ -97,6 +97,7 @@ public:
     int AddSamplerTrack();
     void DeleteTrack(int trackIndex);
     void ChangeDuration(int trackIndex, int clipIndex, double newDuration);
+    void SetTrackGain(int trackIndex, float gain);
 
 
     //Clpis

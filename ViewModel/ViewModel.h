@@ -17,6 +17,7 @@ class ViewModel : public QObject {
         Q_PROPERTY(TrackModel* trackModel READ trackModel CONSTANT)
         Q_PROPERTY(MidiMessageModel* midiModel READ midiModel CONSTANT) // Свойство для midiModel
         Q_PROPERTY(PluginModel* pluginModel READ pluginModel CONSTANT)
+        Q_PROPERTY(QString currentProjectPath READ currentProjectPath WRITE setCurrentProjectPath NOTIFY currentProjectPathChanged)
 
 public:
     explicit ViewModel(QObject* parent = nullptr);
@@ -38,9 +39,9 @@ public:
     Q_INVOKABLE void addMidiTrack();
     Q_INVOKABLE void addSamplerTrack();
 
-   // Q_INVOKABLE void changeTrackGain();
-   // Q_INVOKABLE void toggleMuteTrack();
-  //  Q_INVOKABLE void toggle
+    Q_INVOKABLE void setTrackGain(int trackIndex, float gain);
+  //  Q_INVOKABLE void toggleMuteTrack();
+   // Q_INVOKABLE void toggleSolo();
 
     Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);
@@ -63,6 +64,11 @@ public:
     bool isPlaying() const;
     int volume() const;
 
+    QString currentProjectPath() const { return m_currentProjectPath; }
+    void setCurrentProjectPath(const QString& path);
+    Q_SIGNAL void currentProjectPathChanged();
+    Q_INVOKABLE void prepareForExit();
+
 signals:
     void isPlayingChanged();
     void volumeChanged();
@@ -70,10 +76,7 @@ signals:
     void playheadPositionChanged(double position);
     void clipAdded(int trackIndex);
     void clipMoved(int trackIndex, int clipIndex, double newStartTime);
-    //void pluginBypassed(int trackIndex, int pluginIndex);
-    //void pluginAdded(int trackIndex);
-    // void pluginRemoved(int trackIndex, int pluginIndex);
-   // void pluginEditorOpened(int trackIndex, int pluginIndex, QWindow* window);
+    void trackGainChanged(int trackIndex, float gain); 
     void trackAdded(int trackIndex); 
     void clipDurationChanged(int trackIndex,int clipIndex, double newDuration);
 
@@ -102,4 +105,5 @@ private:
 
     void buildModel();
     void stopDoplay(void (*func)(...));
+    QString m_currentProjectPath; // Путь к текущему файлу проекта
 };
