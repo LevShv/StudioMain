@@ -48,6 +48,8 @@ Window {
         }
     }
 
+    signal clipMoved(int trackIndex, int clipIndex, double newStartBeats)
+
     Component.onCompleted: {
         console.log("viewModel object:", viewModel)
         console.log("viewModel.pluginModel object:", viewModel.pluginModel)
@@ -62,6 +64,13 @@ Window {
             console.log("clearSelectedClipsRequested received, previous selectedClips count=" + mainWindow.selectedClips.length)
             mainWindow.selectedClips = []
             console.log("selectedClips cleared, new count=" + mainWindow.selectedClips.length)
+        }
+        function onClipMoved(trackIndex, clipIndex, newStartBeats) {
+            console.log("MainWindow: Handling clipMoved signal: trackIndex=", trackIndex,
+                        "clipIndex=", clipIndex, "newStartBeats=", newStartBeats)
+            if (trackIndex === viewModel.midiModel.trackIndex && clipIndex === viewModel.midiModel.clipIndex) {
+                viewModel.midiModel.setRedlineStartime()
+            }
         }
 
     }
@@ -144,6 +153,14 @@ Window {
         }
         // Обновляем видимость separatorPanel
        // separatorVisible = selectedTrackIndex >= 0;
+    }
+
+    function resetMainWindowParameters() {
+        selectedTrackIndex = -1
+        selectedClipIndex = -1
+        pianoRollVisible = false
+        clearSelectedClips()
+        separatorVisible: false
     }
 
     // Подключение к сигналу изменения selectedClips
@@ -1515,6 +1532,8 @@ Window {
                                                                             clipItem.x = snappedX
                                                                             viewModel.moveClip(trackIndex, index, newPosition)
 
+                                                                            mainWindow.clipMoved(trackIndex, index, newPosition)
+
                                                                             // Для всех выделенных клипов этого трека
                                                                             for (var i = 0; i < clipsRepeater.count; i++) {
                                                                                 var otherClip = clipsRepeater.itemAt(i)
@@ -1724,6 +1743,12 @@ Window {
                                                     drag.minimumX: 0
                                                     drag.maximumX: Math.max(0, flickableArea.contentWidth - greenline.width)
 
+                                                    onPressed: {
+                                                        viewModel.setIsDraggingPlayhead(true) // Устанавливаем флаг
+                                                        viewModel.setIsPlaying(false) // Приостанавливаем воспроизведение (опционально)
+                                                        console.log("MainWindow: Green line pressed, isDraggingPlayhead=", viewModel.isDraggingPlayhead)
+                                                    }
+
                                                     onReleased: {
                                                         var groupSize = flickableArea.cachedGroupSize
                                                         var snapStep = groupSize * flickableArea.beatWidth // Шаг сетки в пикселях
@@ -1739,6 +1764,8 @@ Window {
 
                                                         greenline.x = snappedX
                                                         viewModel.setPlayheadPosition(newPosition)
+
+
 
                                                         console.log("Greenline snapped: x=", greenline.x, 
                                                                     "newPosition=", newPosition, 
