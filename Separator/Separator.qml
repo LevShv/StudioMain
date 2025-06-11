@@ -77,6 +77,8 @@ Rectangle {
                         border.color: "#ECEFF4"
                         border.width: 1
 
+                        property bool isPinned: false // Добавляем свойство isPinned
+
                         RoundButton {
                             id: pinButton
                             width: 20

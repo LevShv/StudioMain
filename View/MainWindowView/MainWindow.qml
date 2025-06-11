@@ -169,7 +169,20 @@ Window {
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: "transparent"
-            
+            DropArea {
+                id: appDropArea
+                anchors.fill: parent
+                onDropped: (drop) => {
+                    if (drop.hasUrls) {
+                        var filePath = drop.urls[0].toString()
+                        var globalPos = mapToItem(mainWindow.contentItem, drop.x, drop.y)
+                        console.log("File dropped in app: filePath=", filePath, "x=", globalPos.x, "y=", globalPos.y)
+                        // Передаем событие в обработчик браузера
+                        fileBrowserContainer.children[0].fileDropped(filePath, globalPos.x, globalPos.y)
+                        drop.acceptProposedAction()
+                    }
+                }
+            }
 
             SplitView {
                 anchors.fill: parent

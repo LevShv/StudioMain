@@ -1,5 +1,6 @@
 #include "PluginModel.h"
 #include <QDebug>
+#include <QRect>
 
 void PluginModel::addPlugin(int trackIndex, const QString& pluginPath) {
     qDebug() << "ViewModel: Adding plugin to track" << trackIndex << "path:" << pluginPath;
@@ -79,7 +80,7 @@ void PluginModel::openPluginEditor(int trackIndex, int pluginIndex) {
             component->setVisible(true);
             component->toFront(true);
         }
-     //   emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
+        //   emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
         return;
     }
 
@@ -93,18 +94,17 @@ void PluginModel::openPluginEditor(int trackIndex, int pluginIndex) {
 
             // Добавляем компонент на рабочий стол
             component->addToDesktop(juce::ComponentPeer::windowHasTitleBar |
-                juce::ComponentPeer::windowHasMaximiseButton |
-                juce::ComponentPeer::windowHasCloseButton |
                 juce::ComponentPeer::windowHasDropShadow);
             component->setBounds(100, 100, width, height);
             component->setVisible(true);
+            component->setAlwaysOnTop(true); // Устанавливаем "всегда поверх"
             component->toFront(true);
 
             // Сохраняем компонент в список открытых редакторов
             m_openPluginEditors[key] = component;
 
             qDebug() << "Plugin editor opened: track=" << trackIndex << ", plugin=" << pluginIndex;
-          //  emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
+            //  emit pluginEditorOpened(trackIndex, pluginIndex, nullptr);
         }
         else {
             qWarning() << "Failed to cast editor to JUCE Component: track=" << trackIndex << ", plugin=" << pluginIndex;
