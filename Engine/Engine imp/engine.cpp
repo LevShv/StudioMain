@@ -211,6 +211,73 @@ bool Engine::LoadProject(const std::string& Path) {
     return saver.LoadProject(Path);
 }
 
+void Engine::CreateNewProject()
+{
+    juce::ScopedLock sl(core.lock);
+
+    // 1. Останавливаем воспроизведение
+    core.stop();
+    LOG("Playback stopped for new project creation");
+
+    // 2. Очищаем все треки
+    core.tracks.clear();
+    LOG("All tracks cleared");
+
+    // 3. Сбрасываем параметры движка
+    core.position = 0.0;
+    core.positionInBeats = 0.0;
+    core.bpm = 120.0; // Дефолтный BPM
+    core.loopModeEnabled = false;
+    core.loopTrackIndex = -1;
+    core.loopClipIndex = -1;
+    core.loopStartTime = 0.0;
+    core.loopDuration = 0.0;
+   // core.activeClips.clear();
+    {
+        const juce::ScopedLock noteSl(core.noteLock);
+        core.activeNotes.clear();
+    }
+    LOG("Engine parameters reset: position=0.0, bpm=120.0, loopModeEnabled=false");
+
+    // 4. Очищаем MIDI-выход
+    if (core.midiOutput) {
+        for (int channel = 1; channel <= 16; ++channel) {
+            core.midiOutput->sendMessageNow(juce::MidiMessage::allNotesOff(channel));
+        }
+        core.midiOutput.reset();
+        LOG("MIDI output cleared and reset");
+    }
+
+    // 5. Сбрасываем плагины
+    for (auto& track : core.tracks) {
+        for (auto& pluginInstance : track.plugins) {
+            if (pluginInstance->plugin) {
+                pluginInstance->plugin->releaseResources();
+                pluginInstance->bypass = false;
+            }
+        }
+    }
+    // Поскольку треки уже очищены, этот цикл не выполнится, но оставлен для полноты
+
+    // 6. Инициализируем аудиоустройство
+    juce::AudioIODevice* audioDevice = deviceManager.getCurrentAudioDevice();
+    if (audioDevice) {
+        const int bufferSize = audioDevice->getCurrentBufferSizeSamples();
+        const double sampleRate = audioDevice->getCurrentSampleRate();
+        core.prepareToPlay(bufferSize, sampleRate);
+        LOG("Audio device reinitialized: bufferSize=" << bufferSize << ", sampleRate=" << sampleRate);
+    }
+
+    // 7. Добавляем один пустой аудиотрек по умолчанию
+    int newTrackIndex = AddAudioTrack();
+    LOG("Added default audio track at index " << newTrackIndex);
+
+    // 8. Обновляем активные клипы
+    core.updateActiveClips();
+    LOG("New project created successfully");
+
+}
+
 double Engine::GetPlayheadPosition() const {
     juce::ScopedLock sl(core.lock);
     return core.positionInBeats; // Возвращаем позицию в битах

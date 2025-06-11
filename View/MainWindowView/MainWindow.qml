@@ -142,6 +142,14 @@ Window {
        // separatorVisible = selectedTrackIndex >= 0;
     }
 
+    function resetMainWindowParameters() {
+        selectedTrackIndex = -1
+        selectedClipIndex = -1
+        pianoRollVisible = false
+        clearSelectedClips()
+        separatorVisible: false
+    }
+
     // Подключение к сигналу изменения selectedClips
     onSelectedClipsChanged: {
         updateSelectedTrackFromClip();

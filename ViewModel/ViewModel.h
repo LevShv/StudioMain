@@ -47,6 +47,7 @@ public:
     Q_INVOKABLE void RenderToWave(QString path);
     Q_INVOKABLE void SaveProject(QString path);
     Q_INVOKABLE void OpenProject(QString);
+    Q_INVOKABLE void createNewProject();
 
     Q_INVOKABLE void changeClipDuration(int trackIndex, int clipIndex, double newDuration); // Новый метод
     Q_INVOKABLE QString applicationHomeFolder() const;

@@ -45,9 +45,12 @@ Rectangle {
                     y: fileButton.height
                     width: 130       
                     MenuItem {
-                        text: "Создать"
+                        text: "Новый проект"
                         
-                        onTriggered: { /* действие */ }
+                        onTriggered: { 
+                            resetMainWindowParameters()
+                            viewModel.createNewProject() 
+                        }
                     }
 
                     MenuItem {

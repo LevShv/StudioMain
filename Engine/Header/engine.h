@@ -144,6 +144,7 @@ public:
     void RenderToFile(std::string& Path);
     void SaveProject(const std::string& Path);
     bool LoadProject(const std::string& Path);
+    void CreateNewProject();
 
     //Prepaly
 

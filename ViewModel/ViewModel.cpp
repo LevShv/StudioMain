@@ -279,6 +279,39 @@ void ViewModel::OpenProject(QString path)
 
 }
 
+Q_INVOKABLE void ViewModel::createNewProject()
+{
+    if (isPlaying()) {
+        engine.StopMix();
+        m_playheadTimer->stop();
+        m_isPlaying = false;
+        emit isPlayingChanged();
+        qDebug() << "Stopped playback for new project creation";
+    }
+
+    // Создаём новый проект
+    engine.CreateNewProject();
+
+    // Обновляем модели
+    buildModel();
+    m_trackModel->update(); // Обновляем модель треков
+    m_midiModel->refresh(); // Используем refresh вместо update
+    m_pluginModel->refresh(); // Используем refresh вместо update
+
+    // Сбрасываем позицию курсора и BPM в UI
+    m_playheadPosition = 0.0;
+    m_bpm = engine.GetBPM();
+    emit playheadPositionChanged(m_playheadPosition);
+    emit bpmChanged();
+
+    // Сбрасываем текущие индексы в MidiMessageModel для предотвращения ошибок
+    m_midiModel->setTrackIndex(-1);
+    m_midiModel->setClipIndex(-1);
+
+    // Убедимся, что UI переключен в SONG mode
+    qDebug() << "New project created, UI updated: bpm=" << m_bpm << ", playheadPosition=" << m_playheadPosition;
+}
+
 void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDuration)
 {
     if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size() ||
