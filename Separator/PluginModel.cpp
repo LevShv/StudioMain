@@ -95,7 +95,7 @@ void PluginModel::openPluginEditor(int trackIndex, int pluginIndex) {
             // Добавляем компонент на рабочий стол
             component->addToDesktop(
                 juce::ComponentPeer::windowHasTitleBar |
-                juce::ComponentPeer::windowHasDropShadow);
+                juce::ComponentPeer::windowHasDropShadow );
             component->setBounds(100, 100, width, height);
             component->setVisible(true);
             component->setAlwaysOnTop(true);
