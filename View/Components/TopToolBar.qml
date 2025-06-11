@@ -216,8 +216,9 @@ Rectangle {
 
                     TabButton {
                         width: 35
-                        height: 25  // Уменьшенная высота
-                        text: "СLIP"
+                        height: 25
+                        text: "PAT"
+                        enabled: modeTabBar.isValidIndices // Отключаем, если индексы некорректны
                         ToolTip.visible: hovered
                         ToolTip.delay: 500
                         ToolTip.text: "Проигрывать только pattern"
