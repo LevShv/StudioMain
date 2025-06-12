@@ -377,56 +377,6 @@ Rectangle {
                         }
                     }
                     RoundButton {
-                        id: stopButton
-                        width: 40
-                        height: 40
-                        radius: width / 2
-                        ToolTip.visible: hovered
-                        ToolTip.delay: 500
-                        ToolTip.text: "Стоп"
-    
-                        background: Rectangle {
-                            radius: parent.radius
-                            color: stopButton.hovered ? "#d0d0d0" : "transparent"
-                            border.color: stopButton.hovered ? "#a0a0a0" : "transparent"
-                            border.width: 1
-
-                            Behavior on color {
-                                ColorAnimation { duration: 100 }
-                            }
-                            Behavior on border.color {
-                                ColorAnimation { duration: 100 }
-                            }
-                        }
-
-                        Image {
-                            anchors.centerIn: parent
-                            width: 24
-                            height: 24
-                            source: imagesPath + "stop.png"
-                            sourceSize.width: 24
-                            sourceSize.height: 24
-                            opacity: stopButton.down ? 0.7 : 1.0
-                            fillMode: Image.PreserveAspectFit
-
-                            Behavior on opacity {
-                                NumberAnimation { duration: 100 }
-                            }
-                        }
-
-                        onClicked: {
-                            stopButton.scale = 0.95
-                            // Добавьте здесь логику для кнопки стоп
-                        }
-    
-                        Behavior on scale {
-                            NumberAnimation { 
-                                duration: 100
-                                easing.type: Easing.OutQuad 
-                            }
-                        }
-                    }
-                    RoundButton {
                         id: rewindButton
                         width: 40
                         height: 40
@@ -474,6 +424,122 @@ Rectangle {
                             NumberAnimation { 
                                 duration: 100
                                 easing.type: Easing.OutQuad 
+                            }
+                        }
+                    }
+                    RoundButton {
+                        id: addButton
+                        width: 40
+                        height: 40
+                        radius: width / 2
+                        ToolTip.visible: addButton.hovered && !addMenu.visible // Скрываем ToolTip, если меню открыто
+                        ToolTip.delay: 500
+                        ToolTip.text: "Добавить"
+
+                        background: Rectangle {
+                            radius: parent.radius
+                            color: addButton.hovered ? "#d0d0d0" : "transparent"
+                            border.color: addButton.hovered ? "#a0a0a0" : "transparent"
+                            border.width: 1
+
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                            Behavior on border.color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
+
+                        Image {
+                            anchors.centerIn: parent
+                            width: 24
+                            height: 24
+                            source: imagesPath + "plus.png"
+                            sourceSize.width: 24
+                            sourceSize.height: 24
+                            opacity: addButton.down ? 0.7 : 1.0
+                            fillMode: Image.PreserveAspectFit
+
+                            Behavior on opacity {
+                                NumberAnimation { duration: 100 }
+                            }
+                        }
+
+                        onClicked: {
+                            addButton.scale = 0.95
+                            addMenu.open()
+                        }
+
+                        Behavior on scale {
+                            NumberAnimation {
+                                duration: 100
+                                easing.type: Easing.OutQuad
+                            }
+                        }
+
+                        Menu {
+                            id: addMenu
+                            y: addButton.height
+                            width: 210
+
+                            enter: Transition {
+                                NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 150 }
+                                NumberAnimation { property: "scale"; from: 0.9; to: 1.0; duration: 150 }
+                            }
+
+                            exit: Transition {
+                                NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 100 }
+                            }
+
+                            MenuItem {
+                                text: "Добавить AUDIO дорожку"
+                                onTriggered: {
+                                    viewModel.addAudioTrack()
+                                    console.log("Добавлена AUDIO дорожка")
+                                }
+
+                                background: Rectangle {
+                                    implicitHeight: 30
+                                    color: parent.hovered ? "#e0e0e0" : "transparent"
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 100 }
+                                    }
+                                }
+                            }
+
+                            MenuItem {
+                                text: "Добавить MIDI дорожку"
+                                onTriggered: {
+                                    viewModel.addMidiTrack()
+                                    console.log("Добавлена MIDI дорожка")
+                                }
+
+                                background: Rectangle {
+                                    implicitHeight: 30
+                                    color: parent.hovered ? "#e0e0e0" : "transparent"
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 100 }
+                                    }
+                                }
+                            }
+
+                            MenuItem {
+                                text: "Добавить SAMPLER дорожку"
+                                onTriggered: {
+                                    viewModel.addSamplerTrack()
+                                    console.log("Добавлена SAMPLER дорожка")
+                                }
+
+                                background: Rectangle {
+                                    implicitHeight: 30
+                                    color: parent.hovered ? "#e0e0e0" : "transparent"
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 100 }
+                                    }
+                                }
                             }
                         }
                     }

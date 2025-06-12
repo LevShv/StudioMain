@@ -495,33 +495,6 @@ Item {
                     }
                     z: 5
                     visible: true // Всегда видим
-
-                    MouseArea {
-                        z: 10
-                        anchors.leftMargin: -14
-                        anchors.rightMargin: -14
-                        width: 30
-                        anchors.fill: parent
-                        drag.target: parent
-                        drag.axis: Drag.XAxis
-                        drag.minimumX: 0 // Ограничиваем перемещение в пределах клипа
-                        drag.maximumX: clipDuration * beatWidth * divisionsPerBeat
-
-                        onPositionChanged: {
-                            if (drag.active) {
-                                // Вычисляем новый playheadPosition
-                                let newRelativePosition = playheadIndicator.x / (beatWidth * divisionsPerBeat)
-                                let newPlayheadPosition = viewModel.midiModel.clipStartTime + newRelativePosition
-                                console.log("PlayheadIndicator: Dragging, newPlayheadPosition=", newPlayheadPosition)
-                                viewModel.setPlayheadPosition(newPlayheadPosition) // Обновляем playheadPosition
-                            }
-                        }
-
-                        onPressed: {
-                            viewModel.isPlaying = false // Останавливаем воспроизведение
-                        }
-                    }
-
                     onXChanged: {
                         console.log("PlayheadIndicator: x=", x, 
                                     "playheadPosition=", viewModel.playheadPosition, 
@@ -529,7 +502,51 @@ Item {
                                     "clipDuration=", clipDuration)
                     }
                 }
+                Canvas {
+                    id: triangleHandle
+                    width: 20
+                    height: 10
+                    x: playheadIndicator.x-9
+                    y: pianoRollFlickable.contentY // Фиксируем в верхней части видимой области
+                    z: 6
 
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.clearRect(0, 0, width, height)
+                        ctx.beginPath()
+                        ctx.moveTo(0, 0)
+                        ctx.lineTo(width / 2, height)
+                        ctx.lineTo(width, 0)
+                        ctx.closePath()
+                        ctx.fillStyle = "red"
+                        ctx.fill()
+                    }
+
+                    MouseArea {
+                        id: triangleMouseArea
+                        anchors.fill: parent
+                        anchors.leftMargin: -14
+                        anchors.rightMargin: -14
+                        width: 30
+                        drag.target: playheadIndicator
+                        drag.axis: Drag.XAxis
+                        drag.minimumX: 0
+                        drag.maximumX: clipDuration * beatWidth * divisionsPerBeat
+
+                        onPositionChanged: {
+                            if (drag.active) {
+                                let newRelativePosition = playheadIndicator.x / (beatWidth * divisionsPerBeat)
+                                let newPlayheadPosition = viewModel.midiModel.clipStartTime + newRelativePosition
+                                console.log("PlayheadIndicator: Dragging, newPlayheadPosition=", newPlayheadPosition)
+                                viewModel.setPlayheadPosition(newPlayheadPosition)
+                            }
+                        }
+
+                        onPressed: {
+                            viewModel.isPlaying = false
+                        }
+                    }
+                }
                 // Adding new note on click
                 MouseArea {
                     anchors.fill: parent
