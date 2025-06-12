@@ -1286,6 +1286,47 @@ void Engine::Core::loadClipToRAM(AudioClip& clip) {
     if (auto reader = formatManager.createReaderFor(clip.file)) {
         clip.buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
         reader->read(&clip.buffer, 0, (int)reader->lengthInSamples, 0, true, true);
+        clip.useRAM = true;
+
+        // Пересчитываем waveformData
+        int numSamples = clip.buffer.getNumSamples();
+        int numChannels = clip.buffer.getNumChannels();
+
+        const int minSamplesPerPoint = 100;
+        const int maxSamplesPerPoint = 1000;
+        const int maxSampleCount = 10000;
+        int sampleCount = numSamples / minSamplesPerPoint;
+        sampleCount = std::max(1, std::min(sampleCount, maxSampleCount));
+        if (numSamples / sampleCount > maxSamplesPerPoint) {
+            sampleCount = numSamples / maxSamplesPerPoint;
+        }
+
+        int step = numSamples / sampleCount;
+        if (step < 1) step = 1;
+
+        std::vector<float> waveformData(sampleCount);
+        for (int i = 0; i < sampleCount && i * step < numSamples; ++i) {
+            float maxAmplitude = 0.0f;
+            for (int j = 0; j < step; ++j) {
+                int sampleIdx = i * step + j;
+                float amplitude = 0.0f;
+                for (int c = 0; c < numChannels; ++c) {
+                    if (sampleIdx < numSamples) {
+                        amplitude += std::abs(clip.buffer.getSample(c, sampleIdx));
+                    }
+                }
+                amplitude /= numChannels;
+                maxAmplitude = std::max(maxAmplitude, amplitude);
+            }
+            waveformData[i] = maxAmplitude;
+        }
+
+        clip.waveformData = std::move(waveformData);
+        LOG("Waveform data calculated for clipID=" << clip.clipID << ", samples=" << sampleCount);
+        delete reader;
+    }
+    else {
+        LOG_ERROR("Failed to create reader for file: " << clip.file.getFullPathName().toStdString());
     }
 }
 
