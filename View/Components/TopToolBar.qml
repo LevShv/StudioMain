@@ -106,13 +106,6 @@ Rectangle {
                     }
 
                     MenuItem {
-                        text: "Открыть"                                
-                        onTriggered: {
-                            viewModel.OpenProject("C:\\Users\\llvvv\\source\\repos\\Studio\\Result\\Save.ltproj")
-                        }
-                    }
-
-                    MenuItem {
                         text: "Сохранить"
                         onTriggered: {
                             if (viewModel.currentProjectPath === "") {
@@ -595,7 +588,7 @@ Rectangle {
                     anchors.centerIn: parent
                     width: 24
                     height: 24
-                    source: imagesPath + "piano_roll.png"
+                    source: imagesPath + (mainWindow.pianoRollAutoOpen ? "piano_roll_1.png" : "piano_roll_0.png")
                     sourceSize.width: 24
                     sourceSize.height: 24
                     opacity: pianoRollButton.down ? 0.7 : (pianoRollButton.enabled ? 1.0 : 0.5)
@@ -609,7 +602,10 @@ Rectangle {
                 onClicked: {
                     if (pianoRollButton.enabled) {
                         pianoRollButton.scale = 0.95
-                        // Действие для кнопки piano roll
+                        mainWindow.pianoRollAutoOpen = !mainWindow.pianoRollAutoOpen
+                        if (!mainWindow.pianoRollAutoOpen) {
+                            mainWindow.pianoRollVisible = false // Закрываем PianoView сразу                            
+                        }
                     }
                 }
 

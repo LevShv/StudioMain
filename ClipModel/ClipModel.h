@@ -14,7 +14,8 @@ public:
         DurationBeatsRole,
         ClipTypeRole,
         FilePathRole,
-        WaveformDataRole
+        WaveformDataRole,
+        MasterClipIndexRole
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
