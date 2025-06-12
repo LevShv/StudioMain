@@ -538,12 +538,24 @@ void Engine::SetTrackGain(int trackIndex, float gain)
         return;
     }
 
-    // Ограничиваем гейн в диапазоне [0.0, 2.0]
-  //  gain = juce::jlimit(0.0f, 2.0f, gain);
-    LOG_INFO(gain);
+    gain = juce::jlimit(0.0f, 2.0f, gain);
     core.tracks[trackIndex].gain = gain;
 
     LOG("Track " << trackIndex << " gain set to " << gain);
+}
+
+void Engine::SetTrackMute(int trackIndex, bool muted)
+{
+    const juce::ScopedLock sl(core.lock);
+
+    if (trackIndex < 0 || trackIndex >= core.tracks.size()) {
+        LOG_ERROR("Invalid track index: " << trackIndex);
+        return;
+    }
+
+    core.tracks[trackIndex].muted = muted;
+
+    LOG("Track " << trackIndex << " mute set to " << muted);
 }
 
 void Engine::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats)

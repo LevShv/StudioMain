@@ -40,7 +40,7 @@ public:
     Q_INVOKABLE void addSamplerTrack();
 
     Q_INVOKABLE void setTrackGain(int trackIndex, float gain);
-  //  Q_INVOKABLE void toggleMuteTrack();
+    Q_INVOKABLE void setTrackMute(int index, bool muted);
    // Q_INVOKABLE void toggleSolo();
 
     Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime);

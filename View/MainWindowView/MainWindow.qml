@@ -699,8 +699,7 @@ Window {
                                                                 radius: width / 2
                                                                 ToolTip.visible: hovered
                                                                 ToolTip.delay: 500
-                                                                ToolTip.text: (trackVolumeDial.value === 0) ? "Unmute" : "Mute"
-                                                                property bool isMuted: trackVolumeDial.value === 0
+                                                                ToolTip.text: model.muted ? "Unmute" : "Mute" // Зависит от model.muted
 
                                                                 background: Rectangle {
                                                                     radius: parent.radius
@@ -712,10 +711,11 @@ Window {
                                                                 }
 
                                                                 Image {
+                                                                    id: rbmute
                                                                     anchors.centerIn: parent
                                                                     width: 18
                                                                     height: 18
-                                                                    source: muteButton.isMuted ? imagesPath + "muted.png" : imagesPath + "unmuted.png"
+                                                                    source: model.muted ? imagesPath + "muted.png" : imagesPath + "unmuted.png" // Зависит от model.muted
                                                                     sourceSize.width: 18
                                                                     sourceSize.height: 18
                                                                     opacity: muteButton.down ? 0.7 : 1.0
@@ -725,16 +725,9 @@ Window {
 
                                                                 onClicked: {
                                                                     muteButton.scale = 0.95
-                                                                    if (trackVolumeDial.value > 0) {
-                                                                        trackControl.lastVolume = trackVolumeDial.value
-                                                                        trackVolumeDial.value = 0
-                                                                        viewModel.setTrackMute(index, true)
-                                                                        console.log("Track " + index + " muted, saved gain: " + trackControl.lastVolume)
-                                                                    } else {
-                                                                        trackVolumeDial.value = trackControl.lastVolume
-                                                                        viewModel.setTrackMute(index, false)
-                                                                        console.log("Track " + index + " unmuted, restored gain: " + trackVolumeDial.value)
-                                                                    }
+                                                                    viewModel.setTrackMute(index, !model.muted) // Переключаем состояние mute
+                                                                    console.log("Track " + index + (model.muted ? " unmuted" : " muted"))
+                                                                    rbmute.source = model.muted ? imagesPath + "muted.png" : imagesPath + "unmuted.png"
                                                                 }
 
                                                                 Behavior on scale {

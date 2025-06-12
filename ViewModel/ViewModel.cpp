@@ -267,6 +267,11 @@ void ViewModel::setTrackGain(int trackIndex, float gain)
     qDebug() << "Track" << trackIndex << "gain set to" << gain;
 }
 
+void ViewModel::setTrackMute(int index, bool muted)
+{
+    engine.SetTrackMute(index, muted);
+}
+
 void ViewModel::RenderToWave(QString path)
 {
 	std::string pathStr = path.toStdString();
