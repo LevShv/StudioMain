@@ -293,7 +293,7 @@ private:
         bool audioProcessingEnabled = true;
 
         void processMidiBlocks(const juce::AudioSourceChannelInfo&, double startTime, double endTime);
-    };
+};
 
 #pragma endregion
 
@@ -304,6 +304,7 @@ private:
         Saver(Core& core) : m_core(core) {}
         void SaveProject(const std::string filePath);
         bool LoadProject(const std::string filePath);
+        void sanitizeMidiSequenceForLoad(MidiClip* clip);
     private:
         Core& m_core;
     };
