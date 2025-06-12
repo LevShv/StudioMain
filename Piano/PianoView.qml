@@ -12,6 +12,7 @@ Item {
     property int clipIndex: 0
     property real clipDuration: viewModel.midiModel.clipDuration 
 
+
     property real beatWidth: 50 // 1/16th beat = 50 pixels
     property int divisionsPerBeat: 4 // Количество делений на один бит (1/4 ноты)
 
@@ -82,7 +83,7 @@ Item {
 
             Label {
                 anchors.centerIn: parent
-                text: "Пианино: Дорожка " + (trackIndex + 1) + ", Клип " + (clipIndex + 1)
+                text: "Пианино: Дорожка " + (trackIndex + 1) + ", Клип " + (mainWindow.displayedClipIndex + 1)
                 color: "#ECEFF4"
                 font.pixelSize: 12
             }

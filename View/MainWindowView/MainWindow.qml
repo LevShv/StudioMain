@@ -25,6 +25,7 @@ Window {
     // свойтсва piano rol
     property int selectedTrackIndex: -1
     property int selectedClipIndex: -1
+    property int displayedClipIndex: -1 // Новое свойство для label
     property bool pianoRollVisible: false
     //
     property string imagesPath: "file:///" + viewModel.applicationHomeFolder() + "/images/"
@@ -38,6 +39,7 @@ Window {
     property bool separatorVisible: false
     signal clearSelectedClipsRequested()
     property bool isExiting: false
+    property bool pianoRollAutoOpen: true
     
 
     // Save dialog moved from toolbar
@@ -1576,12 +1578,14 @@ Window {
                                                                                 clipItem.isSelected = true
                                                                                 mainWindow.multiSelectMode = false
                                                                                 mainWindow.selectedTrackIndex = trackIndex
+                                                                                // Сохраняем индекс клона для label
+                                                                                mainWindow.displayedClipIndex = index
                                                                                 // Если это клон, выбираем мастер-клип
                                                                                 let targetClipIndex = model.masterClipIndex >= 0 ? model.masterClipIndex : index
                                                                                 mainWindow.selectedClipIndex = targetClipIndex
                                                                                 viewModel.pluginModel.setTrackIndex(trackIndex); // Синхронизируем pluginModel
                                                                                 mainWindow.separatorVisible = true; // Показываем SeparatorPanel
-                                                                                if (model.type === "midi") {                                                                                    
+                                                                                if (model.type === "midi" && mainWindow.pianoRollAutoOpen) {                                                                                    
                                                                                     mainWindow.pianoRollVisible = true
                                                                                     console.log(`Opening Piano Roll: trackIndex=${trackIndex}, clipIndex=${index}`)
                                                                                 } else {
