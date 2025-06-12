@@ -98,6 +98,7 @@ public:
     void DeleteTrack(int trackIndex);
     void ChangeDuration(int trackIndex, int clipIndex, double newDuration);
     void SetTrackGain(int trackIndex, float gain);
+    void SetTrackMute(int index, bool muted);
 
 
     //Clpis

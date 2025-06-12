@@ -49,6 +49,8 @@ QVariant TrackModel::data(const QModelIndex& index, int role) const {
     }
     case GainRole:
         return track.gain; 
+    case Mute:
+        return track.muted;
     default:
         return QVariant();
     }
@@ -65,6 +67,7 @@ QHash<int, QByteArray> TrackModel::roleNames() const {
     roles[FilePathRole] = "file";
     roles[TrackTypeRole] = "trackType"; // Добавляем новую роль
     roles[GainRole] = "gain";
+    roles[Mute] = "muted";
 
     return roles;
 }

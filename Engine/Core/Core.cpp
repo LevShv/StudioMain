@@ -760,6 +760,31 @@ void Engine::Core::stop() {
 void Engine::Core::setPosition(double newPosition) {
     const juce::ScopedLock sl(lock);
 
+    if (midiOutput) {
+        for (int channel = 1; channel <= 16; ++channel) {
+            midiOutput->sendMessageNow(juce::MidiMessage::allNotesOff(channel));
+            LOG("Sent allNotesOff for channel " << channel << " via midiOutput");
+        }
+    }
+
+    // Отправляем allNotesOff через плагины для всех треков
+    for (auto& track : tracks) {
+        if (track.isMidiTrack && !track.plugins.empty()) {
+            juce::MidiBuffer midiBuffer;
+            for (int channel = 1; channel <= 16; ++channel) {
+                midiBuffer.addEvent(juce::MidiMessage::allNotesOff(channel), 0);
+            }
+            juce::AudioBuffer<float> tempBuffer(2, 512); // Временный буфер
+            tempBuffer.clear();
+            for (auto& pluginInstance : track.plugins) {
+                if (pluginInstance->plugin && !pluginInstance->bypass) {
+                    pluginInstance->plugin->processBlock(tempBuffer, midiBuffer);
+                    LOG("Sent allNotesOff through plugin: " << pluginInstance->Path);
+                }
+            }
+        }
+    }
+
     if (loopModeEnabled) {
         if (loopTrackIndex < 0 || loopTrackIndex >= tracks.size() ||
             loopClipIndex < 0 || loopClipIndex >= tracks[loopTrackIndex].clips.size()) {
@@ -1564,14 +1589,6 @@ void Engine::Core::setTimeSignature(int numerator, int denominator) {
         LOG_ERROR("Invalid time signature: " << numerator << "/" << denominator);
     }
 }
-
-//double Engine::Core::secondsToBeats(double seconds) const {
-//    return seconds * (bpm / 60.0);
-//}
-//
-//double Engine::Core::beatsToSeconds(double beats) const {
-//    return beats * (60.0 / bpm);
-//}
 
 double Engine::Core::secondsToBeats(double seconds, double bpm) const {
     return seconds * (bpm / 60.0);

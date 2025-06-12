@@ -20,7 +20,8 @@ public:
         ClipTypeRole,
         FilePathRole,
         TrackTypeRole = Qt::UserRole + 8,
-        GainRole
+        GainRole,
+        Mute
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
