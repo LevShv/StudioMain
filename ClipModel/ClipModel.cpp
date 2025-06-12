@@ -81,6 +81,16 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
             }
         }
         return QVariant();
+    case MasterClipIndexRole:
+        if (auto* cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
+            for (size_t i = 0; i < track.clips.size(); ++i) {
+                if (track.clips[i]->clipID == cloneClip->masterClipID) {
+                    return static_cast<int>(i);
+                }
+            }
+            return -1; // Мастер-клип не найден
+        }
+        return -1; // Не клон
     default:
         return QVariant();
     }
@@ -93,6 +103,7 @@ QHash<int, QByteArray> ClipModel::roleNames() const {
     roles[ClipTypeRole] = "type";
     roles[FilePathRole] = "file";
     roles[WaveformDataRole] = "waveformData";
+    roles[MasterClipIndexRole] = "masterClipIndex";
     return roles;
 }
 

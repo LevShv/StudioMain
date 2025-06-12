@@ -26,6 +26,7 @@ Item {
     }
 
     onClipIndexChanged: {
+
         console.log("PianoView: clipIndex changed to", clipIndex, "clipDuration=", clipDuration, "contentWidth=", pianoRollFlickable.contentWidth)
         viewModel.midiModel.setClipIndex(clipIndex)
         viewModel.midiModel.refresh()

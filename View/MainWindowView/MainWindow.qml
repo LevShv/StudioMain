@@ -1131,41 +1131,41 @@ Window {
                                                             }
 
                                                             function findFreePosition(startBeat, duration, sourceIndex) {
-                                                            var clips = []
-                                                            for (var i = 0; i < clipsModel.count; i++) {
-                                                                var clipData = clipsModel.get(i)
-                                                                clips.push({
-                                                                    start: clipData.startBeats,
-                                                                    end: clipData.startBeats + clipData.durationBeats
-                                                                })
-                                                            }
+                                                                var clips = []
+                                                                for (var i = 0; i < clipsModel.count; i++) {
+                                                                    var clipData = clipsModel.get(i)
+                                                                    clips.push({
+                                                                        start: clipData.startBeats,
+                                                                        end: clipData.startBeats + clipData.durationBeats
+                                                                    })
+                                                                }
                                                             
-                                                            clips.sort((a, b) => a.start - b.start)
+                                                                clips.sort((a, b) => a.start - b.start)
                                                             
-                                                            // Если копируем тот же клип - продолжаем с последней позиции
-                                                            var searchPosition = (lastCopiedSourceIndex === sourceIndex && lastCopiedPosition >= startBeat) 
-                                                                            ? lastCopiedPosition : startBeat
+                                                                // Если копируем тот же клип - продолжаем с последней позиции
+                                                                var searchPosition = (lastCopiedSourceIndex === sourceIndex && lastCopiedPosition >= startBeat) 
+                                                                                ? lastCopiedPosition : startBeat
                                                             
-                                                            while (true) {
-                                                                var positionFree = true
-                                                                for (var j = 0; j < clips.length; j++) {
-                                                                    var clip = clips[j]
-                                                                    if (searchPosition < clip.end && (searchPosition + duration) > clip.start) {
-                                                                        positionFree = false
-                                                                        searchPosition = clip.end
-                                                                        break
+                                                                while (true) {
+                                                                    var positionFree = true
+                                                                    for (var j = 0; j < clips.length; j++) {
+                                                                        var clip = clips[j]
+                                                                        if (searchPosition < clip.end && (searchPosition + duration) > clip.start) {
+                                                                            positionFree = false
+                                                                            searchPosition = clip.end
+                                                                            break
+                                                                        }
                                                                     }
-                                                                }
                                                                 
-                                                                if (positionFree) {
-                                                                    lastCopiedSourceIndex = sourceIndex
-                                                                    lastCopiedPosition = searchPosition + duration
-                                                                    return searchPosition
-                                                                }
+                                                                    if (positionFree) {
+                                                                        lastCopiedSourceIndex = sourceIndex
+                                                                        lastCopiedPosition = searchPosition + duration
+                                                                        return searchPosition
+                                                                    }
                                                                 
-                                                                if (searchPosition > 10000) return startBeat + duration
+                                                                    if (searchPosition > 10000) return startBeat + duration
+                                                                }
                                                             }
-                                                        }
 
                                                             Connections {
                                                                 target: viewModel.trackModel
@@ -1576,7 +1576,9 @@ Window {
                                                                                 clipItem.isSelected = true
                                                                                 mainWindow.multiSelectMode = false
                                                                                 mainWindow.selectedTrackIndex = trackIndex
-                                                                                mainWindow.selectedClipIndex = index
+                                                                                // Если это клон, выбираем мастер-клип
+                                                                                let targetClipIndex = model.masterClipIndex >= 0 ? model.masterClipIndex : index
+                                                                                mainWindow.selectedClipIndex = targetClipIndex
                                                                                 viewModel.pluginModel.setTrackIndex(trackIndex); // Синхронизируем pluginModel
                                                                                 mainWindow.separatorVisible = true; // Показываем SeparatorPanel
                                                                                 if (model.type === "midi") {                                                                                    
@@ -1689,8 +1691,13 @@ Window {
                                                                                     duration,
                                                                                     sourceIndex
                                                                                 )
-                                                                                viewModel.addAudioClip(trackIndex, model.file, newPosition)
-                                                                                console.log(`Clip copied: trackIndex=${trackIndex}, newPosition=${newPosition}`)
+                                                                                if (model.type === "midi") {
+                                                                                    viewModel.addMidiClip(trackIndex, newPosition)
+                                                                                    console.log(`MIDI clip copied: trackIndex=${trackIndex}, newPosition=${newPosition}`)
+                                                                                } else if (model.type === "audio") {
+                                                                                    viewModel.addAudioClip(trackIndex, model.file, newPosition)
+                                                                                    console.log(`Audio clip copied: trackIndex=${trackIndex}, newPosition=${newPosition}`)
+                                                                                }
                                                                                 event.accepted = true
                                                                             } else if (event.key === Qt.Key_B && !mainWindow.multiSelectMode) {
                                                                                 console.log("Clone key (B) pressed")
