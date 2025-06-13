@@ -426,10 +426,6 @@ void ViewModel::enableLoopMode(int trackIndex, int clipIndex)
 
     engine.EnableLoopMode(trackIndex, clipIndex);
     setPlayheadPosition(engine.GetPlayheadPosition());
-    //if (m_playheadPosition != engine.GetPlayheadPosition()) {
-    //    m_playheadPosition = engine.GetPlayheadPosition();
-    //    emit playheadPositionChanged(engine.GetPlayheadPosition());
-    //}
 
     if (wasPlaying && !engine.GetdataBase().empty()) {
         engine.PlayMix();
@@ -444,6 +440,25 @@ void ViewModel::enableLoopMode(int trackIndex, int clipIndex)
 void ViewModel::disableLoopMode()
 {
     engine.DisableLoopMode();
+}
+
+void ViewModel::setUserVolume(float volume)
+{
+    if (m_volume != volume) {
+        m_volume = volume;
+        engine.SetUserVolume(volume);
+        emit volumeChanged();
+    }
+}
+
+float ViewModel::getUserVolume()
+{
+    return engine.GetUserVolume();
+}
+
+void ViewModel::GetMasterGain(float volume)
+{
+    engine.SetMasterGain(volume);
 }
 
 void ViewModel::addMidiTrack() {

@@ -1707,12 +1707,14 @@ float Engine::Core::getMasterGain() const {
 
 void Engine::Core::setUserVolume(float volume) {
     const juce::ScopedLock sl(lock);
+    LOG_SUCCESS("Set User Volume:" << volume);
     userVolume = juce::jlimit(0.0f, 2.0f, volume); // Ограничиваем диапазон
     LOG("User volume set to: " << userVolume);
 }
 
 float Engine::Core::getUserVolume() const {
     const juce::ScopedLock sl(lock);
+    LOG_INFO("Get User Volume:" << userVolume);
     return userVolume;
 }
 

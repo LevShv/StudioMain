@@ -12,7 +12,7 @@
 class ViewModel : public QObject {
     Q_OBJECT
         Q_PROPERTY(bool isPlaying READ isPlaying NOTIFY isPlayingChanged)
-        Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged)
+        Q_PROPERTY(int volume READ getUserVolume WRITE setUserVolume NOTIFY volumeChanged)
         Q_PROPERTY(double playheadPosition READ playheadPosition NOTIFY playheadPositionChanged)
         Q_PROPERTY(TrackModel* trackModel READ trackModel CONSTANT)
         Q_PROPERTY(MidiMessageModel* midiModel READ midiModel CONSTANT) // Свойство для midiModel
@@ -62,6 +62,11 @@ public:
 
     Q_INVOKABLE void enableLoopMode(int trackIndex, int clipIndex);
     Q_INVOKABLE void disableLoopMode();
+
+    Q_INVOKABLE void setUserVolume(float volume);
+    Q_INVOKABLE float getUserVolume();
+
+    Q_INVOKABLE void GetMasterGain(float volume);
    
     bool isPlaying() const;
     int volume() const;

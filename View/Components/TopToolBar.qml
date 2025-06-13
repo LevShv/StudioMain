@@ -870,10 +870,10 @@ Rectangle {
                 width: 35
                 height: 35
                 from: 0
-                to: 100
-                value: viewModel.volume
+                to: 200
+                value: viewModel.volume * 100
                 anchors.verticalCenter: parent.verticalCenter
-                onValueChanged: viewModel.setVolume(value)
+                onValueChanged: viewModel.setUserVolume(value / 100)
                 
 
                 handle: null
