@@ -465,7 +465,7 @@ Item {
                         delegateItem.isPressed = false;
                         if (!fileIsDir && dragItem.visible) {
                             var globalPos = mapToItem(root.dragParent, mouse.x, mouse.y)
-                            root.fileDropped(root.dragFilePath, globalPos.x, globalPos.y)
+                           // root.fileDropped(root.dragFilePath, globalPos.x, globalPos.y)
                             dragItem.visible = false
                             dragItem.parent = delegateItem
                             listView.interactive = true;

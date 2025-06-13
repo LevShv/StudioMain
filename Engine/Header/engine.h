@@ -67,6 +67,7 @@ public:
         bool muted = false;
         bool isMidiTrack = false;
         bool isSamplerTrack = false;
+        bool solo = false;
 
         Track() = default;
         Track(const Track&) = delete;
@@ -103,6 +104,7 @@ public:
     void ChangeDuration(int trackIndex, int clipIndex, double newDuration);
     void SetTrackGain(int trackIndex, float gain);
     void SetTrackMute(int index, bool muted);
+    void ToggleSolo(int trackIndex);
 
 
     //Clpis
@@ -199,6 +201,8 @@ private:
         void setBPM(double newBPM);
         double getBPM() const { return bpm; }
 
+        void toggleSolo(int trackIndex);
+
         
         //Converts
 
@@ -228,8 +232,6 @@ private:
         void loadAudioClip(int trackIndex, const juce::File& file, double startBeats, bool loadToRAM);
         void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startBeats);
         void loadClipToRAM(AudioClip& clip);
-
-       // void changeColor(int trackIndex, int clipIndex, std::string color);
 
 
         // Midi
@@ -311,7 +313,6 @@ private:
         Saver(Core& core) : m_core(core) {}
         void SaveProject(const std::string filePath);
         bool LoadProject(const std::string filePath);
-        void sanitizeMidiSequenceForLoad(MidiClip* clip);
     private:
         Core& m_core;
     };

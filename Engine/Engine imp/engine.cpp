@@ -592,6 +592,11 @@ void Engine::SetTrackMute(int trackIndex, bool muted)
     LOG("Track " << trackIndex << " mute set to " << muted);
 }
 
+void Engine::ToggleSolo(int trackIndex) {
+    juce::ScopedLock sl(core.lock);
+    core.toggleSolo(trackIndex);
+}
+
 void Engine::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats)
 {
     juce::ScopedLock sl(core.lock);

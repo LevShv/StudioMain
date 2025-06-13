@@ -1284,6 +1284,43 @@ void Engine::Core::updateActiveClips() {
  //   LOG("Total active clips: " << activeClips.size());
 }
 
+void Engine::Core::toggleSolo(int trackIndex) {
+    if (trackIndex < 0 || trackIndex >= tracks.size()) {
+        LOG_ERROR("Invalid track index for ToggleSolo: " << trackIndex);
+        return;
+    }
+
+    auto& selectedTrack = tracks[trackIndex];
+
+    // Переключаем режим соло для выбранной дорожки
+    selectedTrack.solo = !selectedTrack.solo;
+
+    if (selectedTrack.solo) {
+        // Включаем соло: заглушаем все остальные дорожки
+        for (size_t i = 0; i < tracks.size(); ++i) {
+            if (i != static_cast<size_t>(trackIndex)) {
+                tracks[i].muted = true;
+                tracks[i].solo = false; // Отключаем соло у других дорожек
+                LOG("Track " << i << " muted due to solo on track " << trackIndex);
+            }
+            else {
+                tracks[i].muted = false; // Убедимся, что соло-дорожка не заглушена
+            }
+        }
+        LOG_SUCCESS("Solo mode enabled for track " << trackIndex);
+    }
+    else {
+        // Отключаем соло: снимаем заглушение со всех дорожек
+        for (size_t i = 0; i < tracks.size(); ++i) {
+            tracks[i].muted = false;
+            LOG("Track " << i << " unmuted");
+        }
+        LOG_SUCCESS("Solo mode disabled for track " << trackIndex);
+    }
+
+    updateActiveClips(); // Обновляем активные клипы
+}
+
 void Engine::Core::loadClipToRAM(AudioClip& clip) {
     if (auto reader = formatManager.createReaderFor(clip.file)) {
         clip.buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
@@ -1659,5 +1696,6 @@ double Engine::Core::measuresToSeconds(double measures) const {
     double beats = measures * timeSignatureNumerator;
     return beatsToSeconds(beats);
 }
+
 
 #pragma endregion

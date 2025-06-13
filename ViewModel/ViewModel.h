@@ -41,7 +41,7 @@ public:
 
     Q_INVOKABLE void setTrackGain(int trackIndex, float gain);
     Q_INVOKABLE void setTrackMute(int index, bool muted);
-   // Q_INVOKABLE void toggleSolo();
+    Q_INVOKABLE void toggleSolo(int trackIndex);
 
     Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);
@@ -98,6 +98,7 @@ private:
     double m_playheadPosition = engine.Position();
     bool m_isPlaying = false;
     int m_volume = 50;
+    int soloTrackInd = -1;
 
 	const std::string samplerPath = "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3"; // ”кажите реальный путь к сэмплеру
 
@@ -107,4 +108,5 @@ private:
     void buildModel();
     void stopDoplay(void (*func)(...));
     QString m_currentProjectPath; // ѕуть к текущему файлу проекта
+
 };

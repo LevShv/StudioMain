@@ -350,6 +350,14 @@ Window {
                                 onCurrentFolderChanged: console.log("Folder changed:", currentFolder)
 
                                 onFileDropped: (filePath, globalX, globalY) => {
+                                    // Декодируем URL-encoded символы в пути
+                                    var decodedPath = decodeURIComponent(filePath);
+                                    // Удаляем префикс "file:///" если он есть
+                                    if (decodedPath.startsWith("file:///")) {
+                                        decodedPath = decodedPath.substring(8);
+                                    }
+                                    // Заменяем все обратные слеши на прямые
+                                    decodedPath = decodedPath.replace(/\\/g, "/");
                                     var localPos = contentGrid.mapFromItem(mainWindow.dragParent, globalX, globalY)
                                     console.log("File dropped: filePath:", filePath, "localPos.x:", localPos.x, "localPos.y:", localPos.y)
                                     if (localPos.x >= 0 && localPos.x <= contentGrid.width &&
@@ -360,16 +368,16 @@ Window {
                                         if (trackIndex >= 0 && trackIndex < countOfTracks && position >= 0) {
                                             var fileExt = filePath.toLowerCase().split('.').pop()
                                             if (["mp3", "wav", "aiff", "flac"].indexOf(fileExt) !== -1) {
-                                                viewModel.addAudioClip(trackIndex, filePath, position)
+                                                viewModel.addAudioClip(trackIndex, decodedPath, position)
                                                 console.log("Added audio clip: trackIndex:", trackIndex, "filePath:", filePath, "position:", position)
                                             } else if (["dll", "vst3"].indexOf(fileExt) !== -1) {
                                                 mainWindow.selectedTrackIndex = trackIndex
                                                 viewModel.pluginModel.setTrackIndex(trackIndex);
-                                                viewModel.pluginModel.addPlugin(trackIndex, filePath)
+                                                viewModel.pluginModel.addPlugin(trackIndex, decodedPath)
                                                 mainWindow.separatorVisible = true // Показываем SeparatorPanel
                                                 console.log("Added plugin: trackIndex:", trackIndex, "filePath:", filePath)
                                             } else {
-                                                console.log("Invalid file type:", filePath)
+                                                console.log("Invalid file type:", decodedPath)
                                             }
                                         } else {
                                             console.log("Invalid drop: trackIndex:", trackIndex, "position:", position, "countOfTracks:", countOfTracks)
@@ -718,7 +726,7 @@ Window {
                                                                 }
                                                             }
 
-                                                            RoundButton {
+                                                            /* RoundButton {
                                                                 id: soloButton
                                                                 width: 30
                                                                 height: 30
@@ -757,7 +765,7 @@ Window {
                                                                 Behavior on scale {
                                                                     NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
                                                                 }
-                                                            }
+                                                            } */
                                                         }
                                                     }
                                                 }
@@ -1858,6 +1866,50 @@ Window {
                                                             duration: 800
                                                         }
                                                         PauseAnimation { duration: 300 }
+                                                    }
+                                                }
+
+                                                 MouseArea {
+                                                    id: greenlineMouseArea
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: -14
+                                                    anchors.rightMargin: -14
+                                                    width: 30
+                                                    drag.target: greenline
+                                                    drag.axis: Drag.XAxis
+                                                    drag.minimumX: 0
+                                                    drag.maximumX: Math.max(0, flickableArea.contentWidth - greenline.width)
+
+                                                    onPressed: {
+                                                        viewModel.setIsDraggingPlayhead(true) // Устанавливаем флаг
+                                                        viewModel.setIsPlaying(false) // Приостанавливаем воспроизведение (опционально)
+                                                        console.log("MainWindow: Green line pressed, isDraggingPlayhead=", viewModel.isDraggingPlayhead)
+                                                    }
+
+                                                    onReleased: {
+                                                        var groupSize = flickableArea.cachedGroupSize
+                                                        var snapStep = groupSize * flickableArea.beatWidth // Шаг сетки в пикселях
+                                                        var nearestGridX = Math.round(greenline.x / snapStep) * snapStep
+                                                        var distanceToGrid = Math.abs(greenline.x - nearestGridX)
+                                                        var threshold = 8 // Порог привязки в пикселях (как у клипов)
+
+                                                        // Привязываем к сетке, если расстояние до ближайшей точки меньше или равно порогу
+                                                        var snappedX = distanceToGrid <= threshold ? nearestGridX : greenline.x
+                                                        snappedX = Math.max(0, Math.min(snappedX, flickableArea.contentWidth - greenline.width))
+                                                        var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
+                                                        newPosition = Math.round(newPosition * 1000) / 1000 // Округление до 3 десятичных знаков
+
+                                                        greenline.x = snappedX
+                                                        viewModel.setPlayheadPosition(newPosition)
+
+
+
+                                                        console.log("Greenline snapped: x=", greenline.x, 
+                                                                    "newPosition=", newPosition, 
+                                                                    "distanceToGrid=", distanceToGrid, 
+                                                                    "nearestGridX=", nearestGridX, 
+                                                                    "snapStep=", snapStep, 
+                                                                    "zoomLevel=", flickableArea.zoomLevel)
                                                     }
                                                 }
 
