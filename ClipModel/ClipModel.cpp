@@ -120,11 +120,40 @@ void ClipModel::addClip(const Engine::ClipPtr& clip) {
     endInsertRows();
 }
 
-void ClipModel::updateClip(int clipIndex) {
+void ClipModel::updateClip(int clipIndex)
+{
     // Очищаем кэш для обновлённого клипа
     m_waveformDataCache.remove(clipIndex);
-    QModelIndex idx = createIndex(clipIndex, 0);
-    emit dataChanged(idx, idx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole, WaveformDataRole });
+
+    const auto& tracks = m_engine.GetdataBase();
+    if (m_trackIndex < 0 || m_trackIndex >= tracks.size() || clipIndex < 0 || clipIndex >= tracks[m_trackIndex].clips.size()) {
+        qDebug() << "Invalid track or clip index in updateClip:" << m_trackIndex << clipIndex;
+        return;
+    }
+
+    const auto& clip = tracks[m_trackIndex].clips[clipIndex];
+    std::string masterClipID = clip->clipID; // ID мастер-клипа
+
+    // Обновляем данные для мастер-клипа
+    {
+        QModelIndex idx = createIndex(clipIndex, 0);
+        emit dataChanged(idx, idx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole, WaveformDataRole, Color });
+        qDebug() << "ClipModel::updateClip called for master clip at trackIndex:" << m_trackIndex << ", clipIndex:" << clipIndex;
+    }
+
+    // Поиск и обновление данных для всех клонов в текущей дорожке
+    for (int i = 0; i < tracks[m_trackIndex].clips.size(); ++i) {
+        if (i != clipIndex) { // Пропускаем сам мастер-клип
+            const auto& otherClip = tracks[m_trackIndex].clips[i];
+            if (auto* cloneClip = dynamic_cast<Engine::CloneClip*>(otherClip.get())) { // Исправлен опечатка CloneClip
+                if (cloneClip->masterClipID == masterClipID) {
+                    QModelIndex cloneIdx = createIndex(i, 0);
+                    emit dataChanged(cloneIdx, cloneIdx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole, WaveformDataRole, Color });
+                    qDebug() << "ClipModel::updateClip called for clone at trackIndex:" << m_trackIndex << ", clipIndex:" << i;
+                }
+            }
+        }
+    }
 }
 
 void ClipModel::setTrackIndex(int trackIndex)

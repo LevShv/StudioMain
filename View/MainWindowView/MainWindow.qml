@@ -6,6 +6,7 @@ import QtQuick.Controls.Material
 import Qt.labs.folderlistmodel
 import QtQuick.Dialogs
 import QtQuick.Shapes 1.15
+import QtQuick.Dialogs
 import "qrc:/FileBrowser"
 import "qrc:/Piano"
 import "qrc:/Separator"

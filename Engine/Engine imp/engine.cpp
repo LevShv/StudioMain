@@ -454,6 +454,40 @@ void Engine::DeleteClip(int trackIndex, int clipIndex) {
     core.updateActiveClips();
 }
 
+void Engine::ChangeColor(int trackIndex, int clipIndex, std::string color)
+{
+    juce::ScopedLock sl(core.lock);
+
+    // Проверка на выход за пределы массива
+    if (trackIndex < 0 || trackIndex >= core.tracks.size() ||
+        clipIndex < 0 || clipIndex >= core.tracks[trackIndex].clips.size()) {
+        LOG_ERROR("Index out of range: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex);
+        return;
+    }
+
+    // Получаем мастер-клип
+    auto& masterClip = core.tracks[trackIndex].clips[clipIndex];
+    std::string masterClipID = masterClip->clipID;
+
+    // Устанавливаем новый цвет мастер-клипу
+    masterClip->color = color;
+
+    // Логирование для отладки
+    LOG_SUCCESS("Changed color to " << color << " for master clip at trackIndex=" << trackIndex << ", clipIndex=" << clipIndex);
+
+    // Обновляем цвет всех клонов этого мастер-клипа
+    for (auto& track : core.tracks) {
+        for (auto& clip : track.clips) {
+            if (auto* cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
+                if (cloneClip->masterClipID == masterClipID) {
+                    cloneClip->color = color; // Обновляем цвет клона
+                    LOG_SUCCESS("Updated color to " << color << " for clone at trackIndex=" << &track - &core.tracks[0] << ", clipIndex=" << &clip - &track.clips[0]);
+                }
+            }
+        }
+    }
+}
+
 void Engine::ChangeDuration(int trackIndex, int clipIndex, double newDurationBeats)
 {
     juce::ScopedLock sl(core.lock);

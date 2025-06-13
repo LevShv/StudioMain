@@ -360,6 +360,19 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
     qDebug() << "Clip duration changed: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << ", newDuration=" << newDuration << "beats";
 }
 
+Q_INVOKABLE void ViewModel::changeColor(int trackIndex, int clipIndex, const QColor& color)
+{
+    std::string colorStr = color.name(QColor::HexRgb).toStdString();
+
+    // Вызываем метод engine.changeColor
+    engine.ChangeColor(trackIndex, clipIndex, colorStr);
+    ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
+    if (clipModel) {
+        clipModel->updateClip(clipIndex); // Уведомляем ClipModel об изменении
+    }
+    
+}
+
 QString ViewModel::applicationHomeFolder() const
 {
     // Получаем директорию, где находится исполняемый файл
