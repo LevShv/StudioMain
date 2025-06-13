@@ -1280,6 +1280,7 @@ void Engine::Core::setName(int trackIndex, std::string name)
         LOG_ERROR("Invalid track or clip index");
         return;
     }
+    tracks[trackIndex].name = name;
 }
 
 void Engine::Core::toggleSolo(int trackIndex) {
