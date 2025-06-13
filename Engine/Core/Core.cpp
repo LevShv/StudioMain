@@ -1284,6 +1284,14 @@ void Engine::Core::updateActiveClips() {
  //   LOG("Total active clips: " << activeClips.size());
 }
 
+void Engine::Core::setName(int trackIndex, std::string name)
+{
+    if (trackIndex < 0 || trackIndex >= tracks.size()) {
+        LOG_ERROR("Invalid track or clip index");
+        return;
+    }
+}
+
 void Engine::Core::toggleSolo(int trackIndex) {
     if (trackIndex < 0 || trackIndex >= tracks.size()) {
         LOG_ERROR("Invalid track index for ToggleSolo: " << trackIndex);
@@ -1678,7 +1686,6 @@ double Engine::Core::beatsToSeconds(double beats, double bpm) const {
     return beats * (60.0 / bpm);
 }
 
-// Перегруженные версии, использующие core.bpm
 double Engine::Core::secondsToBeats(double seconds) const {
     return secondsToBeats(seconds, bpm);
 }
@@ -1696,6 +1703,5 @@ double Engine::Core::measuresToSeconds(double measures) const {
     double beats = measures * timeSignatureNumerator;
     return beatsToSeconds(beats);
 }
-
 
 #pragma endregion

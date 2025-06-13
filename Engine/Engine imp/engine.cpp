@@ -597,6 +597,12 @@ void Engine::ToggleSolo(int trackIndex) {
     core.toggleSolo(trackIndex);
 }
 
+void Engine::setName(int trackIndex, std::string name)
+{
+    juce::ScopedLock sl(core.lock);
+    core.setName(trackIndex, name);
+}
+
 void Engine::AddCloneClip(int trackIndex, int masterClipIndex, double startBeats)
 {
     juce::ScopedLock sl(core.lock);

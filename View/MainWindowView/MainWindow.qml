@@ -669,15 +669,64 @@ Window {
                                                         anchors.top: parent.top
                                                         anchors.bottom: parent.bottom
                                                         anchors.leftMargin: 4
+                                                        anchors.topMargin: 2
+                                                        spacing: 1 // Добавляем небольшой отступ между элементами
 
-                                                        Label {
+                                                        TextField {
+                                                            id: trackNameField
+                                                            width: parent.width
+
+                                                            height: 16 // Уменьшаем высоту для компактности
+                                                            text: model.name
+                                                            color: "#CCC"
+                                                            font.pixelSize: 11 // Чуть уменьшаем шрифт для компактности
+                                                            horizontalAlignment: Text.AlignHCenter
+                                                            verticalAlignment: Text.AlignVCenter
+                                                           // anchors.horizontalCenter: parent.horizontalCenter
+                                                            background: Rectangle {
+                                                                color: trackNameField.activeFocus ? "#444" : "transparent"
+                                                                border.color: trackNameField.activeFocus ? "#8690fa" : "transparent"
+                                                                border.width: 0.5 // Уменьшаем толщину рамки
+                                                                radius: 2 // Меньший радиус для компактной рамки
+                                                            }
+                                                            placeholderText: "Track " + (index + 1)
+                                                            selectByMouse: true
+                                                            maximumLength: 20
+
+                                                            onAccepted: {
+                                                                viewModel.setTrackName(index, text)
+                                                                focus = false
+                                                                console.log("Track " + index + " name set to: " + text)
+                                                            }
+
+                                                            onEditingFinished: {
+                                                                viewModel.setTrackName(index, text)
+                                                                console.log("Track " + index + " name editing finished: " + text)
+                                                            }
+
+                                                            MouseArea {
+                                                                anchors.fill: parent
+                                                                acceptedButtons: Qt.LeftButton
+                                                                onDoubleClicked: {
+                                                                    trackNameField.forceActiveFocus()
+                                                                    trackNameField.selectAll()
+                                                                }
+                                                                onClicked: {
+                                                                    if (!trackNameField.activeFocus) {
+                                                                        trackNameField.forceActiveFocus()
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+/*                                                         Label {
                                                             width: parent.width
                                                             horizontalAlignment: Text.AlignHCenter
-                                                            text: (index + 1) + " (" + model.trackType + ")"
+                                                            text: "(" + model.trackType + ")"
                                                             color: "#CCC"
-                                                            font.pixelSize: 12
+                                                            font.pixelSize: 9 // Уменьшаем размер шрифта для компактности
                                                             elide: Text.ElideRight
-                                                        }
+                                                        } */
 
                                                         Row {
                                                             anchors.horizontalCenter: parent.horizontalCenter
@@ -690,7 +739,7 @@ Window {
                                                                 radius: width / 2
                                                                 ToolTip.visible: hovered
                                                                 ToolTip.delay: 500
-                                                                ToolTip.text: model.muted ? "Unmute" : "Mute" // Зависит от model.muted
+                                                                ToolTip.text: model.muted ? "Unmute" : "Mute"
 
                                                                 background: Rectangle {
                                                                     radius: parent.radius
@@ -706,7 +755,7 @@ Window {
                                                                     anchors.centerIn: parent
                                                                     width: 18
                                                                     height: 18
-                                                                    source: model.muted ? imagesPath + "muted.png" : imagesPath + "unmuted.png" // Зависит от model.muted
+                                                                    source: model.muted ? imagesPath + "muted.png" : imagesPath + "unmuted.png"
                                                                     sourceSize.width: 18
                                                                     sourceSize.height: 18
                                                                     opacity: muteButton.down ? 0.7 : 1.0
@@ -716,7 +765,7 @@ Window {
 
                                                                 onClicked: {
                                                                     muteButton.scale = 0.95
-                                                                    viewModel.setTrackMute(index, !model.muted) // Переключаем состояние mute
+                                                                    viewModel.setTrackMute(index, !model.muted)
                                                                     console.log("Track " + index + (model.muted ? " unmuted" : " muted"))
                                                                     rbmute.source = model.muted ? imagesPath + "muted.png" : imagesPath + "unmuted.png"
                                                                 }

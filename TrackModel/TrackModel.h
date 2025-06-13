@@ -21,7 +21,8 @@ public:
         FilePathRole,
         TrackTypeRole = Qt::UserRole + 8,
         GainRole,
-        Mute
+        Mute, 
+        Name
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;

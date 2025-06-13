@@ -10,6 +10,7 @@ public:
 
         std::string clipID;
         std::string color = "#FFFFFF";
+        std::string name = "";
 
         double startTime = 0.0;
         double duration = 0.0;
@@ -63,6 +64,7 @@ public:
     struct Track {
         std::vector<std::unique_ptr<ClipBase>> clips;
         std::vector<std::unique_ptr<PluginInstance>> plugins;
+        std::string name = "";
         float gain = 1.0f;
         bool muted = false;
         bool isMidiTrack = false;
@@ -105,6 +107,7 @@ public:
     void SetTrackGain(int trackIndex, float gain);
     void SetTrackMute(int index, bool muted);
     void ToggleSolo(int trackIndex);
+    void setName(int trackIndex, std::string name);
 
 
     //Clpis
@@ -201,7 +204,7 @@ private:
         void setBPM(double newBPM);
         double getBPM() const { return bpm; }
 
-        void toggleSolo(int trackIndex);
+
 
         
         //Converts
@@ -220,6 +223,12 @@ private:
         void prepareToPlay(int samplesPerBlock, double sampleRate) override;
         void releaseResources() override;
         void getNextAudioBlock(const juce::AudioSourceChannelInfo&) override;
+
+
+        //Tracks
+         
+        void setName(int trackIndex, std::string name);
+        void toggleSolo(int trackIndex);
 
 
         //Clip methods

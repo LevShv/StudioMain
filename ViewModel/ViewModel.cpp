@@ -272,7 +272,7 @@ void ViewModel::setTrackMute(int index, bool muted)
     engine.SetTrackMute(index, muted);
 }
 
-Q_INVOKABLE void ViewModel::toggleSolo(int trackIndex)
+void ViewModel::toggleSolo(int trackIndex)
 {
     if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size()) {
         qWarning() << "Invalid track index for gain change:" << trackIndex;
@@ -280,6 +280,16 @@ Q_INVOKABLE void ViewModel::toggleSolo(int trackIndex)
     }
     
     engine.ToggleSolo(trackIndex);
+}
+
+void ViewModel::setName(int trackIndex, QString name)
+{
+    if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size()) {
+        qWarning() << "Invalid track index for name change:" << trackIndex;
+        return;
+    }
+
+    engine.setName(trackIndex, name.toStdString());
 }
 
 void ViewModel::RenderToWave(QString path)

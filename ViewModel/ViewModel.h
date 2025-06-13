@@ -42,6 +42,7 @@ public:
     Q_INVOKABLE void setTrackGain(int trackIndex, float gain);
     Q_INVOKABLE void setTrackMute(int index, bool muted);
     Q_INVOKABLE void toggleSolo(int trackIndex);
+    Q_INVOKABLE void setName(int trackIndex, QString name);
 
     Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);

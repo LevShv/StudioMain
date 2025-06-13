@@ -51,6 +51,8 @@ QVariant TrackModel::data(const QModelIndex& index, int role) const {
         return track.gain; 
     case Mute:
         return track.muted;
+    case Name:
+        return QString::fromStdString(track.name.empty() ? "Track " /*+ std::to_string(index.row() + 1)*/ : track.name);;
     default:
         return QVariant();
     }
@@ -68,6 +70,7 @@ QHash<int, QByteArray> TrackModel::roleNames() const {
     roles[TrackTypeRole] = "trackType"; // Добавляем новую роль
     roles[GainRole] = "gain";
     roles[Mute] = "muted";
+    roles[Name] = "name";
 
     return roles;
 }
