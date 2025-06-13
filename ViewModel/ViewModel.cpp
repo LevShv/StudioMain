@@ -302,7 +302,7 @@ void ViewModel::OpenProject(QString path)
 
 }
 
-Q_INVOKABLE void ViewModel::createNewProject()
+void ViewModel::createNewProject()
 {
     if (isPlaying()) {
         engine.StopMix();
@@ -360,7 +360,7 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
     qDebug() << "Clip duration changed: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << ", newDuration=" << newDuration << "beats";
 }
 
-Q_INVOKABLE void ViewModel::changeColor(int trackIndex, int clipIndex, const QColor& color)
+void ViewModel::changeColor(int trackIndex, int clipIndex, const QColor& color)
 {
     std::string colorStr = color.name(QColor::HexRgb).toStdString();
 
