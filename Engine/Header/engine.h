@@ -7,11 +7,14 @@ public:
 #pragma region Structures
 
     struct ClipBase {
+
+        std::string clipID;
+        std::string color = "#FFFFFF";
+
         double startTime = 0.0;
         double duration = 0.0;
         float gain = 1.0f;
         bool muted = false;
-        std::string clipID;
 
         double startBeats = 0.0; 
         double durationBeats = 0.0; 
@@ -20,6 +23,7 @@ public:
         virtual bool isActive(double time) const;
         virtual bool isActiveInRange(double startTime, double endTime) const;
         std::string generateClipID();
+        std::string generateUniqueColor(const std::string& clipID);
     };
 
     using ClipPtr = std::unique_ptr<ClipBase>;

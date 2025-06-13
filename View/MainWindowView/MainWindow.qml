@@ -972,8 +972,6 @@ Window {
                                                 }
                                             }
 
-                                            // Grid lines
-
                                             // Tracks and clips
                                             Item {
                                                 id: contentGrid
@@ -982,42 +980,42 @@ Window {
                                                 height: viewModel.trackModel.countOfTracks * 52
                                                 z: 2
                                                 clip: true
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                acceptedButtons: Qt.LeftButton
-                                                onClicked: (mouse) => {
-                                                    // Map mouse coordinates to contentGrid
-                                                    var localPos = mapToItem(contentGrid, mouse.x, mouse.y)
-                                                    var trackIndex = Math.floor(localPos.y / 52)
-                                                    var groupSize = flickableArea.cachedGroupSize
-                                                    var snapStep = groupSize * flickableArea.beatWidth // Grid size in pixels
-                                                    // Calculate position relative to contentGrid's origin
-                                                    var absoluteX = localPos.x // No need to add contentX here
-                                                    var position = absoluteX / flickableArea.beatWidth // Convert to beats
-                                                    // Find nearest grid point
-                                                    var nearestGridBeat = Math.round(position / groupSize) * groupSize
-                                                    var nearestGridX = nearestGridBeat * flickableArea.beatWidth // Convert back to pixels
-                                                    var distanceToGrid = Math.abs(absoluteX - nearestGridX)
-                                                    // Snap to grid only if distance is strictly less than 8 pixels
-                                                    if (distanceToGrid < 8) {
-                                                        position = nearestGridBeat
+                                            
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    acceptedButtons: Qt.LeftButton
+                                                    onClicked: (mouse) => {
+                                                        // Map mouse coordinates to contentGrid
+                                                        var localPos = mapToItem(contentGrid, mouse.x, mouse.y)
+                                                        var trackIndex = Math.floor(localPos.y / 52)
+                                                        var groupSize = flickableArea.cachedGroupSize
+                                                        var snapStep = groupSize * flickableArea.beatWidth // Grid size in pixels
+                                                        // Calculate position relative to contentGrid's origin
+                                                        var absoluteX = localPos.x // No need to add contentX here
+                                                        var position = absoluteX / flickableArea.beatWidth // Convert to beats
+                                                        // Find nearest grid point
+                                                        var nearestGridBeat = Math.round(position / groupSize) * groupSize
+                                                        var nearestGridX = nearestGridBeat * flickableArea.beatWidth // Convert back to pixels
+                                                        var distanceToGrid = Math.abs(absoluteX - nearestGridX)
+                                                        // Snap to grid only if distance is strictly less than 8 pixels
+                                                        if (distanceToGrid < 8) {
+                                                            position = nearestGridBeat
+                                                        }
+                                                        // Round position to 3 decimal places to avoid floating-point issues
+                                                        position = Math.round(position * 1000) / 1000
+                                                        if (trackIndex >= 0 && trackIndex < countOfTracks && position >= 0) {
+                                                            viewModel.addMidiClip(trackIndex, position)
+                                                            console.log("MIDI clip added: trackIndex:", trackIndex, "position:", position, 
+                                                                        "absoluteX:", absoluteX, "localPos.x:", localPos.x, 
+                                                                        "beatWidth:", flickableArea.beatWidth, "zoomLevel:", flickableArea.zoomLevel, 
+                                                                        "distanceToGrid:", distanceToGrid, "nearestGridBeat:", nearestGridBeat, 
+                                                                        "contentX:", flickableArea.contentX)
+                                                        } else {
+                                                            console.log("Invalid MIDI clip placement: trackIndex:", trackIndex, "position:", position)
+                                                        }
+                                                        mouse.accepted = true
                                                     }
-                                                    // Round position to 3 decimal places to avoid floating-point issues
-                                                    position = Math.round(position * 1000) / 1000
-                                                    if (trackIndex >= 0 && trackIndex < countOfTracks && position >= 0) {
-                                                        viewModel.addMidiClip(trackIndex, position)
-                                                        console.log("MIDI clip added: trackIndex:", trackIndex, "position:", position, 
-                                                                    "absoluteX:", absoluteX, "localPos.x:", localPos.x, 
-                                                                    "beatWidth:", flickableArea.beatWidth, "zoomLevel:", flickableArea.zoomLevel, 
-                                                                    "distanceToGrid:", distanceToGrid, "nearestGridBeat:", nearestGridBeat, 
-                                                                    "contentX:", flickableArea.contentX)
-                                                    } else {
-                                                        console.log("Invalid MIDI clip placement: trackIndex:", trackIndex, "position:", position)
-                                                    }
-                                                    mouse.accepted = true
                                                 }
-                                            }
                                                 Item {
                                                     id: tracksAndClipsContainer
                                                     anchors.fill: parent
@@ -1230,7 +1228,7 @@ Window {
                                                                     Rectangle {
                                                                         id: clipRectangle
                                                                         anchors.fill: parent
-                                                                        color: model.type === "audio" ? "#FF5722" : "#4CAF50"
+                                                                        color: model.color !== undefined ? model.color : "#808080"
                                                                         opacity: 0.6
                                                                         radius: 3
                                                                         border.width: isSelected ? 3 : 1 // Жёлтая рамка при выделении
@@ -1883,6 +1881,7 @@ Window {
                                                     }
                                                 }
                                             }
+
                                             Timer {
                                                 id: initialUpdateTimer
                                                 interval: 1

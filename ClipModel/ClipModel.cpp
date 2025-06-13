@@ -91,6 +91,12 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
             return -1; // Мастер-клип не найден
         }
         return -1; // Не клон
+    case Color: 
+        if (auto* clipBase = dynamic_cast<Engine::ClipBase*>(clip.get())) {
+            return QString::fromStdString(clipBase->color);
+        }
+        return -1; // Не клон
+    
     default:
         return QVariant();
     }
@@ -104,6 +110,7 @@ QHash<int, QByteArray> ClipModel::roleNames() const {
     roles[FilePathRole] = "file";
     roles[WaveformDataRole] = "waveformData";
     roles[MasterClipIndexRole] = "masterClipIndex";
+    roles[Color] = "color";
     return roles;
 }
 

@@ -32,6 +32,7 @@ void Engine::Saver::SaveProject(const std::string filePath)
             clipJson->setProperty("durationBeats", clip->durationBeats);
             clipJson->setProperty("gain", clip->gain);
             clipJson->setProperty("muted", clip->muted);
+            clipJson->setProperty("color", juce::String(clip->color));
 
             if (auto* cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
                 clipJson->setProperty("type", "clone");
@@ -215,6 +216,7 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
                         audioClip->useRAM = clipVar["useRAM"];
                         audioClip->startTime = m_core.beatsToSeconds(startBeats);
                         audioClip->duration = m_core.beatsToSeconds(durationBeats);
+                        audioClip->color = clipVar["color"].toString().toStdString();
 
                         if (audioClip->useRAM && audioClip->file.existsAsFile()) {
                             m_core.loadClipToRAM(*audioClip);
@@ -238,6 +240,7 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
                         midiClip->startTime = m_core.beatsToSeconds(startBeats);
                         midiClip->duration = m_core.beatsToSeconds(durationBeats);
                         midiClip->midiSequence = juce::MidiMessageSequence();
+                        midiClip->color = clipVar["color"].toString().toStdString();
 
                         // Добавляем клип в трек
                         track.clips.push_back(std::move(midiClip));
