@@ -826,6 +826,7 @@ void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file, double 
     clip->startBeats = startBeats;
     clip->startTime = beatsToSeconds(startBeats);
     clip->clipID = clip->generateClipID(); // ”никальный ID
+    clip->color = clip->generateUniqueColor(clip->clipID);
 
     juce::AudioFormatReader* reader = formatManager.createReaderFor(file);
     if (reader) {
@@ -896,6 +897,7 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
     newClip->startTime = beatsToSeconds(startBeats);
     newClip->startBeats = startBeats;
     newClip->clipID = newClip->generateClipID();
+    newClip->color = newClip->generateUniqueColor(newClip->clipID);
     LOG("StartBeat for new clip set: " << startBeats);
     LOG("StartTime for new clip set: " << newClip->startTime);
 
