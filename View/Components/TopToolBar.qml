@@ -377,6 +377,56 @@ Rectangle {
                         }
                     }
                     RoundButton {
+                        id: stopButton
+                        width: 40
+                        height: 40
+                        radius: width / 2
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                        ToolTip.text: "Стоп"
+    
+                        background: Rectangle {
+                            radius: parent.radius
+                            color: stopButton.hovered ? "#d0d0d0" : "transparent"
+                            border.color: stopButton.hovered ? "#a0a0a0" : "transparent"
+                            border.width: 1
+
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                            Behavior on border.color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
+
+                        Image {
+                            anchors.centerIn: parent
+                            width: 24
+                            height: 24
+                            source: imagesPath + "stop.png"
+                            sourceSize.width: 24
+                            sourceSize.height: 24
+                            opacity: stopButton.down ? 0.7 : 1.0
+                            fillMode: Image.PreserveAspectFit
+
+                            Behavior on opacity {
+                                NumberAnimation { duration: 100 }
+                            }
+                        }
+
+                        onClicked: {
+                            stopButton.scale = 0.95
+                            // Добавьте здесь логику для кнопки стоп
+                        }
+    
+                        Behavior on scale {
+                            NumberAnimation { 
+                                duration: 100
+                                easing.type: Easing.OutQuad 
+                            }
+                        }
+                    }
+                    RoundButton {
                         id: rewindButton
                         width: 40
                         height: 40
@@ -424,122 +474,6 @@ Rectangle {
                             NumberAnimation { 
                                 duration: 100
                                 easing.type: Easing.OutQuad 
-                            }
-                        }
-                    }
-                    RoundButton {
-                        id: addButton
-                        width: 40
-                        height: 40
-                        radius: width / 2
-                        ToolTip.visible: addButton.hovered && !addMenu.visible // Скрываем ToolTip, если меню открыто
-                        ToolTip.delay: 500
-                        ToolTip.text: "Добавить"
-
-                        background: Rectangle {
-                            radius: parent.radius
-                            color: addButton.hovered ? "#d0d0d0" : "transparent"
-                            border.color: addButton.hovered ? "#a0a0a0" : "transparent"
-                            border.width: 1
-
-                            Behavior on color {
-                                ColorAnimation { duration: 100 }
-                            }
-                            Behavior on border.color {
-                                ColorAnimation { duration: 100 }
-                            }
-                        }
-
-                        Image {
-                            anchors.centerIn: parent
-                            width: 24
-                            height: 24
-                            source: imagesPath + "plus.png"
-                            sourceSize.width: 24
-                            sourceSize.height: 24
-                            opacity: addButton.down ? 0.7 : 1.0
-                            fillMode: Image.PreserveAspectFit
-
-                            Behavior on opacity {
-                                NumberAnimation { duration: 100 }
-                            }
-                        }
-
-                        onClicked: {
-                            addButton.scale = 0.95
-                            addMenu.open()
-                        }
-
-                        Behavior on scale {
-                            NumberAnimation {
-                                duration: 100
-                                easing.type: Easing.OutQuad
-                            }
-                        }
-
-                        Menu {
-                            id: addMenu
-                            y: addButton.height
-                            width: 210
-
-                            enter: Transition {
-                                NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 150 }
-                                NumberAnimation { property: "scale"; from: 0.9; to: 1.0; duration: 150 }
-                            }
-
-                            exit: Transition {
-                                NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 100 }
-                            }
-
-                            MenuItem {
-                                text: "Добавить AUDIO дорожку"
-                                onTriggered: {
-                                    viewModel.addAudioTrack()
-                                    console.log("Добавлена AUDIO дорожка")
-                                }
-
-                                background: Rectangle {
-                                    implicitHeight: 30
-                                    color: parent.hovered ? "#e0e0e0" : "transparent"
-
-                                    Behavior on color {
-                                        ColorAnimation { duration: 100 }
-                                    }
-                                }
-                            }
-
-                            MenuItem {
-                                text: "Добавить MIDI дорожку"
-                                onTriggered: {
-                                    viewModel.addMidiTrack()
-                                    console.log("Добавлена MIDI дорожка")
-                                }
-
-                                background: Rectangle {
-                                    implicitHeight: 30
-                                    color: parent.hovered ? "#e0e0e0" : "transparent"
-
-                                    Behavior on color {
-                                        ColorAnimation { duration: 100 }
-                                    }
-                                }
-                            }
-
-                            MenuItem {
-                                text: "Добавить SAMPLER дорожку"
-                                onTriggered: {
-                                    viewModel.addSamplerTrack()
-                                    console.log("Добавлена SAMPLER дорожка")
-                                }
-
-                                background: Rectangle {
-                                    implicitHeight: 30
-                                    color: parent.hovered ? "#e0e0e0" : "transparent"
-
-                                    Behavior on color {
-                                        ColorAnimation { duration: 100 }
-                                    }
-                                }
                             }
                         }
                     }
@@ -682,6 +616,80 @@ Rectangle {
                     }
                 }
             }
+
+            RoundButton {
+                id: colorButton
+                width: 40
+                height: 40
+                radius: width / 2
+                ToolTip.visible: hovered
+                ToolTip.delay: 500
+                ToolTip.text: "Выбрать цвет дорожки"
+
+                // Привязываем enabled к separatorVisible
+                enabled: modeTabBar.isValidIndices // Кнопка активна только если separatorVisible == true
+
+                background: Rectangle {
+                    radius: parent.radius
+                    color: {
+                        if (!colorButton.enabled) {
+                            return "#606060" // Серый цвет для отключённого состояния
+                        } else if (colorButton.hovered) {
+                            return "#d0d0d0" // Цвет при наведении
+                        } else {
+                            return "transparent" // Обычный цвет
+                        }
+                    }
+                    border.color: {
+                        if (!colorButton.enabled) {
+                            return "transparent" // Без обводки для отключённого состояния
+                        } else if (colorButton.hovered) {
+                            return "#ffffff" // Белая обводка при наведении
+                        } else {
+                            return "transparent" // Обычное состояние
+                        }
+                    }
+                    border.width: 2
+                    Behavior on color { ColorAnimation { duration: 100 } }
+                    Behavior on border.color { ColorAnimation { duration: 100 } }
+                }
+
+                Image {
+                    id: colorIcon
+                    anchors.centerIn: parent
+                    width: 24
+                    height: 24
+                    source: imagesPath + "color.png"
+                    sourceSize.width: 24
+                    sourceSize.height: 24
+                    opacity: colorButton.down ? 0.7 : (colorButton.enabled ? 1.0 : 0.5) // Прозрачность для отключённого состояния
+                    fillMode: Image.PreserveAspectFit
+                    Behavior on opacity { NumberAnimation { duration: 100 } }
+                }
+                property color currentColor: "#FFFFFF"
+
+                onClicked: {
+                    colorButton.scale = 0.95
+                    colorDialog.open() // Предполагаем, что colorDialog доступен (если ошибка сохраняется, используйте topToolbar.colorDialog)
+                }
+
+                Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
+            }
+
+            ColorDialog {
+                id: colorDialog
+                title: "Выберите цвет дорожки"
+                modality: Qt.WindowModal
+                onAccepted: {
+                    colorButton.currentColor = selectedColor
+                    viewModel.changeColor(selectedTrackIndex, selectedClipIndex, selectedColor) // Оставляем changeColor, как в предоставленном коде
+                    console.log("Color selected:", selectedColor, "for track:", selectedTrackIndex, "clip:", selectedClipIndex)
+                }
+                onRejected: {
+                    console.log("Color selection canceled")
+                }
+            }
+
             // Отступ перед регулятором громкости
             Rectangle { width: 15; height:15; color: "#4C566A"}  // Невидимый разделитель
     
