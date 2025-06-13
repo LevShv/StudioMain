@@ -51,8 +51,16 @@ QVariant TrackModel::data(const QModelIndex& index, int role) const {
         return track.gain; 
     case Mute:
         return track.muted;
-    case Name:
-        return QString::fromStdString(track.name.empty() ? "Track " /*+ std::to_string(index.row() + 1)*/ : track.name);;
+    case Name: {
+        QString trackType;
+        if (tracks[row].isMidiTrack) {
+            trackType = tracks[row].isSamplerTrack ? "Sampler" : "Midi";
+        }
+        else {
+            trackType = "Audio";
+        }
+        return QString::fromStdString(track.name.empty() ? (trackType.toStdString() +" " + std::to_string(index.row() + 1)) : track.name);
+    }
     default:
         return QVariant();
     }
