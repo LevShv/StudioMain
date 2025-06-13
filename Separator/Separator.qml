@@ -43,46 +43,6 @@ Rectangle {
                 elide: Text.ElideRight // Elide if text still overflows
                 horizontalAlignment: Text.AlignHCenter
             }
-            RoundButton {
-                id: colorButton
-                width: 30
-                height: 30
-                radius: width / 2
-                anchors.top: toolsLabel.bottom
-                anchors.topMargin: 5
-                anchors.horizontalCenter: parent.horizontalCenter
-                ToolTip.visible: hovered
-                ToolTip.delay: 500
-                ToolTip.text: "Выбрать цвет дорожки"
-
-                background: Rectangle {
-                    radius: parent.radius
-                    color: currentColor // Текущий цвет кнопки
-                    border.color: colorButton.hovered ? "#a0a0a0" : "transparent"
-                    border.width: 1
-                    Behavior on color { ColorAnimation { duration: 100 } }
-                    Behavior on border.color { ColorAnimation { duration: 100 } }
-                }
-
-                property color currentColor: "#FFFFFF" // Начальный цвет (белый)
-
-                onClicked: colorDialog.open()
-
-                // ColorDialog для выбора цвета
-                ColorDialog {
-                    id: colorDialog
-                    title: "Выберите цвет дорожки"
-                    modality: Qt.WindowModal
-                    onAccepted: {
-                        colorButton.currentColor = selectedColor
-                        viewModel.changeColor( selectedTrackIndex, selectedClipIndex, selectedColor) // Передаем индекс дорожки и выбранный цвет
-                        console.log("Color selected:", selectedColor, "for track:", selectedClipIndex)
-                    }
-                    onRejected: {
-                        console.log("Color selection canceled")
-                    }
-                }
-            }
         }
         // Прокручиваемая область для кнопок
         Flickable {

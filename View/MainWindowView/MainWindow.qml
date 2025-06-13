@@ -6,7 +6,6 @@ import QtQuick.Controls.Material
 import Qt.labs.folderlistmodel
 import QtQuick.Dialogs
 import QtQuick.Shapes 1.15
-import QtQuick.Dialogs
 import "qrc:/FileBrowser"
 import "qrc:/Piano"
 import "qrc:/Separator"
@@ -1966,6 +1965,7 @@ Window {
                                 trackIndex: selectedTrackIndex
                                 clipIndex: selectedClipIndex
                                 clipDuration: viewModel.midiModel.clipDuration
+                                imagesPath: mainWindow.imagesPath
 
                                 Component.onCompleted: {
                                     console.log("MainWindow: PianoView initialized with trackIndex=", selectedTrackIndex, "clipIndex=", selectedClipIndex, "clipDuration=", viewModel.midiModel.clipDuration)
