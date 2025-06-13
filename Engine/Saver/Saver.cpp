@@ -183,7 +183,7 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
         m_core.setMasterGain(static_cast<float>(json["masterGain"])); // Загрузка masterGain
         LOG("Set masterGain: " << m_core.masterGain);
     }
-
+    m_core.userVolume = 1;
     std::map<std::string, Engine::ClipBase*> masterClips;
 
     if (json.hasProperty("tracks")) {

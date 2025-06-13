@@ -456,7 +456,7 @@ Window {
 
                                                     // Регулятор громкости (Dial)
                                                     Dial {
-                                                        id: masterVolumeDial
+                                                        id: masterGainDial
                                                         width: 35
                                                         height: 35
                                                         from: 0
@@ -480,9 +480,9 @@ Window {
                                                             hoverEnabled: true
                                                             onWheel: {
                                                                 if (wheel.angleDelta.y > 0) {
-                                                                    masterVolumeDial.value = Math.min(masterVolumeDial.to, masterVolumeDial.value + 5)
+                                                                    masterGainDial.value = Math.min(masterGainDial.to, masterGainDial.value + 5)
                                                                 } else {
-                                                                    masterVolumeDial.value = Math.max(masterVolumeDial.from, masterVolumeDial.value - 5)
+                                                                    masterGainDial.value = Math.max(masterGainDial.from, masterGainDial.value - 5)
                                                                 }
                                                                 wheel.accepted = true
                                                             }
@@ -502,7 +502,7 @@ Window {
                                                                 antialiasing: true
                                                                 x: parent.width / 2 - width / 2
                                                                 y: parent.height / 2 - height
-                                                                rotation: masterVolumeDial.angle
+                                                                rotation: masterGainDial.angle
                                                                 transformOrigin: Item.Bottom
                                                             }
                                                         }
@@ -517,12 +517,12 @@ Window {
                                                                 capStyle: ShapePath.RoundCap
 
                                                                 PathAngleArc {
-                                                                    centerX: masterVolumeDial.width / 2
-                                                                    centerY: masterVolumeDial.height / 2
-                                                                    radiusX: masterVolumeDial.width / 2 - 1
-                                                                    radiusY: masterVolumeDial.height / 2 - 1
-                                                                    startAngle: masterVolumeDial.fixedStartAngle
-                                                                    sweepAngle: masterVolumeDial.fixedEndAngle - masterVolumeDial.fixedStartAngle + masterVolumeDial.angle
+                                                                    centerX: masterGainDial.width / 2
+                                                                    centerY: masterGainDial.height / 2
+                                                                    radiusX: masterGainDial.width / 2 - 1
+                                                                    radiusY: masterGainDial.height / 2 - 1
+                                                                    startAngle: masterGainDial.fixedStartAngle
+                                                                    sweepAngle: masterGainDial.fixedEndAngle - masterGainDial.fixedStartAngle + masterGainDial.angle
                                                                 }
                                                             }
                                                         }

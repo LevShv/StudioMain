@@ -107,7 +107,7 @@ private:
     double m_playheadPosition = engine.Position();
     bool m_isPlaying = false;
     int m_volume = 1;
-    int m_masterGain = engine.GetMasterGain();
+    int m_masterGain = 1;
     int soloTrackInd = -1;
 
 	const std::string samplerPath = "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3"; // ”кажите реальный путь к сэмплеру
