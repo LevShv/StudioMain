@@ -8,6 +8,7 @@
 #pragma region Core
 
 Engine::Core::Core() {
+    // Инициализация форматов
     formatManager.registerBasicFormats();
     pluginFormatManager.addDefaultFormats();
 
@@ -16,69 +17,45 @@ Engine::Core::Core() {
         LOG(format->getName().toStdString());
     }
 
+    // Инициализация MIDI-выхода
     auto midiOutputs = juce::MidiOutput::getAvailableDevices();
     if (!midiOutputs.isEmpty()) {
         midiOutput = juce::MidiOutput::openDevice(midiOutputs[0].identifier);
+        LOG("MIDI output initialized: " << midiOutputs[0].name.toStdString());
     }
+
+    // Сброс параметров проекта
+    position = 0.0;
+    positionInBeats = 0.0;
+    bpm = 120.0;
+    masterGain = 1.0f; // Инициализация masterGain
+    userVolume = 1.0f; // Инициализация userVolume
+    loopModeEnabled = false;
+    loopTrackIndex = -1;
+    loopClipIndex = -1;
+    loopStartTime = 0.0;
+    loopDuration = 0.0;
+
+    {
+        const juce::ScopedLock noteSl(noteLock);
+        activeNotes.clear();
+    }
+    LOG("Core parameters initialized: position=0.0, bpm=120.0, masterGain=1.0, userVolume=1.0, loopModeEnabled=false");
 
     // Резервируем место для треков
     tracks.reserve(6);
 
-    // Создаем 4 аудиотрека (индексы 0–3)
-    for (int i = 0; i < 4; i++) {
-        Track track;
-        track.isMidiTrack = false;
-        tracks.emplace_back(std::move(track));
-        juce::File file("C:\\Users\\llvvv\\source\\repos\\Studio\\StudioMain\\Misc\\Step5.wav");
-        loadAudioClip(i, file, 4.0, true); // Аудиоклип с началом в 4 бита
-        LOG_SUCCESS("Added audio track " << i << " with audio clip at startBeats=4.0");
-    }
+    // Создаем один аудиотрек по умолчанию
+    Track track;
+    track.isMidiTrack = false;
+    tracks.emplace_back(std::move(track));
+    LOG_SUCCESS("Added default audio track at index 0");
 
-    // Создаем MIDI-трек 4 (индекс 4)
-    {
-        Track track;
-        track.isMidiTrack = true;
-        tracks.emplace_back(std::move(track));
-
-        juce::MidiMessageSequence sequence;
-        sequence.addEvent(juce::MidiMessage::noteOn(1, 61, 0.8f), 0.0);  // C4
-        sequence.addEvent(juce::MidiMessage::noteOff(1, 61), 1.0);
-        sequence.addEvent(juce::MidiMessage::noteOn(1, 64, 0.7f), 1.0);  // E4
-        sequence.addEvent(juce::MidiMessage::noteOff(1, 64), 2.0);
-        sequence.addEvent(juce::MidiMessage::noteOn(1, 67, 0.9f), 2.0);  // G4
-        sequence.addEvent(juce::MidiMessage::noteOff(1, 67), 3.0);
-        loadMidiClip(4, sequence, 5.0); // MIDI-клип с началом в 5 битов
-        LOG_SUCCESS("Added MIDI track 4 with MIDI clip at startBeats=5.0");
-    }
-
-    // Создаем MIDI-трек 5 (индекс 5)
-    {
-        Track track;
-        track.isMidiTrack = true;
-        tracks.emplace_back(std::move(track));
-
-        // Первый MIDI-клип (clipIndex=0)
-        juce::MidiMessageSequence sequence;
-        sequence.addEvent(juce::MidiMessage::noteOn(1, 63, 0.8f), 0.0);  // D4
-        sequence.addEvent(juce::MidiMessage::noteOff(1, 63), 1.0);
-        sequence.addEvent(juce::MidiMessage::noteOn(1, 64, 0.7f), 1.0);  // E4
-        sequence.addEvent(juce::MidiMessage::noteOff(1, 64), 2.0);
-        sequence.addEvent(juce::MidiMessage::noteOn(1, 62, 0.9f), 2.0);  // D4
-        sequence.addEvent(juce::MidiMessage::noteOff(1, 62), 3.0);
-        loadMidiClip(5, sequence, 0.0); // MIDI-клип с началом в 0 битов
-        LOG_SUCCESS("Added MIDI track 5 with MIDI clip at startBeats=0.0");
-
-        // Второй MIDI-клип (clipIndex=1, пустой)
-        juce::MidiMessageSequence emptySequence;
-        loadMidiClip(5, emptySequence, 8.0); // Пустой клип с началом в 8 битов
-        LOG_SUCCESS("Added empty MIDI clip to track 5 at startBeats=8.0, clipIndex=1");
-    }
-
-    // Добавляем плагины к MIDI-трекам
-    addPluginToTrack(4, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3");
-    addPluginToTrack(5, "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3");
-  //  tracks[5].gain = -0.8f;
+    // Подключаем audioSourcePlayer
     audioSourcePlayer.setSource(this);
+
+    updateActiveClips();
+    LOG("Core initialized successfully for new project");
 }
 
 Engine::Core::~Core() {
@@ -130,7 +107,6 @@ void Engine::Core::releaseResources() {
 }
 
 void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
-
     if (!audioProcessingEnabled) {
         info.clearActiveBufferRegion();
         return;
@@ -232,16 +208,21 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
             }
         }
 
+        // Применяем masterGain и userVolume к финальному буферу
+        for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+            info.buffer->applyGain(channel, info.startSample, info.numSamples, masterGain * userVolume);
+        }
+
         float maxSample = info.buffer->getMagnitude(0, info.numSamples);
-        LOG("Loop mode buffer magnitude: " << maxSample);
-        LOG("Track gain: " << track.gain << ", Clip gain: " << clip->gain);
+        LOG("Loop mode buffer magnitude after gain: " << maxSample);
+        LOG("Track gain: " << track.gain << ", Clip gain: " << clip->gain << ", Master gain: " << masterGain << ", User volume: " << userVolume);
 
         position += blockDuration;
         positionInBeats = secondsToBeats(position);
         updateActiveClips();
     }
     else {
-        // Обычный режим воспроизведения (существующая логика)
+        // Обычный режим воспроизведения
         for (auto& track : tracks) {
             pluginBuffer.setSize(info.buffer->getNumChannels(), info.numSamples);
             pluginBuffer.clear();
@@ -327,6 +308,15 @@ void Engine::Core::getNextAudioBlock(const juce::AudioSourceChannelInfo& info) {
                 }
             }
         }
+
+        // Применяем masterGain и userVolume к финальному буферу
+        for (int channel = 0; channel < info.buffer->getNumChannels(); ++channel) {
+            info.buffer->applyGain(channel, info.startSample, info.numSamples, masterGain * userVolume);
+        }
+
+        float maxSample = info.buffer->getMagnitude(0, info.numSamples);
+        LOG("Output buffer magnitude after gain: " << maxSample);
+        LOG("Master gain: " << masterGain << ", User volume: " << userVolume);
 
         position += blockDuration;
         positionInBeats = secondsToBeats(position);
@@ -1702,6 +1692,28 @@ double Engine::Core::secondsToMeasures(double seconds) const {
 double Engine::Core::measuresToSeconds(double measures) const {
     double beats = measures * timeSignatureNumerator;
     return beatsToSeconds(beats);
+}
+
+void Engine::Core::setMasterGain(float gain) {
+    const juce::ScopedLock sl(lock);
+    masterGain = juce::jlimit(0.0f, 2.0f, gain); // Ограничиваем диапазон
+    LOG("Master gain set to: " << masterGain);
+}
+
+float Engine::Core::getMasterGain() const {
+    const juce::ScopedLock sl(lock);
+    return masterGain;
+}
+
+void Engine::Core::setUserVolume(float volume) {
+    const juce::ScopedLock sl(lock);
+    userVolume = juce::jlimit(0.0f, 2.0f, volume); // Ограничиваем диапазон
+    LOG("User volume set to: " << userVolume);
+}
+
+float Engine::Core::getUserVolume() const {
+    const juce::ScopedLock sl(lock);
+    return userVolume;
 }
 
 #pragma endregion

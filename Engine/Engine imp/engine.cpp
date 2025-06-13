@@ -232,6 +232,8 @@ void Engine::CreateNewProject()
     core.loopClipIndex = -1;
     core.loopStartTime = 0.0;
     core.loopDuration = 0.0;
+    core.masterGain = 1.0f; // —брасываем masterGain
+    //core.userVolume = 1.0f;
    // core.activeClips.clear();
     {
         const juce::ScopedLock noteSl(core.noteLock);
@@ -717,6 +719,21 @@ void Engine::PlayNote(int trackIndex, int noteNumber, double startBeats, double 
     core.playNote(trackIndex, noteNumber, startBeats, durationBeats, velocity, channel);
 }
 
+void Engine::SetMasterGain(float gain) {
+    core.setMasterGain(gain);
+}
+
+float Engine::GetMasterGain() const {
+    return core.getMasterGain();
+}
+
+void Engine::SetUserVolume(float volume) {
+    core.setUserVolume(volume);
+}
+
+float Engine::GetUserVolume() const {
+    return core.getUserVolume();
+}
 #pragma endregion
 
 

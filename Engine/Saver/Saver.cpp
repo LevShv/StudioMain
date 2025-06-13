@@ -13,6 +13,7 @@ void Engine::Saver::SaveProject(const std::string filePath)
     projectJson.getDynamicObject()->setProperty("position", m_core.position);
     projectJson.getDynamicObject()->setProperty("version", "1.0"); // Для совместимости
 
+
     juce::Array<juce::var> tracksArray;
 
     // Дорожки
