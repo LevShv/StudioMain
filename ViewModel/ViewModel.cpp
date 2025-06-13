@@ -350,7 +350,6 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
 
     engine.ChangeDuration(trackIndex, clipIndex, newDuration);
 
-    // Обновляем модель клипа
     ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
     if (clipModel) {
         clipModel->updateClip(clipIndex); // Уведомляем ClipModel об изменении
