@@ -6,6 +6,7 @@ import QtQuick.Controls.Material
 import Qt.labs.folderlistmodel
 import QtQuick.Dialogs
 import QtQuick.Shapes 1.15
+import QtQuick.Dialogs
 import "qrc:/FileBrowser"
 import "qrc:/Piano"
 import "qrc:/Separator"
@@ -444,111 +445,93 @@ Window {
 
                                                 Row {
                                                     anchors.centerIn: parent
-                                                    spacing: 6  // Увеличил промежуток между кнопками
-                                                
-                                                    // Кнопка 1 - Аудио
-                                                    Button {
-                                                        text: "AUDIO"
-                                                        width: 40  // Увеличил ширину
-                                                        height: 40  // Вернул стандартную высоту
-                                                        ToolTip.visible: hovered
-                                                        ToolTip.delay: 500
-                                                        ToolTip.text: "Добавить AUDIO дорожку"
-                                                        font {
-                                                            family: "Tahoma"
-                                                            pixelSize: 11  // Увеличил шрифт
-                                                        }
-                                                        leftPadding: 0
-                                                        rightPadding: 0
-                                                    
-                                                        background: Rectangle {
-                                                            radius: 3
-                                                            color: parent.down ? "#B8C1FC" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
-                                                            border.color: "#8293FC"
-                                                            border.width: 1
+                                                    spacing: 20
+
+                                                    // Регулятор громкости (Dial)
+                                                    Dial {
+                                                        id: masterVolumeDial
+                                                        width: 35
+                                                        height: 35
+                                                        from: 0
+                                                        to: 100
+                                                        value: viewModel.volume || 50 // Начальное значение (как в TopToolBar)
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        onValueChanged: {
+                                                            viewModel.setVolume(value)
+                                                            console.log("Master volume set to:", value)
                                                         }
 
-                                                        contentItem: Text {
-                                                            text: parent.text
-                                                            font: parent.font
-                                                            color: "#5153FF"
-                                                            horizontalAlignment: Text.AlignHCenter
-                                                            verticalAlignment: Text.AlignVCenter
+                                                        handle: null
+
+                                                        // Определяем углы для фиксированного закрашивания
+                                                        readonly property real fixedStartAngle: 130
+                                                        readonly property real fixedEndAngle: 270
+
+                                                        // Обработка колесика мыши
+                                                        MouseArea {
                                                             anchors.fill: parent
+                                                            hoverEnabled: true
+                                                            onWheel: {
+                                                                if (wheel.angleDelta.y > 0) {
+                                                                    masterVolumeDial.value = Math.min(masterVolumeDial.to, masterVolumeDial.value + 5)
+                                                                } else {
+                                                                    masterVolumeDial.value = Math.max(masterVolumeDial.from, masterVolumeDial.value - 5)
+                                                                }
+                                                                wheel.accepted = true
+                                                            }
                                                         }
 
-                                                        onClicked: viewModel.addAudioTrack()
+                                                        background: Rectangle {
+                                                            color: "transparent"
+                                                            border.color: "white"
+                                                            border.width: 2
+                                                            radius: width / 2
+
+                                                            Rectangle {
+                                                                id: customHandle
+                                                                width: 2
+                                                                height: parent.width * 0.4
+                                                                color: "white"
+                                                                antialiasing: true
+                                                                x: parent.width / 2 - width / 2
+                                                                y: parent.height / 2 - height
+                                                                rotation: masterVolumeDial.angle
+                                                                transformOrigin: Item.Bottom
+                                                            }
+                                                        }
+
+                                                        Shape {
+                                                            anchors.fill: parent
+
+                                                            ShapePath {
+                                                                fillColor: "transparent"
+                                                                strokeColor: "#8690fa"
+                                                                strokeWidth: 2
+                                                                capStyle: ShapePath.RoundCap
+
+                                                                PathAngleArc {
+                                                                    centerX: masterVolumeDial.width / 2
+                                                                    centerY: masterVolumeDial.height / 2
+                                                                    radiusX: masterVolumeDial.width / 2 - 1
+                                                                    radiusY: masterVolumeDial.height / 2 - 1
+                                                                    startAngle: masterVolumeDial.fixedStartAngle
+                                                                    sweepAngle: masterVolumeDial.fixedEndAngle - masterVolumeDial.fixedStartAngle + masterVolumeDial.angle
+                                                                }
+                                                            }
+                                                        }
                                                     }
 
-                                                    // Кнопка 2 - MIDI
-                                                    Button {
-                                                        text: "MIDI"
-                                                        width: 40
-                                                        height: 40
-                                                        ToolTip.visible: hovered
-                                                        ToolTip.delay: 500
-                                                        ToolTip.text: "Добавить MIDI дорожку"
-                                                        font {
-                                                            family: "Tahoma"
-                                                            pixelSize: 12  // Увеличил шрифт
-                                                        }
-                                                        leftPadding: 0
-                                                        rightPadding: 0
-                                                    
-                                                        background: Rectangle {
-                                                            radius: 3
-                                                            color: parent.down ? "#B8C1FC" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
-                                                            border.color: "#8293FC"
-                                                            border.width: 1
-                                                        }
-
-                                                        contentItem: Text {
-                                                            text: parent.text
-                                                            font: parent.font
-                                                            color: "#5153FF"
-                                                            horizontalAlignment: Text.AlignHCenter
-                                                            verticalAlignment: Text.AlignVCenter
-                                                            anchors.fill: parent
-                                                        }
-
-                                                        onClicked: viewModel.addMidiTrack()
-                                                    }
-
-                                                    // Кнопка 3 - SAMPLER (полный текст)
-                                                    Button {
-                                                        text: "SMPLR"  // Оптимальное сокращение
-                                                        width: 40
-                                                        height: 40
-                                                        ToolTip.visible: hovered
-                                                        ToolTip.delay: 500
-                                                        ToolTip.text: "Добавить SAMPLER дорожку"
-                                                        font {
-                                                            family: "Tahoma"
-                                                            pixelSize: 11  // Увеличил шрифт
-                                                        }
-                                                        leftPadding: 0
-                                                        rightPadding: 0
-                                                    
-                                                        background: Rectangle {
-                                                            radius: 3
-                                                            color: parent.down ? "#B8C1FC" : (parent.hovered ? "#D8DDFC" : "#CCD2FC")
-                                                            border.color: "#8293FC"
-                                                            border.width: 1
-                                                        }
-
-                                                        contentItem: Text {
-                                                            text: parent.text
-                                                            font: parent.font
-                                                            color: "#5153FF"
-                                                            horizontalAlignment: Text.AlignHCenter
-                                                            verticalAlignment: Text.AlignVCenter
-                                                            anchors.fill: parent
-                                                        }
-
-                                                        onClicked: viewModel.addSamplerTrack()
+                                                    // Надпись "Master" по вертикали
+                                                    Label {
+                                                        text: "Master"
+                                                        color: "#CCC" // Как в заголовках треков
+                                                        font.pixelSize: 15 // Как в заголовках треков
+                                                        anchors.verticalCenter: parent.verticalCenter                                                        
+                                                        verticalAlignment: Text.AlignVCenter
                                                     }
                                                 }
                                             }
+                                            
 
                                             Repeater {
                                                 model: viewModel.trackModel
@@ -972,8 +955,6 @@ Window {
                                                 }
                                             }
 
-                                            // Grid lines
-
                                             // Tracks and clips
                                             Item {
                                                 id: contentGrid
@@ -982,42 +963,42 @@ Window {
                                                 height: viewModel.trackModel.countOfTracks * 52
                                                 z: 2
                                                 clip: true
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                acceptedButtons: Qt.LeftButton
-                                                onClicked: (mouse) => {
-                                                    // Map mouse coordinates to contentGrid
-                                                    var localPos = mapToItem(contentGrid, mouse.x, mouse.y)
-                                                    var trackIndex = Math.floor(localPos.y / 52)
-                                                    var groupSize = flickableArea.cachedGroupSize
-                                                    var snapStep = groupSize * flickableArea.beatWidth // Grid size in pixels
-                                                    // Calculate position relative to contentGrid's origin
-                                                    var absoluteX = localPos.x // No need to add contentX here
-                                                    var position = absoluteX / flickableArea.beatWidth // Convert to beats
-                                                    // Find nearest grid point
-                                                    var nearestGridBeat = Math.round(position / groupSize) * groupSize
-                                                    var nearestGridX = nearestGridBeat * flickableArea.beatWidth // Convert back to pixels
-                                                    var distanceToGrid = Math.abs(absoluteX - nearestGridX)
-                                                    // Snap to grid only if distance is strictly less than 8 pixels
-                                                    if (distanceToGrid < 8) {
-                                                        position = nearestGridBeat
+                                            
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    acceptedButtons: Qt.LeftButton
+                                                    onClicked: (mouse) => {
+                                                        // Map mouse coordinates to contentGrid
+                                                        var localPos = mapToItem(contentGrid, mouse.x, mouse.y)
+                                                        var trackIndex = Math.floor(localPos.y / 52)
+                                                        var groupSize = flickableArea.cachedGroupSize
+                                                        var snapStep = groupSize * flickableArea.beatWidth // Grid size in pixels
+                                                        // Calculate position relative to contentGrid's origin
+                                                        var absoluteX = localPos.x // No need to add contentX here
+                                                        var position = absoluteX / flickableArea.beatWidth // Convert to beats
+                                                        // Find nearest grid point
+                                                        var nearestGridBeat = Math.round(position / groupSize) * groupSize
+                                                        var nearestGridX = nearestGridBeat * flickableArea.beatWidth // Convert back to pixels
+                                                        var distanceToGrid = Math.abs(absoluteX - nearestGridX)
+                                                        // Snap to grid only if distance is strictly less than 8 pixels
+                                                        if (distanceToGrid < 8) {
+                                                            position = nearestGridBeat
+                                                        }
+                                                        // Round position to 3 decimal places to avoid floating-point issues
+                                                        position = Math.round(position * 1000) / 1000
+                                                        if (trackIndex >= 0 && trackIndex < countOfTracks && position >= 0) {
+                                                            viewModel.addMidiClip(trackIndex, position)
+                                                            console.log("MIDI clip added: trackIndex:", trackIndex, "position:", position, 
+                                                                        "absoluteX:", absoluteX, "localPos.x:", localPos.x, 
+                                                                        "beatWidth:", flickableArea.beatWidth, "zoomLevel:", flickableArea.zoomLevel, 
+                                                                        "distanceToGrid:", distanceToGrid, "nearestGridBeat:", nearestGridBeat, 
+                                                                        "contentX:", flickableArea.contentX)
+                                                        } else {
+                                                            console.log("Invalid MIDI clip placement: trackIndex:", trackIndex, "position:", position)
+                                                        }
+                                                        mouse.accepted = true
                                                     }
-                                                    // Round position to 3 decimal places to avoid floating-point issues
-                                                    position = Math.round(position * 1000) / 1000
-                                                    if (trackIndex >= 0 && trackIndex < countOfTracks && position >= 0) {
-                                                        viewModel.addMidiClip(trackIndex, position)
-                                                        console.log("MIDI clip added: trackIndex:", trackIndex, "position:", position, 
-                                                                    "absoluteX:", absoluteX, "localPos.x:", localPos.x, 
-                                                                    "beatWidth:", flickableArea.beatWidth, "zoomLevel:", flickableArea.zoomLevel, 
-                                                                    "distanceToGrid:", distanceToGrid, "nearestGridBeat:", nearestGridBeat, 
-                                                                    "contentX:", flickableArea.contentX)
-                                                    } else {
-                                                        console.log("Invalid MIDI clip placement: trackIndex:", trackIndex, "position:", position)
-                                                    }
-                                                    mouse.accepted = true
                                                 }
-                                            }
                                                 Item {
                                                     id: tracksAndClipsContainer
                                                     anchors.fill: parent
@@ -1230,7 +1211,7 @@ Window {
                                                                     Rectangle {
                                                                         id: clipRectangle
                                                                         anchors.fill: parent
-                                                                        color: model.type === "audio" ? "#FF5722" : "#4CAF50"
+                                                                        color: model.color !== undefined ? model.color : "#808080"
                                                                         opacity: 0.6
                                                                         radius: 3
                                                                         border.width: isSelected ? 3 : 1 // Жёлтая рамка при выделении
@@ -1769,11 +1750,72 @@ Window {
                                             Rectangle {
                                                 id: greenline
                                                 width: 2
-                                                height: contentGrid.height
+                                                height: contentGrid.height  // Уменьшаем высоту полосы на высоту треугольника
                                                 color: "green"
                                                 z: 7
                                                 x: Math.max(0, Math.min(viewModel.playheadPosition * flickableArea.beatWidth, flickableArea.contentWidth - width))
                                                 anchors.top: timeRuler.bottom
+
+                                                // Треугольник в верхней части, направленный вниз
+                                                Canvas {
+                                                    id: triangleHandle
+                                                    width: 20
+                                                    height: 10
+                                                    anchors.horizontalCenter: parent.horizontalCenter
+                                                    anchors.top: parent.top
+                                                    z: 8
+
+                                                    onPaint: {
+                                                        var ctx = getContext("2d")
+                                                        ctx.clearRect(0, 0, width, height)
+                                                        ctx.beginPath()
+                                                        ctx.moveTo(0, 0) // Верхняя левая точка
+                                                        ctx.lineTo(width / 2, height) // Вершина треугольника (внизу)
+                                                        ctx.lineTo(width, 0) // Верхняя правая точка
+                                                        ctx.closePath()
+                                                        ctx.fillStyle = "green"
+                                                        ctx.fill()
+                                                    }
+
+                                                    MouseArea {
+                                                        id: triangleMouseArea
+                                                        anchors.fill: parent
+                                                        drag.target: greenline
+                                                        drag.axis: Drag.XAxis
+                                                        drag.minimumX: 0
+                                                        drag.maximumX: Math.max(0, flickableArea.contentWidth - greenline.width)
+
+                                                        onPressed: {
+                                                            viewModel.setIsDraggingPlayhead(true) // Устанавливаем флаг
+                                                            viewModel.setIsPlaying(false) // Приостанавливаем воспроизведение (опционально)
+                                                            console.log("MainWindow: Triangle handle pressed, isDraggingPlayhead=", viewModel.isDraggingPlayhead)
+                                                        }
+
+                                                        onReleased: {
+                                                            var groupSize = flickableArea.cachedGroupSize
+                                                            var snapStep = groupSize * flickableArea.beatWidth // Шаг сетки в пикселях
+                                                            var nearestGridX = Math.round(greenline.x / snapStep) * snapStep
+                                                            var distanceToGrid = Math.abs(greenline.x - nearestGridX)
+                                                            var threshold = 8 // Порог привязки в пикселях (как у клипов)
+
+                                                            // Привязываем к сетке, если расстояние до ближайшей точки меньше или равно порогу
+                                                            var snappedX = distanceToGrid <= threshold ? nearestGridX : greenline.x
+                                                            snappedX = Math.max(0, Math.min(snappedX, flickableArea.contentWidth - greenline.width))
+                                                            var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
+                                                            newPosition = Math.round(newPosition * 1000) / 1000 // Округление до 3 десятичных знаков
+
+                                                            greenline.x = snappedX
+                                                            viewModel.setPlayheadPosition(newPosition)
+
+                                                            console.log("Greenline snapped: x=", greenline.x, 
+                                                                        "newPosition=", newPosition, 
+                                                                        "distanceToGrid=", distanceToGrid, 
+                                                                        "nearestGridX=", nearestGridX, 
+                                                                        "snapStep=", snapStep, 
+                                                                        "zoomLevel=", flickableArea.zoomLevel)
+                                                        }
+                                                    }
+                                                }
 
                                                 Rectangle {
                                                     id: trail
@@ -1819,70 +1861,27 @@ Window {
                                                     }
                                                 }
 
-                                                MouseArea {
-                                                    id: greenlineMouseArea
-                                                    anchors.fill: parent
-                                                    anchors.leftMargin: -14
-                                                    anchors.rightMargin: -14
-                                                    width: 30
-                                                    drag.target: greenline
-                                                    drag.axis: Drag.XAxis
-                                                    drag.minimumX: 0
-                                                    drag.maximumX: Math.max(0, flickableArea.contentWidth - greenline.width)
-
-                                                    onPressed: {
-                                                        viewModel.setIsDraggingPlayhead(true) // Устанавливаем флаг
-                                                        viewModel.setIsPlaying(false) // Приостанавливаем воспроизведение (опционально)
-                                                        console.log("MainWindow: Green line pressed, isDraggingPlayhead=", viewModel.isDraggingPlayhead)
-                                                    }
-
-                                                    onReleased: {
-                                                        var groupSize = flickableArea.cachedGroupSize
-                                                        var snapStep = groupSize * flickableArea.beatWidth // Шаг сетки в пикселях
-                                                        var nearestGridX = Math.round(greenline.x / snapStep) * snapStep
-                                                        var distanceToGrid = Math.abs(greenline.x - nearestGridX)
-                                                        var threshold = 8 // Порог привязки в пикселях (как у клипов)
-
-                                                        // Привязываем к сетке, если расстояние до ближайшей точки меньше или равно порогу
-                                                        var snappedX = distanceToGrid <= threshold ? nearestGridX : greenline.x
-                                                        snappedX = Math.max(0, Math.min(snappedX, flickableArea.contentWidth - greenline.width))
-                                                        var newPosition = flickableArea.beatWidth > 0 ? snappedX / flickableArea.beatWidth : 0
-                                                        newPosition = Math.round(newPosition * 1000) / 1000 // Округление до 3 десятичных знаков
-
-                                                        greenline.x = snappedX
-                                                        viewModel.setPlayheadPosition(newPosition)
-
-
-
-                                                        console.log("Greenline snapped: x=", greenline.x, 
-                                                                    "newPosition=", newPosition, 
-                                                                    "distanceToGrid=", distanceToGrid, 
-                                                                    "nearestGridX=", nearestGridX, 
-                                                                    "snapStep=", snapStep, 
-                                                                    "zoomLevel=", flickableArea.zoomLevel)
-                                                    }
-
-                                                    Connections {
-                                                        target: viewModel
-                                                        function onPlayheadPositionChanged(position) {
-                                                            if (!greenlineMouseArea.drag.active) {
-                                                                greenline.x = position * flickableArea.beatWidth
-                                                                greenline.x = Math.max(0, Math.min(greenline.x, flickableArea.contentWidth - greenline.width))
-                                                            }
+                                                Connections {
+                                                    target: viewModel
+                                                    function onPlayheadPositionChanged(position) {
+                                                        if (!triangleMouseArea.drag.active) {
+                                                            greenline.x = position * flickableArea.beatWidth
+                                                            greenline.x = Math.max(0, Math.min(greenline.x, flickableArea.contentWidth - greenline.width))
                                                         }
                                                     }
+                                                }
 
-                                                    Connections {
-                                                        target: flickableArea
-                                                        function onBeatWidthChanged() {
-                                                            if (!viewModel.isPlaying && !greenlineMouseArea.drag.active) {
-                                                                greenline.x = viewModel.playheadPosition * flickableArea.beatWidth
-                                                                greenline.x = Math.max(0, Math.min(greenline.x, flickableArea.contentWidth - greenline.width))
-                                                            }
+                                                Connections {
+                                                    target: flickableArea
+                                                    function onBeatWidthChanged() {
+                                                        if (!viewModel.isPlaying && !triangleMouseArea.drag.active) {
+                                                            greenline.x = viewModel.playheadPosition * flickableArea.beatWidth
+                                                            greenline.x = Math.max(0, Math.min(greenline.x, flickableArea.contentWidth - greenline.width))
                                                         }
                                                     }
                                                 }
                                             }
+
                                             Timer {
                                                 id: initialUpdateTimer
                                                 interval: 1

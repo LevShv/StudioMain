@@ -15,7 +15,8 @@ public:
         ClipTypeRole,
         FilePathRole,
         WaveformDataRole,
-        MasterClipIndexRole
+        MasterClipIndexRole,
+        Color
     };
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;

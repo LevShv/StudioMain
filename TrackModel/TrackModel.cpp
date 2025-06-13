@@ -155,3 +155,28 @@ void TrackModel::deleteTrack(int trackIndex)
     }
  
 }
+
+void TrackModel::refreshTrack(int trackIndex)
+{
+    if (trackIndex < 0 || trackIndex >= m_rowCount) {
+        qWarning() << "Invalid track index for refresh: " << trackIndex;
+        return;
+    }
+
+    // Удаляем существующий ClipModel для данной дорожки
+    if (m_clipModels.contains(trackIndex)) {
+        delete m_clipModels.take(trackIndex);
+        qDebug() << "Deleted existing ClipModel for track" << trackIndex;
+    }
+
+    // Создаем новый ClipModel
+    ensureClipModel(trackIndex);
+    qDebug() << "Refreshed ClipModel for track" << trackIndex;
+
+    // Уведомляем QML об изменении данных для этой дорожки
+    QModelIndex topLeft = index(trackIndex, 0);
+    QModelIndex bottomRight = index(trackIndex, 0);
+    emit dataChanged(topLeft, bottomRight, { TrackIndexRole, ClipsModelRole, TrackTypeRole });
+
+    LOG("Track " << trackIndex << " refreshed with new ClipModel");
+}

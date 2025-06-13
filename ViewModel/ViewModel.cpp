@@ -302,7 +302,7 @@ void ViewModel::OpenProject(QString path)
 
 }
 
-Q_INVOKABLE void ViewModel::createNewProject()
+void ViewModel::createNewProject()
 {
     if (isPlaying()) {
         engine.StopMix();
@@ -350,7 +350,6 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
 
     engine.ChangeDuration(trackIndex, clipIndex, newDuration);
 
-    // Обновляем модель клипа
     ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
     if (clipModel) {
         clipModel->updateClip(clipIndex); // Уведомляем ClipModel об изменении
@@ -358,6 +357,19 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
 
     emit clipDurationChanged(trackIndex, clipIndex, newDuration);
     qDebug() << "Clip duration changed: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex << ", newDuration=" << newDuration << "beats";
+}
+
+void ViewModel::changeColor(int trackIndex, int clipIndex, const QColor& color)
+{
+    std::string colorStr = color.name(QColor::HexRgb).toStdString();
+
+    // Вызываем метод engine.changeColor
+    engine.ChangeColor(trackIndex, clipIndex, colorStr);
+    ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
+    if (clipModel) {
+        clipModel->updateClip(clipIndex); // Уведомляем ClipModel об изменении
+    }
+    
 }
 
 QString ViewModel::applicationHomeFolder() const

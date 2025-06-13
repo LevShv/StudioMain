@@ -35,6 +35,8 @@ public:
     Q_INVOKABLE void update();
     void addTrack(QString type, int trackIndex);
 	void deleteTrack(int trackIndex);
+
+    void refreshTrack(int trackIndex);
    
     // Const метод для получения ClipModel
     ClipModel* getClipModel(int trackIndex) const;

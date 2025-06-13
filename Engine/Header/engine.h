@@ -7,11 +7,14 @@ public:
 #pragma region Structures
 
     struct ClipBase {
+
+        std::string clipID;
+        std::string color = "#FFFFFF";
+
         double startTime = 0.0;
         double duration = 0.0;
         float gain = 1.0f;
         bool muted = false;
-        std::string clipID;
 
         double startBeats = 0.0; 
         double durationBeats = 0.0; 
@@ -20,6 +23,7 @@ public:
         virtual bool isActive(double time) const;
         virtual bool isActiveInRange(double startTime, double endTime) const;
         std::string generateClipID();
+        std::string generateUniqueColor(const std::string& clipID);
     };
 
     using ClipPtr = std::unique_ptr<ClipBase>;
@@ -109,6 +113,7 @@ public:
 
     void MoveClip(int trackIndex, int clipIndex, double startBeats);
     void DeleteClip(int trackIndex, int clipIndex);
+    void ChangeColor(int trackIndex, int clipIndex, std::string color);
 
 
     // Midi
@@ -224,6 +229,8 @@ private:
         void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startBeats);
         void loadClipToRAM(AudioClip& clip);
 
+       // void changeColor(int trackIndex, int clipIndex, std::string color);
+
 
         // Midi
 
@@ -293,7 +300,7 @@ private:
         bool audioProcessingEnabled = true;
 
         void processMidiBlocks(const juce::AudioSourceChannelInfo&, double startTime, double endTime);
-    };
+};
 
 #pragma endregion
 
@@ -304,6 +311,7 @@ private:
         Saver(Core& core) : m_core(core) {}
         void SaveProject(const std::string filePath);
         bool LoadProject(const std::string filePath);
+        void sanitizeMidiSequenceForLoad(MidiClip* clip);
     private:
         Core& m_core;
     };
