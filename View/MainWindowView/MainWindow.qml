@@ -460,12 +460,12 @@ Window {
                                                         width: 35
                                                         height: 35
                                                         from: 0
-                                                        to: 100
-                                                        value: viewModel.volume || 50 // Начальное значение (как в TopToolBar)
+                                                        to: 200
+                                                        value: viewModel.masterGain * 100// Начальное значение (как в TopToolBar)
                                                         anchors.verticalCenter: parent.verticalCenter
                                                         onValueChanged: {
-                                                            viewModel.setVolume(value)
-                                                            console.log("Master volume set to:", value)
+                                                            viewModel.setMasterGain(value / 100)
+                                                            console.log("MasterGain volume set to:", value)
                                                         }
 
                                                         handle: null

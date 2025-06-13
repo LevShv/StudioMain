@@ -1697,11 +1697,12 @@ double Engine::Core::measuresToSeconds(double measures) const {
 void Engine::Core::setMasterGain(float gain) {
     const juce::ScopedLock sl(lock);
     masterGain = juce::jlimit(0.0f, 2.0f, gain); // Ограничиваем диапазон
-    LOG("Master gain set to: " << masterGain);
+    LOG_SUCCESS("Master gain set to: " << masterGain);
 }
 
 float Engine::Core::getMasterGain() const {
     const juce::ScopedLock sl(lock);
+    LOG_INFO("Get User Volume:" << userVolume);
     return masterGain;
 }
 

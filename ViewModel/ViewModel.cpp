@@ -456,9 +456,18 @@ float ViewModel::getUserVolume()
     return engine.GetUserVolume();
 }
 
-void ViewModel::GetMasterGain(float volume)
+void ViewModel::setMasterGain(float volume)
 {
-    engine.SetMasterGain(volume);
+    if (m_masterGain != volume) {
+        m_masterGain = volume;
+        engine.SetUserVolume(volume);
+        emit volumeChanged();
+    }
+}
+
+float ViewModel::getMasterGain()
+{
+    return engine.GetMasterGain();
 }
 
 void ViewModel::addMidiTrack() {
