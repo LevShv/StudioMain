@@ -546,7 +546,12 @@ Window {
                                                     id: trackControl
                                                     width: 150
                                                     height: 52
-                                                    color: "#2D2D2D"
+                                                    color: {
+                                                        if (model.trackType === "Audio") return "#4A2C2C" // Темно-красный
+                                                        if (model.trackType === "Midi") return "#2C4A2C"  // Темно-зеленый
+                                                        if (model.trackType === "Sampler") return "#2C3C4A" // Темно-голубой
+                                                        return "#2D2D2D" // Цвет по умолчанию
+                                                    }
                                                     border.color: "#444"
                                                     property real lastVolume: model.gain !== undefined ? model.gain : 30
 
@@ -1191,6 +1196,7 @@ Window {
                                                             height: 50
                                                             y: Math.floor(index * 52)
                                                             z: 3
+
 
                                                             function resetTrackSelections() {
                                                                 for (var i = 0; i < clipsRepeater.count; i++) {
