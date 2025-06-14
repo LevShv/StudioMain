@@ -36,6 +36,12 @@ void PluginModel::deletePlugin(int trackIndex, int pluginIndex) {
 
         // Удаляем плагин из движка
         engine.RemovePluginFromTrack(trackIndex, pluginIndex);
+        // Удаляем плагин из trackPluginData
+        if (trackPluginData.contains(trackIndex)) {
+            auto& trackPlugins = trackPluginData[trackIndex];
+            trackPlugins.erase(std::remove_if(trackPlugins.begin(), trackPlugins.end(),
+                [pluginIndex](const PluginData& p) { return p.index == pluginIndex; }), trackPlugins.end());
+        }
         refresh();
         emit pluginRemoved(trackIndex, pluginIndex);
         qDebug() << "Plugin deleted: trackIndex=" << trackIndex << ", pluginIndex=" << pluginIndex;
@@ -134,11 +140,13 @@ QVariant PluginModel::data(const QModelIndex& index, int role) const {
     const auto& plugin = plugins[index.row()];
     switch (role) {
     case NameRole:
-        return QString::fromStdString(plugin.second); // Имя плагина
+        return QString::fromStdString(plugin.name); // Имя плагина
     case IndexRole:
-        return plugin.first; // Индекс плагина
+        return plugin.index; // Индекс плагина
     case TrackIndexRole:
         return currentTrackIndex;
+    case IsPinnedRole:  // Добавляем поддержку новой роли
+        return plugin.isPinned;
     default:
         return QVariant();
     }
@@ -149,11 +157,15 @@ QHash<int, QByteArray> PluginModel::roleNames() const {
     roles[NameRole] = "name";
     roles[IndexRole] = "pluginIndex";
     roles[TrackIndexRole] = "trackIndex";
+    roles[IsPinnedRole] = "isPinned";  // Добавляем роль для QML
     return roles;
 }
 
 void PluginModel::setTrackIndex(int trackIndex) {
     if (currentTrackIndex != trackIndex) {
+        if (currentTrackIndex >= 0) {
+            trackPluginData[currentTrackIndex] = plugins;
+        }
         currentTrackIndex = trackIndex;
         qDebug() << "PluginModel: setTrackIndex to" << trackIndex;
         refresh();
@@ -168,10 +180,20 @@ void PluginModel::setTrackIndex(int trackIndex) {
 void PluginModel::refresh() {
     qDebug() << "PluginModel: Refreshing for trackIndex" << currentTrackIndex;
     beginResetModel();
+
+    // Загружаем сохранённые данные
+    std::vector<PluginData> savedPlugins;
+    if (trackPluginData.contains(currentTrackIndex)) {
+        savedPlugins = trackPluginData[currentTrackIndex];
+    }
+
     plugins.clear();
 
     if (currentTrackIndex >= 0 && currentTrackIndex < engine.GetdataBase().size()) {
         const auto& track = engine.GetdataBase()[currentTrackIndex];
+        std::vector<PluginData> newPlugins;
+
+        // Получаем плагины из движка
         for (size_t i = 0; i < track.plugins.size(); ++i) {
             if (track.plugins[i]) {
                 std::string pluginName = track.plugins[i]->Path;
@@ -183,15 +205,80 @@ void PluginModel::refresh() {
                 if (dotPos != std::string::npos) {
                     pluginName = pluginName.substr(0, dotPos);
                 }
-                plugins.emplace_back(static_cast<int>(i), pluginName);
-                qDebug() << "Plugin found:" << pluginName.c_str() << "at index" << i;
+
+                // Проверяем, есть ли плагин в сохранённых данных
+                bool isPinned = false;
+                for (const auto& savedPlugin : savedPlugins) {
+                    if (savedPlugin.index == static_cast<int>(i)) {
+                        isPinned = savedPlugin.isPinned;
+                        break;
+                    }
+                }
+                newPlugins.emplace_back(static_cast<int>(i), pluginName, isPinned);
+                qDebug() << "Plugin found:" << pluginName.c_str() << "at index" << i << "isPinned:" << isPinned;
             }
         }
-    } else {
+
+        // Восстанавливаем порядок из savedPlugins
+        if (!savedPlugins.empty()) {
+            plugins.reserve(newPlugins.size());
+            for (const auto& savedPlugin : savedPlugins) {
+                for (auto it = newPlugins.begin(); it != newPlugins.end(); ++it) {
+                    if (it->index == savedPlugin.index) {
+                        plugins.push_back(*it);
+                        newPlugins.erase(it);
+                        break;
+                    }
+                }
+            }
+            // Добавляем новые плагины в конец
+            plugins.insert(plugins.end(), newPlugins.begin(), newPlugins.end());
+        }
+        else {
+            // Если нет сохранённого порядка, сортируем
+            plugins = newPlugins;
+            std::stable_sort(plugins.begin(), plugins.end(),
+                [](const PluginData& a, const PluginData& b) {
+                    return a.isPinned && !b.isPinned;
+                });
+        }
+    }
+    else {
         qDebug() << "PluginModel: Invalid trackIndex" << currentTrackIndex << "database size:" << engine.GetdataBase().size();
     }
 
+    // Сохраняем данные в trackPluginData
+    trackPluginData[currentTrackIndex] = plugins;
+
     endResetModel();
     qDebug() << "PluginModel refreshed for trackIndex:" << currentTrackIndex << "plugin count:" << plugins.size();
-    emit rowCountChanged(); // Испускаем сигнал
+    emit rowCountChanged();
+}
+void PluginModel::togglePin(int trackIndex, int pluginIndex) {
+    if (trackIndex != currentTrackIndex) {
+        qWarning() << "togglePin: Track index mismatch, expected" << currentTrackIndex << "but got" << trackIndex;
+        return;
+    }
+
+    for (auto& plugin : plugins) {
+        if (plugin.index == pluginIndex) {
+            plugin.isPinned = !plugin.isPinned;
+            qDebug() << "Plugin pinned state changed: trackIndex=" << trackIndex
+                << ", pluginIndex=" << pluginIndex << ", isPinned=" << plugin.isPinned;
+
+            // Сортировка
+            std::stable_sort(plugins.begin(), plugins.end(),
+                [](const PluginData& a, const PluginData& b) {
+                    return a.isPinned && !b.isPinned;
+                });
+
+            // Обновляем trackPluginData
+            trackPluginData[currentTrackIndex] = plugins;
+
+            // Уведомляем QML
+            emit dataChanged(index(0), index(plugins.size() - 1));
+            emit pluginPinned(trackIndex, pluginIndex, plugin.isPinned);
+            break;
+        }
+    }
 }
