@@ -17,6 +17,8 @@ Rectangle {
     // Signals to communicate actions to the main window
     signal toggleSeparator()
     signal togglePianoRoll()
+    // Свойство для хранения имени файла для рендеринга
+    property string renderFileName: ""
 
     // Добавляем диалоговые окна для загрузки и сохранения
     FileDialog {
@@ -62,12 +64,34 @@ Rectangle {
         }
     }
     
+    FileDialog {
+        id: renderDialog
+        title: "Рендер проекта"
+        nameFilters: ["WAV файлы (*.wav)", "MP3 файлы (*.mp3)", "Все файлы (*)"]
+        fileMode: FileDialog.SaveFile
+        currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Result"
+        defaultSuffix: "wav" // По умолчанию сохраняем как .wav
+        onAccepted: {
+            var filePath = renderDialog.selectedFile.toString()
+            if (filePath.startsWith("file:///")) {
+                filePath = filePath.substring(8)
+            }
+            // Извлекаем имя файла из пути
+            var fileName = filePath.split('/').pop()
+            topToolbar.renderFileName = fileName
+            console.log("Рендеринг проекта в:", filePath)
+            viewModel.RenderToWave(filePath)
+            renderProgressPopup.open() // Открываем прогресс-бар
+        }
+        onRejected: {
+            console.log("Диалог рендеринга отменен")
+        }
+    }
     RowLayout {
         anchors.fill: parent
         spacing: 10
         Row {
-            Layout.alignment: Qt.AlignLeft
-            spacing: 30
+            spacing: 0
             leftPadding: 10  // Небольшой отступ слева для всего Row
             //Кнопка "файл"
             ToolButton {
@@ -121,7 +145,7 @@ Rectangle {
                     MenuItem {
                         text: "Рендер..."                                
                         onTriggered: {
-                            viewModel.RenderToWave(viewModel.applicationHomeFolder() + "/Result/Greg.wav")// Открываем диалог сохранения
+                            renderDialog.open() // Открываем диалог рендеринга
                         }
                     }
 
@@ -139,8 +163,7 @@ Rectangle {
                         }
                     }
                 }
-            } 
-            ToolButton{}   
+            }   
             // Кнопка "Справка"
             ToolButton {
                 id: helpButton
@@ -208,6 +231,12 @@ Rectangle {
                     }
                 }
             }
+            Rectangle {
+                width: 1 // Явное расстояние между кнопками
+                height: 50
+                color: "transparent"
+            }
+            
         }   
         Item {
             Layout.fillWidth: true
@@ -384,6 +413,57 @@ Rectangle {
                         }
                     }
                     RoundButton {
+                        id: rewindButton
+                        width: 40
+                        height: 40
+                        radius: width / 2
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                        ToolTip.text: "Перемотать в начало"
+    
+                        background: Rectangle {
+                            radius: parent.radius
+                            color: rewindButton.hovered ? "#d0d0d0" : "transparent"
+                            border.color: rewindButton.hovered ? "#a0a0a0" : "transparent"
+                            border.width: 1
+
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                            Behavior on border.color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
+
+                        Image {
+                            anchors.centerIn: parent
+                            width: 24
+                            height: 24
+                            source: imagesPath + "rewind.png"
+                            sourceSize.width: 24
+                            sourceSize.height: 24
+                            opacity: rewindButton.down ? 0.7 : 1.0
+                            fillMode: Image.PreserveAspectFit
+
+                            Behavior on opacity {
+                                NumberAnimation { duration: 100 }
+                            }
+                        }
+
+                        onClicked: {
+                            rewindButton.scale = 0.95
+                            viewModel.setPlayheadPosition(0)
+                            console.log("Reset playhead to start")
+                        }
+    
+                        Behavior on scale {
+                            NumberAnimation { 
+                                duration: 100
+                                easing.type: Easing.OutQuad 
+                            }
+                        }
+                    }
+                    RoundButton {
                         id: addButton
                         width: 40
                         height: 40
@@ -485,6 +565,7 @@ Rectangle {
                                 text: "Добавить SAMPLER дорожку"
                                 onTriggered: {
                                     viewModel.addSamplerTrack()
+
                                     console.log("Добавлена SAMPLER дорожка")
                                 }
 
@@ -498,58 +579,7 @@ Rectangle {
                                 }
                             }
                         }
-                    }
-                    RoundButton {
-                        id: rewindButton
-                        width: 40
-                        height: 40
-                        radius: width / 2
-                        ToolTip.visible: hovered
-                        ToolTip.delay: 500
-                        ToolTip.text: "Перемотать в начало"
-    
-                        background: Rectangle {
-                            radius: parent.radius
-                            color: rewindButton.hovered ? "#d0d0d0" : "transparent"
-                            border.color: rewindButton.hovered ? "#a0a0a0" : "transparent"
-                            border.width: 1
-
-                            Behavior on color {
-                                ColorAnimation { duration: 100 }
-                            }
-                            Behavior on border.color {
-                                ColorAnimation { duration: 100 }
-                            }
-                        }
-
-                        Image {
-                            anchors.centerIn: parent
-                            width: 24
-                            height: 24
-                            source: imagesPath + "rewind.png"
-                            sourceSize.width: 24
-                            sourceSize.height: 24
-                            opacity: rewindButton.down ? 0.7 : 1.0
-                            fillMode: Image.PreserveAspectFit
-
-                            Behavior on opacity {
-                                NumberAnimation { duration: 100 }
-                            }
-                        }
-
-                        onClicked: {
-                            rewindButton.scale = 0.95
-                            viewModel.setPlayheadPosition(0)
-                            console.log("Reset playhead to start")
-                        }
-    
-                        Behavior on scale {
-                            NumberAnimation { 
-                                duration: 100
-                                easing.type: Easing.OutQuad 
-                            }
-                        }
-                    }
+                    }                    
                 }
             }
         }
@@ -947,5 +977,66 @@ Rectangle {
                 }
             }
         }
-    }                                  
+    } 
+    Popup {
+        id: renderProgressPopup
+        anchors.centerIn: Overlay.overlay // Центрируем по всему экрану
+        width: 350
+        height: 100
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        background: Rectangle {
+            color: "#2E3440"
+            radius: 8
+            border.color: "white"
+            border.width: 1
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 10
+
+            Label {
+               text: "Рендеринг проекта " + topToolbar.renderFileName + "..."
+                color: "white"
+                font.pixelSize: 14
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            ProgressBar {
+                id: renderProgressBar
+                Layout.fillWidth: true
+                value: 0.0 // Пока статичное значение, для будущей привязки
+                from: 0.0
+                to: 1.0
+                Material.accent: "#8690FA"
+
+                background: Rectangle {
+                    implicitHeight: 6
+                    color: "#4C566A"
+                    radius: 3
+                }
+
+                contentItem: Rectangle {
+                    implicitHeight: 4
+                    radius: 2
+                    color: "#8690FA"
+                    width: renderProgressBar.visualPosition * parent.width
+                }
+            }
+        }
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 200 }
+        }
+        onClosed: {
+            topToolbar.renderFileName = "" // Сбрасываем имя файла при закрытии
+        }
+    }
 }

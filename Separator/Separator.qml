@@ -79,7 +79,7 @@ Rectangle {
                         border.color: "#ECEFF4"
                         border.width: 1
 
-                        property bool isPinned: false // Добавляем свойство isPinned
+                        property bool isPinned: model.isPinned // Привязываем к значению из модели
 
                         RoundButton {
                             id: pinButton
@@ -116,7 +116,7 @@ Rectangle {
                             }
 
                             onClicked: {
-                                fxContainer.isPinned = !fxContainer.isPinned
+                                viewModel.pluginModel.togglePin(model.trackIndex, model.pluginIndex);
                                 pinButton.scale = 0.95
                                 console.log("Pin button clicked for plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex, "isPinned=", fxContainer.isPinned)
                                 
