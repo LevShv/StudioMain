@@ -67,7 +67,7 @@ Rectangle {
         spacing: 10
         Row {
             Layout.alignment: Qt.AlignLeft
-            spacing: 5
+            spacing: 30
             leftPadding: 10  // Небольшой отступ слева для всего Row
             //Кнопка "файл"
             ToolButton {
@@ -119,11 +119,19 @@ Rectangle {
                     }
 
                     MenuItem {
+                        text: "Рендер..."                                
+                        onTriggered: {
+                            viewModel.RenderToWave(viewModel.applicationHomeFolder() + "/Result/Greg.wav")// Открываем диалог сохранения
+                        }
+                    }
+
+                    MenuItem {
                         text: "Сохранить как..."                                
                         onTriggered: {
                             saveDialog.open() // Открываем диалог сохранения
                         }
                     }
+
                     MenuItem {
                         text: "Выход"
                         onTriggered: {
@@ -131,9 +139,8 @@ Rectangle {
                         }
                     }
                 }
-            }    
-            ToolButton{
-            }
+            } 
+            ToolButton{}   
             // Кнопка "Справка"
             ToolButton {
                 id: helpButton

@@ -1660,7 +1660,7 @@ Window {
                                                                                 mainWindow.selectedClipIndex = targetClipIndex
                                                                                 viewModel.pluginModel.setTrackIndex(trackIndex); // Синхронизируем pluginModel
                                                                                 mainWindow.separatorVisible = true; // Показываем SeparatorPanel
-                                                                                if (model.type === "midi" && mainWindow.pianoRollAutoOpen) {                                                                                    
+                                                                                if ((model.type === "midi" || model.type === "sampler" )&& mainWindow.pianoRollAutoOpen) {                                                                                    
                                                                                     mainWindow.pianoRollVisible = true
                                                                                     console.log(`Opening Piano Roll: trackIndex=${trackIndex}, clipIndex=${index}`)
                                                                                 } else {
