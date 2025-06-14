@@ -565,6 +565,7 @@ Rectangle {
                                 text: "Добавить SAMPLER дорожку"
                                 onTriggered: {
                                     viewModel.addSamplerTrack()
+
                                     console.log("Добавлена SAMPLER дорожка")
                                 }
 

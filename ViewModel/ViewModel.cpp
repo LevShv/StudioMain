@@ -272,6 +272,7 @@ void ViewModel::addSamplerTrack() {
     int newTrackIndex = engine.AddSamplerTrack();
     if (newTrackIndex >= 0) {
         m_trackModel->addTrack("Sampler", newTrackIndex);
+        m_pluginModel->addPlugin(newTrackIndex, applicationHomeFolder() + "/Plugins/Just a Sample.vst3");
         emit trackAdded(newTrackIndex);
     }
 }
