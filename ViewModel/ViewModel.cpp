@@ -78,6 +78,17 @@ void ViewModel::moveClip(size_t trackIdx, size_t clipIdx, double newStartTime) {
 }
 
 void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double startTime) {
+    if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size()) {
+        qWarning() << "Invalid track index for adding audio clip:" << trackIndex;
+        return;
+    }
+
+    const auto& track = engine.GetdataBase()[trackIndex];
+    if (track.isMidiTrack) {
+        qWarning() << "Cannot add audio clip to MIDI track: trackIndex=" << trackIndex;
+        return;
+    }
+
     engine.AddAudioClip(trackIndex, filePath.toStdString(), startTime, true);
     ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
     if (clipModel) {
@@ -88,10 +99,21 @@ void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double sta
 
 void ViewModel::addMidiClip(int trackIndex, double startTime)
 {
+    if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size()) {
+        qWarning() << "Invalid track index for adding MIDI clip:" << trackIndex;
+        return;
+    }
+
+    const auto& track = engine.GetdataBase()[trackIndex];
+    if (!track.isMidiTrack) {
+        qWarning() << "Cannot add MIDI clip to non-MIDI track: trackIndex=" << trackIndex;
+        return;
+    }
+
     if (engine.AddMidiClip(trackIndex, startTime)) {
         ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
         if (clipModel) {
-            clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
+            clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back());
         }
         emit clipAdded(trackIndex);
     }

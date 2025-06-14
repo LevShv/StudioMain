@@ -66,8 +66,7 @@ Rectangle {
         anchors.fill: parent
         spacing: 10
         Row {
-            Layout.alignment: Qt.AlignLeft
-            spacing: 30
+            spacing: 0
             leftPadding: 10  // Небольшой отступ слева для всего Row
             //Кнопка "файл"
             ToolButton {
@@ -139,8 +138,7 @@ Rectangle {
                         }
                     }
                 }
-            } 
-            ToolButton{}   
+            }   
             // Кнопка "Справка"
             ToolButton {
                 id: helpButton
@@ -208,6 +206,12 @@ Rectangle {
                     }
                 }
             }
+            Rectangle {
+                width: 1 // Явное расстояние между кнопками
+                height: 50
+                color: "transparent"
+            }
+            
         }   
         Item {
             Layout.fillWidth: true
@@ -384,6 +388,57 @@ Rectangle {
                         }
                     }
                     RoundButton {
+                        id: rewindButton
+                        width: 40
+                        height: 40
+                        radius: width / 2
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                        ToolTip.text: "Перемотать в начало"
+    
+                        background: Rectangle {
+                            radius: parent.radius
+                            color: rewindButton.hovered ? "#d0d0d0" : "transparent"
+                            border.color: rewindButton.hovered ? "#a0a0a0" : "transparent"
+                            border.width: 1
+
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                            Behavior on border.color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
+
+                        Image {
+                            anchors.centerIn: parent
+                            width: 24
+                            height: 24
+                            source: imagesPath + "rewind.png"
+                            sourceSize.width: 24
+                            sourceSize.height: 24
+                            opacity: rewindButton.down ? 0.7 : 1.0
+                            fillMode: Image.PreserveAspectFit
+
+                            Behavior on opacity {
+                                NumberAnimation { duration: 100 }
+                            }
+                        }
+
+                        onClicked: {
+                            rewindButton.scale = 0.95
+                            viewModel.setPlayheadPosition(0)
+                            console.log("Reset playhead to start")
+                        }
+    
+                        Behavior on scale {
+                            NumberAnimation { 
+                                duration: 100
+                                easing.type: Easing.OutQuad 
+                            }
+                        }
+                    }
+                    RoundButton {
                         id: addButton
                         width: 40
                         height: 40
@@ -498,58 +553,7 @@ Rectangle {
                                 }
                             }
                         }
-                    }
-                    RoundButton {
-                        id: rewindButton
-                        width: 40
-                        height: 40
-                        radius: width / 2
-                        ToolTip.visible: hovered
-                        ToolTip.delay: 500
-                        ToolTip.text: "Перемотать в начало"
-    
-                        background: Rectangle {
-                            radius: parent.radius
-                            color: rewindButton.hovered ? "#d0d0d0" : "transparent"
-                            border.color: rewindButton.hovered ? "#a0a0a0" : "transparent"
-                            border.width: 1
-
-                            Behavior on color {
-                                ColorAnimation { duration: 100 }
-                            }
-                            Behavior on border.color {
-                                ColorAnimation { duration: 100 }
-                            }
-                        }
-
-                        Image {
-                            anchors.centerIn: parent
-                            width: 24
-                            height: 24
-                            source: imagesPath + "rewind.png"
-                            sourceSize.width: 24
-                            sourceSize.height: 24
-                            opacity: rewindButton.down ? 0.7 : 1.0
-                            fillMode: Image.PreserveAspectFit
-
-                            Behavior on opacity {
-                                NumberAnimation { duration: 100 }
-                            }
-                        }
-
-                        onClicked: {
-                            rewindButton.scale = 0.95
-                            viewModel.setPlayheadPosition(0)
-                            console.log("Reset playhead to start")
-                        }
-    
-                        Behavior on scale {
-                            NumberAnimation { 
-                                duration: 100
-                                easing.type: Easing.OutQuad 
-                            }
-                        }
-                    }
+                    }                    
                 }
             }
         }
