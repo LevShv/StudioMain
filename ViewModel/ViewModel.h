@@ -12,7 +12,8 @@
 class ViewModel : public QObject {
     Q_OBJECT
         Q_PROPERTY(bool isPlaying READ isPlaying NOTIFY isPlayingChanged)
-        Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged)
+        Q_PROPERTY(int volume READ getUserVolume WRITE setUserVolume NOTIFY volumeChanged)
+        Q_PROPERTY(int masterGain READ getMasterGain WRITE setMasterGain NOTIFY gainChanged)
         Q_PROPERTY(double playheadPosition READ playheadPosition NOTIFY playheadPositionChanged)
         Q_PROPERTY(TrackModel* trackModel READ trackModel CONSTANT)
         Q_PROPERTY(MidiMessageModel* midiModel READ midiModel CONSTANT) // Свойство для midiModel
@@ -62,6 +63,12 @@ public:
 
     Q_INVOKABLE void enableLoopMode(int trackIndex, int clipIndex);
     Q_INVOKABLE void disableLoopMode();
+
+    Q_INVOKABLE void setUserVolume(float volume);
+    Q_INVOKABLE float getUserVolume();
+
+    Q_INVOKABLE void setMasterGain(float volume);
+    Q_INVOKABLE float getMasterGain();
    
     bool isPlaying() const;
     int volume() const;
@@ -74,6 +81,7 @@ public:
 signals:
     void isPlayingChanged();
     void volumeChanged();
+    void gainChanged();
     void bpmChanged();
     void playheadPositionChanged(double position);
     void clipAdded(int trackIndex);
@@ -98,7 +106,8 @@ private:
 	double m_bpm = 120.0; // Инициализация BPM
     double m_playheadPosition = engine.Position();
     bool m_isPlaying = false;
-    int m_volume = 50;
+    int m_volume = 1;
+    int m_masterGain = 1;
     int soloTrackInd = -1;
 
 	const std::string samplerPath = "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3"; // Укажите реальный путь к сэмплеру

@@ -96,6 +96,12 @@ public:
     bool IsPlaying();
     double& Position();
 
+    void SetMasterGain(float gain);
+    float GetMasterGain() const;
+    void SetUserVolume(float volume);
+    float GetUserVolume() const;
+
+
 
     //Tracks  
 
@@ -163,6 +169,7 @@ public:
     void PlayNote(int trackIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
 
 
+
 #pragma endregion
 
 private:
@@ -189,6 +196,8 @@ private:
         double bpm = 120.0;
         int timeSignatureNumerator = 4; 
         int timeSignatureDenominator = 4; 
+        float masterGain = 1.0f; // Основная громкость, сохраняется
+        float userVolume = 1.0f; // Пользовательская громкость, не сохраняется
 
         void startAudio(juce::AudioDeviceManager& deviceManager);
         void stopAudio(juce::AudioDeviceManager& deviceManager);
@@ -204,7 +213,10 @@ private:
         void setBPM(double newBPM);
         double getBPM() const { return bpm; }
 
-
+        void setMasterGain(float gain);
+        float getMasterGain() const;
+        void setUserVolume(float volume);
+        float getUserVolume() const;
 
         
         //Converts

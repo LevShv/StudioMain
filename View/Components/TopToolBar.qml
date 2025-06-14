@@ -67,7 +67,7 @@ Rectangle {
         spacing: 10
         Row {
             Layout.alignment: Qt.AlignLeft
-            spacing: 5
+            spacing: 30
             leftPadding: 10  // Небольшой отступ слева для всего Row
             //Кнопка "файл"
             ToolButton {
@@ -119,11 +119,19 @@ Rectangle {
                     }
 
                     MenuItem {
+                        text: "Рендер..."                                
+                        onTriggered: {
+                            viewModel.RenderToWave(viewModel.applicationHomeFolder() + "/Result/Greg.wav")// Открываем диалог сохранения
+                        }
+                    }
+
+                    MenuItem {
                         text: "Сохранить как..."                                
                         onTriggered: {
                             saveDialog.open() // Открываем диалог сохранения
                         }
                     }
+
                     MenuItem {
                         text: "Выход"
                         onTriggered: {
@@ -131,9 +139,8 @@ Rectangle {
                         }
                     }
                 }
-            }    
-            ToolButton{
-            }
+            } 
+            ToolButton{}   
             // Кнопка "Справка"
             ToolButton {
                 id: helpButton
@@ -209,7 +216,6 @@ Rectangle {
                 anchors.centerIn: parent
                 spacing: 10
                 // Переключатель Pattern/Song (добавлен слева от центрального ряда)
-
 
                 TabBar {
                     id: modeTabBar
@@ -323,6 +329,7 @@ Rectangle {
                         }
                     }
                 }
+
                 Row {
                     anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку
                     spacing: 5
@@ -367,57 +374,6 @@ Rectangle {
                         onClicked: {
                             playButton.scale = 0.95
                             viewModel.togglePlayback()
-                        }
-    
-                        Behavior on scale {
-                            NumberAnimation { 
-                                duration: 100
-                                easing.type: Easing.OutQuad 
-                            }
-                        }
-                    }
-                    RoundButton {
-                        id: rewindButton
-                        width: 40
-                        height: 40
-                        radius: width / 2
-                        ToolTip.visible: hovered
-                        ToolTip.delay: 500
-                        ToolTip.text: "Перемотать в начало"
-    
-                        background: Rectangle {
-                            radius: parent.radius
-                            color: rewindButton.hovered ? "#d0d0d0" : "transparent"
-                            border.color: rewindButton.hovered ? "#a0a0a0" : "transparent"
-                            border.width: 1
-
-                            Behavior on color {
-                                ColorAnimation { duration: 100 }
-                            }
-                            Behavior on border.color {
-                                ColorAnimation { duration: 100 }
-                            }
-                        }
-
-                        Image {
-                            anchors.centerIn: parent
-                            width: 24
-                            height: 24
-                            source: imagesPath + "rewind.png"
-                            sourceSize.width: 24
-                            sourceSize.height: 24
-                            opacity: rewindButton.down ? 0.7 : 1.0
-                            fillMode: Image.PreserveAspectFit
-
-                            Behavior on opacity {
-                                NumberAnimation { duration: 100 }
-                            }
-                        }
-
-                        onClicked: {
-                            rewindButton.scale = 0.95
-                            viewModel.setPlayheadPosition(0)
-                            console.log("Reset playhead to start")
                         }
     
                         Behavior on scale {
@@ -540,6 +496,57 @@ Rectangle {
                                         ColorAnimation { duration: 100 }
                                     }
                                 }
+                            }
+                        }
+                    }
+                    RoundButton {
+                        id: rewindButton
+                        width: 40
+                        height: 40
+                        radius: width / 2
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                        ToolTip.text: "Перемотать в начало"
+    
+                        background: Rectangle {
+                            radius: parent.radius
+                            color: rewindButton.hovered ? "#d0d0d0" : "transparent"
+                            border.color: rewindButton.hovered ? "#a0a0a0" : "transparent"
+                            border.width: 1
+
+                            Behavior on color {
+                                ColorAnimation { duration: 100 }
+                            }
+                            Behavior on border.color {
+                                ColorAnimation { duration: 100 }
+                            }
+                        }
+
+                        Image {
+                            anchors.centerIn: parent
+                            width: 24
+                            height: 24
+                            source: imagesPath + "rewind.png"
+                            sourceSize.width: 24
+                            sourceSize.height: 24
+                            opacity: rewindButton.down ? 0.7 : 1.0
+                            fillMode: Image.PreserveAspectFit
+
+                            Behavior on opacity {
+                                NumberAnimation { duration: 100 }
+                            }
+                        }
+
+                        onClicked: {
+                            rewindButton.scale = 0.95
+                            viewModel.setPlayheadPosition(0)
+                            console.log("Reset playhead to start")
+                        }
+    
+                        Behavior on scale {
+                            NumberAnimation { 
+                                duration: 100
+                                easing.type: Easing.OutQuad 
                             }
                         }
                     }
@@ -682,6 +689,80 @@ Rectangle {
                     }
                 }
             }
+
+            RoundButton {
+                id: colorButton
+                width: 40
+                height: 40
+                radius: width / 2
+                ToolTip.visible: hovered
+                ToolTip.delay: 500
+                ToolTip.text: "Выбрать цвет дорожки"
+
+                // Привязываем enabled к separatorVisible
+                enabled: modeTabBar.isValidIndices // Кнопка активна только если separatorVisible == true
+
+                background: Rectangle {
+                    radius: parent.radius
+                    color: {
+                        if (!colorButton.enabled) {
+                            return "#606060" // Серый цвет для отключённого состояния
+                        } else if (colorButton.hovered) {
+                            return "#d0d0d0" // Цвет при наведении
+                        } else {
+                            return "transparent" // Обычный цвет
+                        }
+                    }
+                    border.color: {
+                        if (!colorButton.enabled) {
+                            return "transparent" // Без обводки для отключённого состояния
+                        } else if (colorButton.hovered) {
+                            return "#ffffff" // Белая обводка при наведении
+                        } else {
+                            return "transparent" // Обычное состояние
+                        }
+                    }
+                    border.width: 2
+                    Behavior on color { ColorAnimation { duration: 100 } }
+                    Behavior on border.color { ColorAnimation { duration: 100 } }
+                }
+
+                Image {
+                    id: colorIcon
+                    anchors.centerIn: parent
+                    width: 24
+                    height: 24
+                    source: imagesPath + "color.png"
+                    sourceSize.width: 24
+                    sourceSize.height: 24
+                    opacity: colorButton.down ? 0.7 : (colorButton.enabled ? 1.0 : 0.5) // Прозрачность для отключённого состояния
+                    fillMode: Image.PreserveAspectFit
+                    Behavior on opacity { NumberAnimation { duration: 100 } }
+                }
+                property color currentColor: "#FFFFFF"
+
+                onClicked: {
+                    colorButton.scale = 0.95
+                    colorDialog.open() // Предполагаем, что colorDialog доступен (если ошибка сохраняется, используйте topToolbar.colorDialog)
+                }
+
+                Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
+            }
+
+            ColorDialog {
+                id: colorDialog
+                title: "Выберите цвет дорожки"
+                modality: Qt.WindowModal
+                onAccepted: {
+                    colorButton.currentColor = selectedColor
+                    viewModel.changeColor(selectedTrackIndex, selectedClipIndex, selectedColor) // Оставляем changeColor, как в предоставленном коде
+                    console.log("Color selected:", selectedColor, "for track:", selectedTrackIndex, "clip:", selectedClipIndex)
+                }
+                onRejected: {
+                    console.log("Color selection canceled")
+                }
+            }
+
             // Отступ перед регулятором громкости
             Rectangle { width: 15; height:15; color: "#4C566A"}  // Невидимый разделитель
     
@@ -796,10 +877,10 @@ Rectangle {
                 width: 35
                 height: 35
                 from: 0
-                to: 100
-                value: viewModel.volume
+                to: 200
+                value: viewModel.volume * 100
                 anchors.verticalCenter: parent.verticalCenter
-                onValueChanged: viewModel.setVolume(value)
+                onValueChanged: viewModel.setUserVolume(value / 100)
                 
 
                 handle: null

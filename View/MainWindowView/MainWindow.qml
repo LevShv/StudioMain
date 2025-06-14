@@ -456,16 +456,16 @@ Window {
 
                                                     // Регулятор громкости (Dial)
                                                     Dial {
-                                                        id: masterVolumeDial
+                                                        id: masterGainDial
                                                         width: 35
                                                         height: 35
                                                         from: 0
-                                                        to: 100
-                                                        value: viewModel.volume || 50 // Начальное значение (как в TopToolBar)
+                                                        to: 200
+                                                        value: viewModel.masterGain * 100// Начальное значение (как в TopToolBar)
                                                         anchors.verticalCenter: parent.verticalCenter
                                                         onValueChanged: {
-                                                            viewModel.setVolume(value)
-                                                            console.log("Master volume set to:", value)
+                                                            viewModel.setMasterGain(value / 100)
+                                                            console.log("MasterGain volume set to:", value)
                                                         }
 
                                                         handle: null
@@ -480,9 +480,9 @@ Window {
                                                             hoverEnabled: true
                                                             onWheel: {
                                                                 if (wheel.angleDelta.y > 0) {
-                                                                    masterVolumeDial.value = Math.min(masterVolumeDial.to, masterVolumeDial.value + 5)
+                                                                    masterGainDial.value = Math.min(masterGainDial.to, masterGainDial.value + 5)
                                                                 } else {
-                                                                    masterVolumeDial.value = Math.max(masterVolumeDial.from, masterVolumeDial.value - 5)
+                                                                    masterGainDial.value = Math.max(masterGainDial.from, masterGainDial.value - 5)
                                                                 }
                                                                 wheel.accepted = true
                                                             }
@@ -502,7 +502,7 @@ Window {
                                                                 antialiasing: true
                                                                 x: parent.width / 2 - width / 2
                                                                 y: parent.height / 2 - height
-                                                                rotation: masterVolumeDial.angle
+                                                                rotation: masterGainDial.angle
                                                                 transformOrigin: Item.Bottom
                                                             }
                                                         }
@@ -517,12 +517,12 @@ Window {
                                                                 capStyle: ShapePath.RoundCap
 
                                                                 PathAngleArc {
-                                                                    centerX: masterVolumeDial.width / 2
-                                                                    centerY: masterVolumeDial.height / 2
-                                                                    radiusX: masterVolumeDial.width / 2 - 1
-                                                                    radiusY: masterVolumeDial.height / 2 - 1
-                                                                    startAngle: masterVolumeDial.fixedStartAngle
-                                                                    sweepAngle: masterVolumeDial.fixedEndAngle - masterVolumeDial.fixedStartAngle + masterVolumeDial.angle
+                                                                    centerX: masterGainDial.width / 2
+                                                                    centerY: masterGainDial.height / 2
+                                                                    radiusX: masterGainDial.width / 2 - 1
+                                                                    radiusY: masterGainDial.height / 2 - 1
+                                                                    startAngle: masterGainDial.fixedStartAngle
+                                                                    sweepAngle: masterGainDial.fixedEndAngle - masterGainDial.fixedStartAngle + masterGainDial.angle
                                                                 }
                                                             }
                                                         }
@@ -671,48 +671,87 @@ Window {
                                                         anchors.topMargin: 2
                                                         spacing: 1 // Добавляем небольшой отступ между элементами
 
-                                                        TextField {
-                                                            id: trackNameField
+                                                        Rectangle {
+                                                            id: trackNameControl
                                                             width: parent.width
+                                                            height: 16
+                                                            color: "transparent"
+                                                            border.color: trackNameInput.activeFocus ? "#8690fa" : "transparent"
+                                                            border.width: 0.5
+                                                            radius: 2
 
-                                                            height: 16 // Уменьшаем высоту для компактности
-                                                            text: model.name
-                                                            color: "#CCC"
-                                                            font.pixelSize: 11 // Чуть уменьшаем шрифт для компактности
-                                                            horizontalAlignment: Text.AlignHCenter
-                                                            verticalAlignment: Text.AlignVCenter
-                                                           // anchors.horizontalCenter: parent.horizontalCenter
-                                                            background: Rectangle {
-                                                                color: trackNameField.activeFocus ? "#444" : "transparent"
-                                                                border.color: trackNameField.activeFocus ? "#8690fa" : "transparent"
-                                                                border.width: 0.5 // Уменьшаем толщину рамки
-                                                                radius: 2 // Меньший радиус для компактной рамки
+                                                            property string trackName: model.name || ""
+
+                                                            TextInput {
+                                                                id: trackNameInput
+                                                                anchors.fill: parent
+                                                                horizontalAlignment: TextInput.AlignHCenter
+                                                                verticalAlignment: TextInput.AlignVCenter
+                                                                color: "white"
+                                                                font.pixelSize: 11
+                                                                text: trackNameControl.trackName
+                                                                visible: false
+                                                                selectByMouse: true
+                                                                activeFocusOnPress: true
+                                                                maximumLength: 20
+                                                                validator: RegularExpressionValidator { regularExpression: /.{0,20}/ }
+
+                                                                Keys.onPressed: (event) => {
+                                                                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                                                        event.accepted = true
+                                                                        handleInput()
+                                                                    }
+                                                                }
+
+                                                                onActiveFocusChanged: {
+                                                                    if (!activeFocus && visible) {
+                                                                        handleInput()
+                                                                    }
+                                                                }
+
+                                                                function handleInput() {
+                                                                    viewModel.setName(index, text)
+                                                                    trackNameControl.trackName = text
+                                                                    console.log("Track " + index + " name set to: " + text)
+                                                                    hideInput()
+                                                                }
+
+                                                                function hideInput() {
+                                                                    visible = false
+                                                                    trackNameText.visible = true
+                                                                    focus = false // Сбрасываем фокус для убирания обводки
+                                                                }
                                                             }
-                                                            placeholderText: "Track " + (index + 1)
-                                                            selectByMouse: true
-                                                            maximumLength: 20
 
-                                                            onAccepted: {
-                                                                viewModel.setTrackName(index, text)
-                                                                focus = false
-                                                                console.log("Track " + index + " name set to: " + text)
-                                                            }
-
-                                                            onEditingFinished: {
-                                                                viewModel.setTrackName(index, text)
-                                                                console.log("Track " + index + " name editing finished: " + text)
+                                                            Text {
+                                                                id: trackNameText
+                                                                anchors.centerIn: parent
+                                                                text: trackNameControl.trackName || "Track " + (index + 1) // Изменено на "track" с маленькой буквы
+                                                                color: "white"
+                                                                font.pixelSize: 11
+                                                                opacity: trackNameControl.trackName ? 1.0 : 0.5
                                                             }
 
                                                             MouseArea {
                                                                 anchors.fill: parent
+                                                                hoverEnabled: true
+                                                                cursorShape: Qt.PointingHandCursor
                                                                 acceptedButtons: Qt.LeftButton
+
                                                                 onDoubleClicked: {
-                                                                    trackNameField.forceActiveFocus()
-                                                                    trackNameField.selectAll()
+                                                                    trackNameInput.text = trackNameControl.trackName
+                                                                    trackNameText.visible = false
+                                                                    trackNameInput.visible = true
+                                                                    trackNameInput.forceActiveFocus()
+                                                                    trackNameInput.selectAll()
                                                                 }
+
                                                                 onClicked: {
-                                                                    if (!trackNameField.activeFocus) {
-                                                                        trackNameField.forceActiveFocus()
+                                                                    if (!trackNameInput.activeFocus) {
+                                                                        trackNameInput.text = trackNameControl.trackName
+                                                                        trackNameText.visible = false
+                                                                        trackNameInput.visible = true
+                                                                        trackNameInput.forceActiveFocus()
                                                                     }
                                                                 }
                                                             }
@@ -1294,9 +1333,15 @@ Window {
                                                                                 topPadding: 3  // Добавляем отступ сверху
                                                                                 leftPadding: 5
                                                                                 text: {
-                                                                                    if (!model.file) return "MIDI Clip";
-                                                                                    var parts = model.file.split(/[\\/]/);
-                                                                                    return parts[parts.length - 1];
+                                                                                    if (model.type === "midi") {
+                                                                                        return "Midi";
+                                                                                    } else if (model.type === "sampler") {
+                                                                                        return "Sampler";
+                                                                                    } else if (model.file) {
+                                                                                        var parts = model.file.split(/[\\/]/);
+                                                                                        return parts[parts.length - 1];
+                                                                                    }
+                                                                                    return "";
                                                                                 }
                                                                                 color: "#FFFFFF"
                                                                                 font.pixelSize: 10 // Устанавливаем фиксированный размер шрифта в пикселях
@@ -1615,7 +1660,7 @@ Window {
                                                                                 mainWindow.selectedClipIndex = targetClipIndex
                                                                                 viewModel.pluginModel.setTrackIndex(trackIndex); // Синхронизируем pluginModel
                                                                                 mainWindow.separatorVisible = true; // Показываем SeparatorPanel
-                                                                                if (model.type === "midi" && mainWindow.pianoRollAutoOpen) {                                                                                    
+                                                                                if ((model.type === "midi" || model.type === "sampler" )&& mainWindow.pianoRollAutoOpen) {                                                                                    
                                                                                     mainWindow.pianoRollVisible = true
                                                                                     console.log(`Opening Piano Roll: trackIndex=${trackIndex}, clipIndex=${index}`)
                                                                                 } else {

@@ -12,6 +12,8 @@ void Engine::Saver::SaveProject(const std::string filePath)
     projectJson.getDynamicObject()->setProperty("bpm", m_core.bpm);
     projectJson.getDynamicObject()->setProperty("position", m_core.position);
     projectJson.getDynamicObject()->setProperty("version", "1.0"); // Для совместимости
+    projectJson.getDynamicObject()->setProperty("masterGain", m_core.masterGain);
+
 
     juce::Array<juce::var> tracksArray;
 
@@ -22,6 +24,7 @@ void Engine::Saver::SaveProject(const std::string filePath)
         trackJson->setProperty("isSamplerTrack", track.isSamplerTrack);
         trackJson->setProperty("gain", track.gain);
         trackJson->setProperty("muted", track.muted);
+        trackJson->setProperty("name", juce::String(track.name));
 
         juce::Array<juce::var> clipsArray;
 
@@ -176,7 +179,11 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
         m_core.setPosition(json["position"]);
         LOG("Set position: " << m_core.position);
     }
-
+    if (json.hasProperty("masterGain")) {
+        m_core.setMasterGain(static_cast<float>(json["masterGain"])); // Загрузка masterGain
+        LOG("Set masterGain: " << m_core.masterGain);
+    }
+    m_core.userVolume = 1;
     std::map<std::string, Engine::ClipBase*> masterClips;
 
     if (json.hasProperty("tracks")) {
@@ -188,6 +195,7 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
             track.isSamplerTrack = trackVar["isSamplerTrack"];
             track.gain = trackVar["gain"];
             track.muted = trackVar["muted"];
+            track.name = trackVar["name"].toString().toStdString();
 
             std::vector<juce::var> cloneClips;
             if (trackVar.hasProperty("clips")) {

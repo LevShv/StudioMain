@@ -43,10 +43,9 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
         if (auto cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
             if (dynamic_cast<Engine::AudioClip*>(cloneClip->masterClip))
                 return "audio";
-            else
-                return "midi";
+            return track.isSamplerTrack ? "sampler" : "midi"; // Проверяем isSamplerTrack
         }
-        return "midi";
+        return track.isSamplerTrack ? "sampler" : "midi"; // Проверяем isSamplerTrack для обычных клипов
     case FilePathRole:
         if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
             return QString::fromUtf8(

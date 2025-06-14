@@ -75,110 +75,16 @@ Item {
         spacing: 0
 
         // Toolbar
-        Rectangle {
+            Rectangle {
             Layout.fillWidth: true
-            height: 50
+            Layout.preferredHeight: 40
             color: "#2E3440"
 
-            RowLayout {
+            Label {
                 anchors.centerIn: parent
-                spacing: 10
-                implicitWidth: 300
-                RoundButton {
-                    id: muteButton
-                    width: 30
-                    height: 30
-                    radius: width / 2
-                    ToolTip.visible: hovered
-                    ToolTip.delay: 500
-                    ToolTip.text: isMuted ? "Unmute" : "Mute"
-
-                    property bool isMuted: false // По умолчанию unmuted
-
-                    background: Rectangle {
-                        radius: parent.radius
-                        color: muteButton.hovered ? "#d0d0d0" : "transparent"
-                        border.color: muteButton.hovered ? "#a0a0a0" : "transparent"
-                        border.width: 1
-                        Behavior on color { ColorAnimation { duration: 100 } }
-                        Behavior on border.color { ColorAnimation { duration: 100 } }
-                    }
-
-                    Image {
-                        id: muteIcon
-                        anchors.centerIn: parent
-                        width: 18
-                        height: 18
-                        source: parent.isMuted ? imagesPath + "muted.png" : imagesPath + "unmuted.png" // Зависит от model.muted
-                        opacity: muteButton.down ? 0.7 : 1.0
-                        fillMode: Image.PreserveAspectFit
-                        Behavior on opacity { NumberAnimation { duration: 100 } }
-                    }
-
-                    onClicked: {
-                        isMuted = !isMuted
-                        muteButton.scale = 0.95
-                        console.log("Mute button toggled: isMuted=", isMuted)
-                    }
-
-                    Behavior on scale {
-                        NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
-                    }
-                }
-                RoundButton {
-                    id: colorButton
-                    width: 30
-                    height: 30
-                    radius: width / 2
-                    ToolTip.visible: hovered
-                    ToolTip.delay: 500
-                    ToolTip.text: "Выбрать цвет дорожки"
-
-                    background: Rectangle {
-                        radius: parent.radius
-                        color: colorButton.hovered ? "#d0d0d0" : "transparent"
-                        border.color: colorButton.hovered ? "#a0a0a0" : "transparent" // Обводка при наведении, как у muteButton в Main.qml
-                        border.width: 1
-                        Behavior on color { ColorAnimation { duration: 100 } }
-                        Behavior on border.color { ColorAnimation { duration: 100 } }
-                    }
-
-                    Image {
-                        id: colorIcon
-                        anchors.centerIn: parent
-                        width: 18
-                        height: 18
-                        source: imagesPath + "color.png"
-                        opacity: colorButton.down ? 0.7 : 1.0
-                        fillMode: Image.PreserveAspectFit
-                        Behavior on opacity { NumberAnimation { duration: 100 } }
-                    }
-                    property color currentColor: "#FFFFFF"
-
-                    onClicked: colorDialog.open()
-                    Behavior on scale {
-                        NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
-                    }
-
-                    ColorDialog {
-                        id: colorDialog
-                        title: "Выберите цвет дорожки"
-                        modality: Qt.WindowModal
-                        onAccepted: {
-                            colorButton.currentColor = selectedColor
-                            viewModel.changeColor(trackIndex, clipIndex, selectedColor)
-                            console.log("Color selected:", selectedColor, "for track:", trackIndex, "clip:", clipIndex)
-                        }
-                        onRejected: {
-                            console.log("Color selection canceled")
-                        }
-                    }
-                }
-                Label {
-                    text: "Редактор: Дорожка " + (trackIndex + 1) + ", Клип " + (mainWindow.displayedClipIndex + 1)
-                    color: "#ECEFF4"
-                    font.pixelSize: 12
-                }
+                text: "Пианино: Дорожка " + (trackIndex + 1) + ", Клип " + (mainWindow.displayedClipIndex + 1)
+                color: "#ECEFF4"
+                font.pixelSize: 12
             }
         }
 
