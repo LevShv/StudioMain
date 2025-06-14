@@ -166,6 +166,17 @@ void PluginModel::setTrackIndex(int trackIndex) {
         if (currentTrackIndex >= 0) {
             trackPluginData[currentTrackIndex] = plugins;
         }
+        // Скрываем все открытые редакторы плагинов для текущей дорожки
+        for (auto it = m_openPluginEditors.begin(); it != m_openPluginEditors.end(); ++it) {
+            const QPair<int, int>& key = it.key();
+            if (key.first == currentTrackIndex) { // Проверяем, что редактор принадлежит текущей дорожке
+                juce::Component* component = it.value();
+                if (component) {
+                    component->setVisible(false);
+                    qDebug() << "Hiding plugin editor for track=" << key.first << ", plugin=" << key.second;
+                }
+            }
+        }
         currentTrackIndex = trackIndex;
         qDebug() << "PluginModel: setTrackIndex to" << trackIndex;
         refresh();
