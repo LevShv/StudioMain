@@ -210,29 +210,20 @@ Rectangle {
                                     ToolTip.delay: 500
                                     ToolTip.text: "Обход плагина"
 
+                                    property bool isActive: true // Состояние кнопки (зеленый по умолчанию)
+
                                     background: Rectangle {
                                         radius: parent.radius
-                                        color: hideButton.hovered ? "#d0d0d0" : "transparent"
+                                        color: hideButton.isActive ? "#2C4A2C" : "#4A2C2C" // Зеленый или красный
                                         border.color: hideButton.hovered ? "#a0a0a0" : "transparent"
                                         border.width: 1
                                         Behavior on color { ColorAnimation { duration: 100 } }
                                         Behavior on border.color { ColorAnimation { duration: 100 } }
                                     }
 
-                                    Image {
-                                        anchors.centerIn: parent
-                                        width: 18
-                                        height: 18
-                                        source: imagesPath + "minus.png"
-                                        sourceSize.width: 18
-                                        sourceSize.height: 18
-                                        opacity: hideButton.down ? 0.7 : 1.0
-                                        fillMode: Image.PreserveAspectFit
-                                        Behavior on opacity { NumberAnimation { duration: 100 } }
-                                    }
-
                                     onClicked: {
                                         hideButton.scale = 0.95
+                                        isActive = !isActive // Переключение состояния
                                         viewModel.pluginModel.togglePluginBypass(model.trackIndex, model.pluginIndex)
                                         console.log("Hide button clicked for plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex)
                                     }
