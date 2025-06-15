@@ -159,7 +159,7 @@ public:
 
     //Files
 
-    void RenderToFile(std::string& Path);
+    void RenderToFile(std::string& Path, std::function<void(float)> progressCallback = nullptr);
     void SaveProject(const std::string& Path);
     bool LoadProject(const std::string& Path);
     void CreateNewProject();
@@ -291,7 +291,7 @@ private:
 
         //Render
 
-        void RenderToFile(std::string& Path);
+        void renderToFile(std::string& Path, std::function<void(float)> progressCallback = nullptr);
 
 
         //Preplay

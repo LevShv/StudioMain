@@ -3,6 +3,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QDesktopServices>
+#include <QtConcurrent/QtConcurrent>
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
     m_currentProjectPath = ""; // Изначально путь пустой
@@ -315,13 +316,6 @@ void ViewModel::setName(int trackIndex, QString name)
     engine.setName(trackIndex, name.toStdString());
 }
 
-void ViewModel::RenderToWave(QString path)
-{
-	std::string pathStr = path.toStdString();
-	engine.RenderToFile(pathStr);
-	qDebug() << "Render to file:" << path;
-}
-
 void ViewModel::SaveProject(QString path)
 {
     const std::string pathStr = path.toStdString();
@@ -516,28 +510,6 @@ void ViewModel::setVolume(int volume) {
     }
 }
 
-void ViewModel::stopDoplay(void(*func)(...))
-{
-    bool wasPlaying = isPlaying();
-    if (wasPlaying) {
-        engine.StopMix();
-        m_playheadTimer->stop();
-        m_isPlaying = false;
-        emit isPlayingChanged();
-        qDebug() << "Stopped playback before deleting track";
-    }
-
-    func();
-
-    if (wasPlaying && !engine.GetdataBase().empty()) {
-        engine.PlayMix();
-        m_playheadTimer->start(16);
-        m_isPlaying = true;
-        emit isPlayingChanged();
-        qDebug() << "Resumed playback after deleting track";
-    }
-}
-
 void ViewModel::setCurrentProjectPath(const QString& path) {
     if (m_currentProjectPath != path) {
         m_currentProjectPath = path;
@@ -555,4 +527,51 @@ void ViewModel::prepareForExit() {
         qDebug() << "Stopped playback before application exit";
     }
     // Дополнительная очистка, если требуется
+}
+
+void ViewModel::updateRenderProgress(float progress) {
+    if (m_renderProgress != progress) {
+        m_renderProgress = progress;
+        emit renderProgressChanged();
+        qDebug() << "Render progress updated:" << m_renderProgress;
+    }
+}
+
+void ViewModel::RenderToWave(QString path) {
+    m_renderProgress = 0.0;
+    emit renderProgressChanged();
+    //qDebug() << "Начало рендеринга в:" << path;
+
+    // Запускаем рендеринг в отдельном потоке
+    QtConcurrent::run([this, path]() {
+        std::string pathStr = path.toStdString();
+        bool success = true;
+        QString errorMessage;
+
+        try {
+            // Callback для прогресса, безопасный для UI
+            std::function<void(float)> progressCallback = [this](float progress) {
+                QMetaObject::invokeMethod(this, [this, progress]() {
+                    updateRenderProgress(progress);
+                    }, Qt::QueuedConnection);
+                };
+
+            engine.RenderToFile(pathStr, progressCallback);
+        }
+        catch (const std::exception& e) {
+            success = false;
+            errorMessage = QString("Ошибка рендеринга: %1").arg(e.what());
+            qWarning() << errorMessage;
+        }
+        catch (...) {
+            success = false;
+            errorMessage = "Ошибка рендеринга: Неизвестная ошибка";
+            qWarning() << errorMessage;
+        }
+
+        // Уведомляем UI о завершении
+        QMetaObject::invokeMethod(this, [this, success, errorMessage]() {
+            emit renderFinished(success, errorMessage);
+            }, Qt::QueuedConnection);
+        }); // Точка с запятой после QtConcurrent::run
 }

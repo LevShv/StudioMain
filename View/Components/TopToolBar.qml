@@ -80,8 +80,9 @@ Rectangle {
             var fileName = filePath.split('/').pop()
             topToolbar.renderFileName = fileName
             console.log("Рендеринг проекта в:", filePath)
+            renderProgressPopup.open()
             viewModel.RenderToWave(filePath)
-            renderProgressPopup.open() // Открываем прогресс-бар
+             // Открываем прогресс-бар
         }
         onRejected: {
             console.log("Диалог рендеринга отменен")
@@ -980,36 +981,26 @@ Rectangle {
     } 
     Popup {
         id: renderProgressPopup
-        anchors.centerIn: Overlay.overlay // Центрируем по всему экрану
-        width: 350
+        anchors.centerIn: parent
+        width: 300
         height: 100
         modal: true
         focus: true
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-        background: Rectangle {
-            color: "#2E3440"
-            radius: 8
-            border.color: "white"
-            border.width: 1
-        }
+        closePolicy: Popup.NoAutoClose // Не закрывать, пока рендеринг не завершится
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 10
             spacing: 10
 
             Label {
-               text: "Рендеринг проекта " + topToolbar.renderFileName + "..."
-                color: "white"
-                font.pixelSize: 14
+                text: "Рендеринг в процессе..."
                 Layout.alignment: Qt.AlignHCenter
             }
 
             ProgressBar {
                 id: renderProgressBar
                 Layout.fillWidth: true
-                value: 0.0 // Пока статичное значение, для будущей привязки
+                value: viewModel.renderProgress
                 from: 0.0
                 to: 1.0
                 Material.accent: "#8690FA"
@@ -1028,15 +1019,24 @@ Rectangle {
                 }
             }
         }
+    }
 
-        enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200 }
-        }
-        exit: Transition {
-            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 200 }
-        }
-        onClosed: {
-            topToolbar.renderFileName = "" // Сбрасываем имя файла при закрытии
+    // Обработка завершения рендеринга
+    Connections {
+        target: viewModel
+        function onRenderFinished(success, errorMessage) {
+            renderProgressPopup.close()
+            if (success) {
+                console.log("Рендеринг успешно завершен")
+                // Можно показать уведомление об успехе
+                // Например:
+                // showNotification("Рендеринг завершен!")
+            } else {
+                console.log("Ошибка рендеринга:", errorMessage)
+                // Показать ошибку
+                // Например:
+                // showErrorDialog(errorMessage)
+            }
         }
     }
 }

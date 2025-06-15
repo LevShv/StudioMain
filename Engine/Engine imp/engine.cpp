@@ -194,10 +194,9 @@ double& Engine::Position() {
     return core.positionInBeats;  
 }
 
-void Engine::RenderToFile(std::string& Path)
-{
+void Engine::RenderToFile(std::string& Path, std::function<void(float)> progressCallback) {
     juce::ScopedLock s1(core.lock);
-    core.RenderToFile(Path);
+    core.renderToFile(Path, progressCallback);
 }
 
 void Engine::SaveProject(const std::string& Path)

@@ -19,6 +19,7 @@ class ViewModel : public QObject {
         Q_PROPERTY(MidiMessageModel* midiModel READ midiModel CONSTANT) // Свойство для midiModel
         Q_PROPERTY(PluginModel* pluginModel READ pluginModel CONSTANT)
         Q_PROPERTY(QString currentProjectPath READ currentProjectPath WRITE setCurrentProjectPath NOTIFY currentProjectPathChanged)
+        Q_PROPERTY(float renderProgress READ renderProgress NOTIFY renderProgressChanged)
 
 public:
     explicit ViewModel(QObject* parent = nullptr);
@@ -29,6 +30,7 @@ public:
     MidiMessageModel* midiModel() const { return m_midiModel; } // Геттер для midiModel
     Engine* getEngine() { return &engine; } // Оставляем для других случаев
     PluginModel* pluginModel() const { return m_pluginModel; }
+    float renderProgress() const { return m_renderProgress; }
 
     Q_INVOKABLE void togglePlayback();
     Q_INVOKABLE void setPlayheadPosition(double position);
@@ -78,6 +80,8 @@ public:
     Q_SIGNAL void currentProjectPathChanged();
     Q_INVOKABLE void prepareForExit();
 
+
+
 signals:
     void isPlayingChanged();
     void volumeChanged();
@@ -89,11 +93,14 @@ signals:
     void trackGainChanged(int trackIndex, float gain); 
     void trackAdded(int trackIndex); 
     void clipDurationChanged(int trackIndex,int clipIndex, double newDuration);
+    void renderProgressChanged(); // New signal
+    void renderFinished(bool success, QString errorMessage);
 
     
 
 private slots:
     void updatePlayhead();
+    void updateRenderProgress(float progress);
 
 private:
 
@@ -109,6 +116,7 @@ private:
     int m_volume = 1;
     int m_masterGain = 1;
     int soloTrackInd = -1;
+    float m_renderProgress = 0.0;
 
 	const std::string samplerPath = "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3"; // Укажите реальный путь к сэмплеру
 

@@ -442,7 +442,7 @@ void Engine::Core::disableLoopMode()
     LOG_SUCCESS("Loop mode disabled, playhead set to: " << position << " seconds (" << positionInBeats << " beats)");
 }
 
-void Engine::Core::RenderToFile(std::string& outputPath) {
+void Engine::Core::renderToFile(std::string& outputPath, std::function<void(float)> progressCallback) {
     LOG("Starting render to file: " << outputPath);
 
     // 1. Проверяем и корректируем путь
@@ -476,9 +476,9 @@ void Engine::Core::RenderToFile(std::string& outputPath) {
     LOG("Project duration: " << projectDuration << " seconds");
 
     // 3. Настраиваем параметры рендера
-    const int samplesPerBlock = 512; // Размер блока для рендера
+    const int samplesPerBlock = 512;
     const double renderSampleRate = sampleRate > 0 ? sampleRate : 44100.0;
-    const int numChannels = 2; // Стерео
+    const int numChannels = 2;
     const int totalSamples = static_cast<int>(projectDuration * renderSampleRate);
 
     LOG("Render parameters: sampleRate=" << renderSampleRate << ", samplesPerBlock=" << samplesPerBlock << ", totalSamples=" << totalSamples);
@@ -504,9 +504,9 @@ void Engine::Core::RenderToFile(std::string& outputPath) {
         fileStream.release(),
         renderSampleRate,
         numChannels,
-        16, // 16-битный WAV
-        {}, // Метаданные (пустые)
-        0   // Качество (для WAV не используется)
+        16,
+        {},
+        0
     ));
 
     if (!writer) {
@@ -615,7 +615,6 @@ void Engine::Core::RenderToFile(std::string& outputPath) {
                                 sampleOffset = 0;
                             }
                             midiBuffer.addEvent(event->message, sampleOffset);
-                           
                         }
                     }
                 }
@@ -656,10 +655,16 @@ void Engine::Core::RenderToFile(std::string& outputPath) {
             return;
         }
 
+        // Обновляем прогресс
+        samplesRendered += samplesThisBlock;
+        float progress = static_cast<float>(samplesRendered) / totalSamples;
+        if (progressCallback) {
+            progressCallback(progress);
+        }
+
         position += blockDuration;
         positionInBeats = secondsToBeats(position);
         updateActiveClips();
-        samplesRendered += samplesThisBlock;
     }
 
     // 8. Завершаем запись
@@ -681,6 +686,11 @@ void Engine::Core::RenderToFile(std::string& outputPath) {
     if (!outputFile.existsAsFile()) {
         LOG_ERROR("Rendered file does not exist: " << outputPath);
         return;
+    }
+
+    // Уведомляем о завершении (прогресс = 1.0)
+    if (progressCallback) {
+        progressCallback(1.0f);
     }
 
     LOG_SUCCESS("Render completed successfully to: " << outputPath);
