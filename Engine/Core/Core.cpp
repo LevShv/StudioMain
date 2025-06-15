@@ -4,6 +4,8 @@
 #include <thread>
 #include <mutex>
 #include <algorithm>
+#include <juce_audio_formats/juce_audio_formats.h>
+#include "lame.h"
 
 #pragma region Core
 
@@ -899,61 +901,108 @@ void Engine::Core::loadAudioClip(int trackIndex, const juce::File& file, double 
     clip->file = file;
     clip->startBeats = startBeats;
     clip->startTime = beatsToSeconds(startBeats);
-    clip->clipID = clip->generateClipID(); // Уникальный ID
+    clip->clipID = clip->generateClipID();
     clip->color = clip->generateUniqueColor(clip->clipID);
 
     juce::AudioFormatReader* reader = formatManager.createReaderFor(file);
     if (reader) {
         clip->duration = reader->lengthInSamples / reader->sampleRate;
         clip->durationBeats = secondsToBeats(clip->duration);
+    }
+    else if (file.getFileExtension().toLowerCase() == ".mp3") {
+        FILE* mp3File = nullptr;
+        fopen_s(&mp3File, file.getFullPathName().toRawUTF8(), "rb");
+        if (mp3File) {
+            lame_t lame = lame_init();
+            lame_set_decode_only(lame, 1);
+            hip_t hip = hip_decode_init();
+            std::vector<short> pcmBuffer(1152 * 2);
+            std::vector<unsigned char> mp3Buffer(7200);
+            int read, samples;
+            double totalSamples = 0;
 
-        if (loadToRAM) {
-            clip->buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
-            reader->read(&clip->buffer, 0, (int)reader->lengthInSamples, 0, true, true);
-            clip->useRAM = true;
+            while ((read = fread(mp3Buffer.data(), 1, mp3Buffer.size(), mp3File)) > 0) {
+                samples = hip_decode(hip, mp3Buffer.data(), read, pcmBuffer.data(), pcmBuffer.data() + 1152);
+                if (samples > 0) totalSamples += samples / 2; // Считаем стерео-сэмплы
+            }
 
-            std::thread([clip = clip.get()]() {
-                int numSamples = clip->buffer.getNumSamples();
-                int numChannels = clip->buffer.getNumChannels();
+            hip_decode_exit(hip);
+            lame_close(lame);
+            fclose(mp3File);
 
-                const int minSamplesPerPoint = 100;
-                const int maxSamplesPerPoint = 1000;
-                const int maxSampleCount = 10000;
-                int sampleCount = numSamples / minSamplesPerPoint;
-                sampleCount = std::max(1, std::min(sampleCount, maxSampleCount));
-                if (numSamples / sampleCount > maxSamplesPerPoint) {
-                    sampleCount = numSamples / maxSamplesPerPoint;
-                }
-
-                int step = numSamples / sampleCount;
-                if (step < 1) step = 1;
-
-                std::vector<float> waveformData(sampleCount);
-                for (int i = 0; i < sampleCount && i * step < numSamples; ++i) {
-                    float maxAmplitude = 0.0f;
-                    for (int j = 0; j < step; ++j) {
-                        int sampleIdx = i * step + j;
-                        float amplitude = 0.0f;
-                        for (int c = 0; c < numChannels; ++c) {
-                            if (sampleIdx < numSamples) {
-                                amplitude += std::abs(clip->buffer.getSample(c, sampleIdx));
-                            }
-                        }
-                        amplitude /= numChannels;
-                        maxAmplitude = std::max(maxAmplitude, amplitude);
-                    }
-                    waveformData[i] = maxAmplitude;
-                }
-
-                juce::CriticalSection lock;
-                const juce::ScopedLock sl(lock);
-                clip->waveformData = std::move(waveformData);
-                }).detach();
+            clip->duration = totalSamples / 44100.0; // Предполагаем 44.1kHz
+            clip->durationBeats = secondsToBeats(clip->duration);
         }
-        delete reader;
     }
 
+    if (loadToRAM && clip->duration > 0) {
+        if (reader) {
+            clip->buffer.setSize(reader->numChannels, (int)reader->lengthInSamples);
+            reader->read(&clip->buffer, 0, (int)reader->lengthInSamples, 0, true, true);
+        }
+        else if (file.getFileExtension().toLowerCase() == ".mp3") {
+            FILE* mp3File = nullptr;
+            fopen_s(&mp3File, file.getFullPathName().toRawUTF8(), "rb");
+            if (mp3File) {
+                lame_t lame = lame_init();
+                lame_set_decode_only(lame, 1);
+                hip_t hip = hip_decode_init();
+                std::vector<short> pcmBuffer(1152 * 2);
+                std::vector<unsigned char> mp3Buffer(7200);
+                int read, samples;
+                clip->buffer.setSize(2, static_cast<int>(clip->duration * 44100.0)); // Стерео
+                clip->buffer.clear();
+                int writePos = 0;
+
+                while ((read = fread(mp3Buffer.data(), 1, mp3Buffer.size(), mp3File)) > 0) {
+                    samples = hip_decode(hip, mp3Buffer.data(), read, pcmBuffer.data(), pcmBuffer.data() + 1152);
+                    if (samples > 0 && writePos + samples / 2 <= clip->buffer.getNumSamples()) {
+                        for (int i = 0; i < samples / 2; ++i) {
+                            clip->buffer.setSample(0, writePos + i, pcmBuffer[i * 2] / 32767.0f);
+                            clip->buffer.setSample(1, writePos + i, pcmBuffer[i * 2 + 1] / 32767.0f);
+                        }
+                        writePos += samples / 2;
+                    }
+                }
+
+                hip_decode_exit(hip);
+                lame_close(lame);
+                fclose(mp3File);
+            }
+        }
+        clip->useRAM = true;
+        // Пересчёт waveformData (как в оригинале)
+        int numSamples = clip->buffer.getNumSamples();
+        int numChannels = clip->buffer.getNumChannels();
+        const int minSamplesPerPoint = 100;
+        const int maxSamplesPerPoint = 1000;
+        const int maxSampleCount = 10000;
+        int sampleCount = numSamples / minSamplesPerPoint;
+        sampleCount = std::max(1, std::min(sampleCount, maxSampleCount));
+        if (numSamples / sampleCount > maxSamplesPerPoint) sampleCount = numSamples / maxSamplesPerPoint;
+        int step = numSamples / sampleCount;
+        if (step < 1) step = 1;
+
+        std::vector<float> waveformData(sampleCount);
+        for (int i = 0; i < sampleCount && i * step < numSamples; ++i) {
+            float maxAmplitude = 0.0f;
+            for (int j = 0; j < step; ++j) {
+                int sampleIdx = i * step + j;
+                float amplitude = 0.0f;
+                for (int c = 0; c < numChannels; ++c) {
+                    if (sampleIdx < numSamples) amplitude += std::abs(clip->buffer.getSample(c, sampleIdx));
+                }
+                amplitude /= numChannels;
+                maxAmplitude = std::max(maxAmplitude, amplitude);
+            }
+            waveformData[i] = maxAmplitude;
+        }
+        clip->waveformData = std::move(waveformData);
+    }
+
+    if (reader) delete reader;
     tracks[trackIndex].clips.push_back(std::move(clip));
+    LOG_SUCCESS("Loaded audio clip: trackIndex=" << trackIndex << ", file=" << file.getFullPathName().toStdString());
 }
 
 void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startBeats) {

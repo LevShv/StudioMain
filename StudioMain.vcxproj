@@ -66,13 +66,13 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Separator;$(ProjectDir)Piano;$(ProjectDir)FileBrowser;$(ProjectDir)ClipModel;$(ProjectDir)TrackModel;$(ProjectDir)Tools;C:\JUCE\modules;$(ProjectDir)\Engine\engineLibs\Juce;$(ProjectDir)Engine\Header;$(ProjectDir)Engine\Structures;$(ProjectDir)Engine\Engine imp;$(ProjectDir)Engine\Core;$(ProjectDir)Engine;$(ProjectDir)ViewModel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Separator;$(ProjectDir)Piano;$(ProjectDir)FileBrowser;$(ProjectDir)ClipModel;$(ProjectDir)TrackModel;$(ProjectDir)Tools;C:\JUCE\modules;$(ProjectDir)\Engine\engineLibs\Juce;$(ProjectDir)Engine\Header;$(ProjectDir)Engine\Structures;$(ProjectDir)Engine\Engine imp;$(ProjectDir)Engine\Core;$(ProjectDir)Engine;$(ProjectDir)Engine\engineLibs\Lame;$(ProjectDir)Engine\engineLibs\Lame\include;$(ProjectDir)ViewModel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(ProjectDir)\Engine\engineLibs\Juce;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>winmm.lib;Jucelib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)\Engine\engineLibs\Lame;$(ProjectDir)\Engine\engineLibs\Juce;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>winmm.lib;Jucelib.lib;libmp3lame.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
