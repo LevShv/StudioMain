@@ -124,7 +124,7 @@ Rectangle {
                     }
 
                     MenuItem {
-                        text: "Загрузить..."                                
+                        text: "Открыть проект..."                                
                         onTriggered: {
                             loadDialog.open() // Открываем диалог загрузки
                         }
