@@ -67,7 +67,7 @@ Rectangle {
     FileDialog {
         id: renderDialog
         title: "Рендер проекта"
-        nameFilters: ["WAV файлы (*.wav)", "MP3 файлы (*.mp3)", "Все файлы (*)"]
+        nameFilters: ["WAV файлы (*.wav)", "MP3 файлы (*.mp3)", "Все файлы (*)", "AIFF файлы (*.aiff)"]
         fileMode: FileDialog.SaveFile
         currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Result"
         defaultSuffix: "wav" // По умолчанию сохраняем как .wav
