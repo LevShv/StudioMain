@@ -196,14 +196,16 @@ Rectangle {
                                 anchors.bottom: parent.bottom // Привязка к нижней части
                                 anchors.bottomMargin: 4 // Отступ от нижней границы
                                 spacing: 4
+                                leftPadding: -4
 
                                 // Круглая кнопка Hide (слева)
-                               /* RoundButton {
+                                RoundButton {
                                     id: hideButton
                                     width: 30
                                     height: 30
                                     radius: width / 2
                                     anchors.verticalCenter: parent.verticalCenter
+                                    anchors.horizontalCenterOffset: -20 // Смещение влево для центрирования двух кнопок
                                     ToolTip.visible: hovered
                                     ToolTip.delay: 500
                                     ToolTip.text: "Скрыть"
@@ -237,16 +239,17 @@ Rectangle {
                                     Behavior on scale {
                                         NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
                                     }
-                                }*/
+                                }
 
                                 // Прямоугольная AUDIO кнопка с надписью Open
                                 Button {
                                     id: audioButton
                                     property bool isOpen: false // Состояние кнопки
                                     text: isOpen ? "Close" : "Open"
-                                    width: fxContainer.width - 30
+                                    width: 40
                                     height: 38
                                     anchors.verticalCenter: parent.verticalCenter
+                                    anchors.horizontalCenterOffset: 20 // Смещение вправо для центрирования двух кнопок
                                     ToolTip.visible: hovered
                                     ToolTip.delay: 500
                                     ToolTip.text: isOpen ? "Свернуть " + (index + 1) : "Открыть " + (index + 1)
