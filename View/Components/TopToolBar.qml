@@ -144,16 +144,17 @@ Rectangle {
                     }
 
                     MenuItem {
-                        text: "Рендер..."                                
-                        onTriggered: {
-                            renderDialog.open() // Открываем диалог рендеринга
-                        }
-                    }
-
-                    MenuItem {
                         text: "Сохранить как..."                                
                         onTriggered: {
                             saveDialog.open() // Открываем диалог сохранения
+                        }
+                    }
+
+
+                    MenuItem {
+                        text: "Рендер..."                                
+                        onTriggered: {
+                            renderDialog.open() // Открываем диалог рендеринга
                         }
                     }
 
