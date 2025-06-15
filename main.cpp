@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <windows.h>
+#include <QIcon> // Добавьте для QIcon
 
 
 int main(int argc, char *argv[])
@@ -32,7 +33,10 @@ int main(int argc, char *argv[])
 	}
 	qDebug() << "Compile-time version:" << QT_VERSION_STR;
     QGuiApplication app(argc, argv);
-
+	
+	QString iconPath = QCoreApplication::applicationDirPath() + "/HomeLeTo/images/LeTo.ico";
+	app.setWindowIcon(QIcon(iconPath));
+	qDebug() << "Icon path set to:" << iconPath;
 	qmlRegisterType<FileBrowser>("FileBrowser", 1, 0, "FileBrowser");
 
     QQmlApplicationEngine engine;

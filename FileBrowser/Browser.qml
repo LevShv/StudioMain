@@ -12,7 +12,7 @@ Item {
     property int selectedIndex: -2
     property string dragFilePath
     property string currentFilter: "*" // Текущий фильтр файлов
-    property var supportedFormats: ["*.mp3", "*.wav", "*.mp4", "*.vst3"]
+    property var supportedFormats: ["*.mp3", "*.wav", "*.mp4", "*.vst3","*.aiff" ]
 
     property string imagesPath: "file:///" + browser.applicationHomeFolder() + "/images/"
 

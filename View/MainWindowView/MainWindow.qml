@@ -18,10 +18,13 @@ Window {
     height: 1080
     minimumWidth: 800  // Минимальная ширина
     minimumHeight: 600 // Минимальная высота
-    title: "StudioMain"
+    title: viewModel.currentProjectPath === "" ? "StudioMain" : "StudioMain: " + getFileName(viewModel.currentProjectPath)
     color: "#2E3440"
-    
-
+    function getFileName(path) {
+        var parts = path.split(/[\\/]/); // Разделяем путь по слешам
+        var fileName = parts[parts.length - 1]; // Берем последнюю часть (имя файла)
+        return fileName.split('.')[0]; // Убираем расширение, возвращаем часть до первой точки
+    }
     // свойтсва piano rol
     property int selectedTrackIndex: -1
     property int selectedClipIndex: -1

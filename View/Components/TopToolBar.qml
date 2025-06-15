@@ -67,7 +67,7 @@ Rectangle {
     FileDialog {
         id: renderDialog
         title: "Рендер проекта"
-        nameFilters: ["WAV файлы (*.wav)", "MP3 файлы (*.mp3)", "Все файлы (*)"]
+        nameFilters: ["WAV файлы (*.wav)", "MP3 файлы (*.mp3)", "Все файлы (*)", "AIFF файлы (*.aiff)"]
         fileMode: FileDialog.SaveFile
         currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Result"
         defaultSuffix: "wav" // По умолчанию сохраняем как .wav
@@ -124,7 +124,7 @@ Rectangle {
                     }
 
                     MenuItem {
-                        text: "Загрузить..."                                
+                        text: "Открыть проект..."                                
                         onTriggered: {
                             loadDialog.open() // Открываем диалог загрузки
                         }
@@ -978,19 +978,28 @@ Rectangle {
     } 
     Popup {
         id: renderProgressPopup
-        anchors.centerIn: parent
-        width: 300
+        anchors.centerIn: Overlay.overlay // Центрируем по всему экрану
+        width: 350
         height: 100
         modal: true
         focus: true
         closePolicy: Popup.NoAutoClose // Не закрывать, пока рендеринг не завершится
+
+        background: Rectangle {
+            color: "#2E3440"
+            radius: 8
+            border.color: "white"
+            border.width: 1
+        }
 
         ColumnLayout {
             anchors.fill: parent
             spacing: 10
 
             Label {
-                text: "Рендеринг в процессе..."
+                text: "Рендеринг " + topToolbar.renderFileName + "..."
+                color: "white"
+                font.pixelSize: 14
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -1016,6 +1025,74 @@ Rectangle {
                 }
             }
         }
+        onClosed: {
+            topToolbar.renderFileName = "" // Сбрасываем имя файла при закрытии
+        }
+    }
+    Popup {
+        id: successDialog
+        anchors.centerIn: Overlay.overlay
+        width: 350
+        height: 100
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape
+
+        background: Rectangle {
+            color: "#2E3440"
+            radius: 8
+            border.color: "white"
+            border.width: 1
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 10
+
+            Label {
+                text: "Рендеринг успешно завершен!"
+                color: "white"
+                font.pixelSize: 14
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 20
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                Button {
+                    id: okButton
+                    text: "ОК"
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    width: 38 // Новая ширина
+                    height: 34 // Новая высота
+                    font {
+                        family: "Tahoma"
+                        pixelSize: 10
+                    }
+
+                    background: Rectangle {
+                        radius: 3
+                        color: okButton.down ? "#B8C1FC" : (okButton.hovered ? "#D8DDFC" : "#CCD2FC")
+                        border.color: "#8293FC"
+                        border.width: 1
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        font: parent.font
+                        color: "#5153FF"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        anchors.centerIn: parent
+                    }
+
+                    onClicked: successDialog.close()
+                }
+            }
+        }
     }
 
     // Обработка завершения рендеринга
@@ -1028,6 +1105,7 @@ Rectangle {
                 // Можно показать уведомление об успехе
                 // Например:
                 // showNotification("Рендеринг завершен!")
+                successDialog.open()
             } else {
                 console.log("Ошибка рендеринга:", errorMessage)
                 // Показать ошибку
