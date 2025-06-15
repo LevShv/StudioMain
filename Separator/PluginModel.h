@@ -29,7 +29,8 @@ public:
         NameRole = Qt::UserRole + 1,
         IndexRole,
         TrackIndexRole,
-        IsPinnedRole  // Новая роль для флага закрепления
+        IsPinnedRole, 
+        Bypass 
     };
 
     // Реализация QAbstractListModel

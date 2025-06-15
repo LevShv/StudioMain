@@ -147,6 +147,7 @@ QVariant PluginModel::data(const QModelIndex& index, int role) const {
         return currentTrackIndex;
     case IsPinnedRole:  // Добавляем поддержку новой роли
         return plugin.isPinned;
+
     default:
         return QVariant();
     }
@@ -158,6 +159,7 @@ QHash<int, QByteArray> PluginModel::roleNames() const {
     roles[IndexRole] = "pluginIndex";
     roles[TrackIndexRole] = "trackIndex";
     roles[IsPinnedRole] = "isPinned";  // Добавляем роль для QML
+    roles[Bypass] = "bypass";
     return roles;
 }
 
@@ -265,6 +267,7 @@ void PluginModel::refresh() {
     qDebug() << "PluginModel refreshed for trackIndex:" << currentTrackIndex << "plugin count:" << plugins.size();
     emit rowCountChanged();
 }
+
 void PluginModel::togglePin(int trackIndex, int pluginIndex) {
     if (trackIndex != currentTrackIndex) {
         qWarning() << "togglePin: Track index mismatch, expected" << currentTrackIndex << "but got" << trackIndex;
