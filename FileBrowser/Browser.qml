@@ -12,7 +12,7 @@ Item {
     property int selectedIndex: -2
     property string dragFilePath
     property string currentFilter: "*" // Текущий фильтр файлов
-    property var supportedFormats: ["*.mp3", "*.wav", "*.mp4", "*.vst3","*.aiff" ]
+    property var supportedFormats: ["*.mp3", "*.wav", "*.vst3","*.aiff" ]
 
     property string imagesPath: "file:///" + browser.applicationHomeFolder() + "/images/"
 
@@ -179,7 +179,7 @@ Item {
                     case "": return "Только папки"
                     case "*.mp3": return "MP3 аудио"
                     case "*.wav": return "WAV аудио"
-                    case "*.mp4": return "MP4 видео"
+                    case "*.aiff": return "AIFF аудио"
                     default: return "Фильтр: " + root.currentFilter
                     }
                 }
@@ -209,7 +209,7 @@ Item {
                         case "": return root.imagesPath + "folder.png"
                         case "*.mp3": return root.imagesPath + "mp3.png"
                         case "*.wav": return root.imagesPath + "wav.png"
-                        case "*.mp4": return root.imagesPath + "mp4.png"
+                        case "*.aiff": return root.imagesPath + "file.png"
                         default: return root.imagesPath + "filter.png"
                         }
                     }
@@ -314,9 +314,9 @@ Item {
                         }
                     }
                     MenuItem {
-                        text: "MP4 видео"
-                        icon.source: root.imagesPath + "mp4.png"
-                        onTriggered: root.currentFilter = "*.mp4"
+                        text: "AIFF аудио"
+                        icon.source: root.imagesPath + "file.png"
+                        onTriggered: root.currentFilter = "*.aiff"
 
                         background: Rectangle {
                             implicitHeight: 30
@@ -395,7 +395,6 @@ Item {
                         if (fileIsDir) return root.imagesPath + "folder.png";
                         else if (fileName.endsWith(".mp3")) return root.imagesPath + "mp3.png";
                         else if (fileName.endsWith(".wav")) return root.imagesPath + "wav.png";
-                        else if (fileName.endsWith(".mp4")) return root.imagesPath + "mp4.png";
                         else return root.imagesPath + "file.png";
                     }
                     sourceSize.width: 16
