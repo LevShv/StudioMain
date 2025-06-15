@@ -1162,6 +1162,102 @@ void Engine::Core::moveClip(int trackIndex, int clipIndex, double startBeats) {
 
 }
 
+void Engine::Core::copyMidiClip(int trackIndex, int clipIndex, double startTime) {
+    const juce::ScopedLock sl(lock); // Защищаем доступ к данным
+
+    // Проверки валидности уже выполнены в Engine::CopyMidiClip, но дублируем для безопасности
+    if (trackIndex < 0 || trackIndex >= tracks.size()) {
+        LOG_ERROR("Недопустимый индекс трека в Core: " << trackIndex);
+        return;
+    }
+
+    auto& track = tracks[trackIndex];
+    if (!track.isMidiTrack) {
+        LOG_ERROR("Трек не является MIDI-треком в Core: " << trackIndex);
+        return;
+    }
+
+    if (clipIndex < 0 || clipIndex >= track.clips.size()) {
+        LOG_ERROR("Недопустимый индекс клипа в Core: " << clipIndex);
+        return;
+    }
+
+    if (startTime < 0.0) {
+        LOG_ERROR("Недопустимое время начала в Core: " << startTime);
+        return;
+    }
+
+    // Проверяем тип клипа
+    auto* midiClip = dynamic_cast<MidiClip*>(track.clips[clipIndex].get());
+    auto* cloneClip = dynamic_cast<CloneClip*>(track.clips[clipIndex].get());
+
+    if (!midiClip && !cloneClip) {
+        LOG_ERROR("Клип не является ни MidiClip, ни CloneClip: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex);
+        return;
+    }
+
+    std::unique_ptr<ClipBase> newClip;
+    double newStartBeats = secondsToBeats(startTime); // Преобразуем startTime в startBeats
+
+    if (midiClip) {
+        // Копируем MidiClip
+        newClip = std::make_unique<MidiClip>();
+        auto* newMidiClip = dynamic_cast<MidiClip*>(newClip.get());
+        newMidiClip->startTime = startTime;
+        newMidiClip->startBeats = newStartBeats;
+        newMidiClip->duration = midiClip->duration;
+        newMidiClip->durationBeats = midiClip->durationBeats;
+        newMidiClip->midiSequence = midiClip->midiSequence; // Копируем MIDI-события
+        newMidiClip->clipID = newMidiClip->generateClipID();
+        newMidiClip->color = newMidiClip->generateUniqueColor(newMidiClip->clipID);
+        newMidiClip->name = midiClip->name;
+        newMidiClip->gain = midiClip->gain;
+        newMidiClip->muted = midiClip->muted;
+        newMidiClip->minDurationBeats = midiClip->minDurationBeats;
+        LOG_SUCCESS("Скопирован MidiClip: trackIndex=" << trackIndex << ", newStartTime=" << startTime << ", clipID=" << newMidiClip->clipID);
+    }
+    else if (cloneClip) {
+        // Копируем CloneClip
+        if (!cloneClip->masterClip) {
+            LOG_ERROR("Мастер-клип не найден для CloneClip: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex);
+            return;
+        }
+
+        // Находим индекс мастер-клипа
+        int masterClipIndex = -1;
+        for (size_t i = 0; i < track.clips.size(); ++i) {
+            if (track.clips[i].get() == cloneClip->masterClip) {
+                masterClipIndex = static_cast<int>(i);
+                break;
+            }
+        }
+        if (masterClipIndex == -1) {
+            LOG_ERROR("Мастер-клип не найден в треке: trackIndex=" << trackIndex);
+            return;
+        }
+
+        // Создаем новый CloneClip
+        newClip = std::make_unique<CloneClip>(cloneClip->masterClip, newStartBeats);
+        auto* newCloneClip = dynamic_cast<CloneClip*>(newClip.get());
+        newCloneClip->startTime = startTime;
+        newCloneClip->startBeats = newStartBeats;
+        newCloneClip->duration = cloneClip->masterClip->duration;
+        newCloneClip->durationBeats = cloneClip->masterClip->durationBeats;
+        newCloneClip->masterClip = cloneClip->masterClip;
+        newCloneClip->masterClipID = cloneClip->masterClipID; // Обновляем masterClipID
+        newCloneClip->clipID = newCloneClip->generateClipID();
+        newCloneClip->color = cloneClip->generateUniqueColor(newCloneClip->clipID);
+        newCloneClip->name = cloneClip->name;
+        newCloneClip->gain = cloneClip->gain;
+        newCloneClip->muted = cloneClip->muted;
+        LOG_SUCCESS("Скопирован CloneClip: trackIndex=" << trackIndex << ", newStartTime=" << startTime << ", clipID=" << newCloneClip->clipID << ", masterClipIndex=" << masterClipIndex);
+    }
+
+    // Добавляем новый клип в трек
+    track.clips.push_back(std::move(newClip));
+    updateActiveClips();
+}
+
 void Engine::Core::changeMidiclipDuration(int trackIndex, int clipIndex, double newDurationBeats) {
     if (trackIndex < 0 || trackIndex >= tracks.size() ||
         clipIndex < 0 || clipIndex >= tracks[trackIndex].clips.size()) {

@@ -1777,7 +1777,7 @@ Window {
                                                                                     sourceIndex
                                                                                 )
                                                                                 if (model.type === "midi") {
-                                                                                    viewModel.addMidiClip(trackIndex, newPosition)
+                                                                                    viewModel.copyMidiClip(trackIndex, sourceIndex, newPosition / 2)
                                                                                     console.log(`MIDI clip copied: trackIndex=${trackIndex}, newPosition=${newPosition}`)
                                                                                 } else if (model.type === "audio") {
                                                                                     viewModel.addAudioClip(trackIndex, model.file, newPosition)

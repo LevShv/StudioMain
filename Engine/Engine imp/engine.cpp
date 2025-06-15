@@ -489,6 +489,11 @@ void Engine::ChangeColor(int trackIndex, int clipIndex, std::string color)
     }
 }
 
+void Engine::CopyMidiClip(int trackIndex, int clipIndex, double newStartTime) {
+    juce::ScopedLock sl(core.lock);
+    core.copyMidiClip(trackIndex, clipIndex, newStartTime);
+}
+
 void Engine::ChangeDuration(int trackIndex, int clipIndex, double newDurationBeats)
 {
     juce::ScopedLock sl(core.lock);

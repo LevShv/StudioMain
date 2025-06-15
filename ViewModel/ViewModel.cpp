@@ -409,6 +409,23 @@ void ViewModel::changeColor(int trackIndex, int clipIndex, const QColor& color)
     
 }
 
+void ViewModel::copyMidiClip(int trackIndex, int clipIndex, double startTime)
+{
+    if (trackIndex < 0 || trackIndex >= engine.GetdataBase().size() ||
+        clipIndex < 0 || clipIndex >= engine.GetdataBase()[trackIndex].clips.size()) {
+        qWarning() << "Invalid track or clip index for cope midi clip: trackIndex=" << trackIndex << ", clipIndex=" << clipIndex;
+        return;
+    }
+    
+    engine.CopyMidiClip(trackIndex, clipIndex, startTime);
+
+    ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
+    if (clipModel) {
+        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
+    }
+    emit clipAdded(trackIndex);
+}
+
 QString ViewModel::applicationHomeFolder() const
 {
     // Получаем директорию, где находится исполняемый файл

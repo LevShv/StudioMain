@@ -55,6 +55,7 @@ public:
     Q_INVOKABLE void AddCloneClip(int trackIndex, int masterClipIndex, double startBeats);
     Q_INVOKABLE void changeClipDuration(int trackIndex, int clipIndex, double newDuration); // Новый метод
     Q_INVOKABLE void changeColor(int trackIndex, int clipIndex, const QColor& color);
+    Q_INVOKABLE void copyMidiClip(int trackIndex, int clipIndex, double startTime);
 
     Q_INVOKABLE void RenderToWave(QString path);
     Q_INVOKABLE void SaveProject(QString path);

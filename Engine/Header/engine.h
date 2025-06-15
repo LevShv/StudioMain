@@ -125,6 +125,7 @@ public:
     void MoveClip(int trackIndex, int clipIndex, double startBeats);
     void DeleteClip(int trackIndex, int clipIndex);
     void ChangeColor(int trackIndex, int clipIndex, std::string color);
+    void CopyMidiClip(int trackIndex, int clipIndex, double startTime);
 
 
     // Midi
@@ -249,6 +250,7 @@ private:
         void changeMidiclipDuration(int trackIndex, int clipIndex, double newDuration);
         void changeAudioclipDuration(int trackIndex, int clipIndex, double newDuration);
         void moveClip(int trackIndex, int clipIndex, double newStartTime);
+        void copyMidiClip(int trackIndex, int clipIndex, double startTime);
 
         void loadAudioClip(int trackIndex, const juce::File& file, double startBeats, bool loadToRAM);
         void loadMidiClip(int trackIndex, const juce::MidiMessageSequence& sequence, double startBeats);
