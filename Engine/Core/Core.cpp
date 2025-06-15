@@ -7,6 +7,8 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 #include "lame.h"
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #pragma region Core
 
 Engine::Core::Core() {
@@ -449,16 +451,50 @@ void Engine::Core::renderToFile(std::string& outputPath, std::function<void(floa
 
     // 1. Проверяем и корректируем путь
     juce::File outputFile(outputPath);
-    if (!outputFile.hasFileExtension("wav")) {
+    if (!outputFile.hasFileExtension("wav") && !outputFile.hasFileExtension("mp3") && !outputFile.hasFileExtension("aiff")) {
         outputFile = outputFile.withFileExtension("wav");
         outputPath = outputFile.getFullPathName().toStdString();
         LOG("Added .wav extension to output path: " << outputPath);
     }
 
-    // Проверяем и создаем родительскую директорию
-    if (!outputFile.getParentDirectory().createDirectory()) {
-        LOG_ERROR("Failed to create parent directory: " << outputFile.getParentDirectory().getFullPathName().toStdString());
-        return;
+    // Проверяем и создаём родительскую директорию
+    juce::File parentDir = outputFile.getParentDirectory();
+    LOG("Checking parent directory: " << parentDir.getFullPathName().toStdString());
+    if (!parentDir.exists()) {
+        LOG("Parent directory does not exist, attempting to create...");
+        if (!parentDir.createDirectory()) {
+            char errorBuf[256];
+            strerror_s(errorBuf, sizeof(errorBuf), errno);
+            LOG_ERROR("Failed to create parent directory: " << parentDir.getFullPathName().toStdString() << ", errno: " << errno << ", error: " << errorBuf);
+            return;
+        }
+        LOG("Parent directory created successfully");
+    }
+    else {
+        LOG("Parent directory exists");
+    }
+
+    // Проверяем и создаём/пересоздаём файл для MP3
+    juce::String fileExtension = outputFile.getFileExtension().toLowerCase();
+    if (fileExtension == ".mp3") {
+        LOG("Attempting to create MP3 output file: " << outputFile.getFullPathName().toStdString());
+        if (outputFile.exists()) {
+            LOG("MP3 file already exists, attempting to overwrite...");
+            if (!outputFile.deleteFile()) {
+                char errorBuf[256];
+                strerror_s(errorBuf, sizeof(errorBuf), errno);
+                LOG_ERROR("Failed to delete existing MP3 file: " << outputFile.getFullPathName().toStdString() << ", errno: " << errno << ", error: " << errorBuf);
+                return;
+            }
+            LOG("Existing MP3 file deleted");
+        }
+        if (!outputFile.create()) {
+            char errorBuf[256];
+            strerror_s(errorBuf, sizeof(errorBuf), errno);
+            LOG_ERROR("Failed to create MP3 output file: " << outputFile.getFullPathName().toStdString() << ", errno: " << errno << ", error: " << errorBuf);
+            return;
+        }
+        LOG("MP3 output file created successfully");
     }
 
     // 2. Определяем максимальную длительность проекта
@@ -485,219 +521,318 @@ void Engine::Core::renderToFile(std::string& outputPath, std::function<void(floa
 
     LOG("Render parameters: sampleRate=" << renderSampleRate << ", samplesPerBlock=" << samplesPerBlock << ", totalSamples=" << totalSamples);
 
-    // 4. Создаём WAV-файл
-    if (outputFile.existsAsFile()) {
-        if (!outputFile.deleteFile()) {
-            LOG_ERROR("Failed to delete existing file: " << outputPath);
-            return;
-        }
-        LOG("Deleted existing file: " << outputPath);
-    }
-
-    std::unique_ptr<juce::FileOutputStream> fileStream(new juce::FileOutputStream(outputFile));
-    if (!fileStream->openedOk()) {
-        LOG_ERROR("Failed to open file stream for writing: " << outputPath);
-        return;
-    }
-
-    juce::WavAudioFormat wavFormat;
-    std::unique_ptr<juce::AudioFormatWriter> writer;
-    writer.reset(wavFormat.createWriterFor(
-        fileStream.release(),
-        renderSampleRate,
-        numChannels,
-        16,
-        {},
-        0
-    ));
-
-    if (!writer) {
-        LOG_ERROR("Failed to create WAV writer for file: " << outputPath);
-        return;
-    }
-
-    // 5. Подготавливаем буферы
-    juce::AudioBuffer<float> renderBuffer(numChannels, samplesPerBlock);
-    juce::AudioSourceChannelInfo bufferInfo(&renderBuffer, 0, samplesPerBlock);
-
-    // 6. Сбрасываем позицию воспроизведения
+    // 4. Сохраняем исходные значения позиции
     double originalPosition = position;
     double originalPositionInBeats = positionInBeats;
+
+    // Сбрасываем позицию для рендера
     position = 0.0;
     positionInBeats = 0.0;
     updateActiveClips();
 
-    LOG("Active clips at render start: " << activeClips.size());
-    for (const auto& active : activeClips) {
-        LOG("Clip: track=" << (active.track - &tracks[0]) << ", startTime=" << active.clip->startTime << ", clipID=" << active.clip->clipID);
-    }
+    // 5. Определяем формат и создаём соответствующий writer
+    std::unique_ptr<juce::FileOutputStream> fileStream;
+    std::unique_ptr<juce::AudioFormatWriter> writer;
 
-    // 7. Рендерим
-    int samplesRendered = 0;
-    while (samplesRendered < totalSamples) {
-        int samplesThisBlock = juce::jmin(samplesPerBlock, totalSamples - samplesRendered);
-        bufferInfo.numSamples = samplesThisBlock;
+    if (fileExtension == ".mp3") {
+        // Рендер в MP3 через LAME
+        FILE* mp3File = nullptr;
+        std::string filePath = outputFile.getFullPathName().toStdString();
+        LOG("Opening MP3 file for writing: " << filePath);
+        if (fopen_s(&mp3File, filePath.c_str(), "wb") != 0) {
+            char errorBuf[256];
+            strerror_s(errorBuf, sizeof(errorBuf), errno);
+            LOG_ERROR("Failed to open MP3 file for writing: " << filePath << ", errno: " << errno << ", error: " << errorBuf);
+            return;
+        }
+        LOG("MP3 file opened successfully: " << filePath);
 
-        // Очистка буфера перед обработкой
-        renderBuffer.clear();
+        lame_t lame = lame_init();
+        if (!lame) {
+            LOG_ERROR("Failed to initialize LAME encoder");
+            fclose(mp3File);
+            return;
+        }
+        LOG("LAME initialized successfully");
 
-        const double blockDuration = samplesThisBlock / renderSampleRate;
-        const double startTime = position;
-        const double endTime = startTime + blockDuration;
-        const double startBeats = positionInBeats;
-        const double blockDurationBeats = secondsToBeats(blockDuration);
-        const double endBeats = startBeats + blockDurationBeats;
+        lame_set_in_samplerate(lame, static_cast<int>(renderSampleRate));
+        lame_set_num_channels(lame, numChannels);
+        lame_set_brate(lame, 192);
+        lame_set_mode(lame, STEREO);
+        if (lame_init_params(lame) < 0) {
+            LOG_ERROR("Failed to initialize LAME parameters");
+            lame_close(lame);
+            fclose(mp3File);
+            return;
+        }
+        LOG("LAME parameters set successfully");
 
-        LOG("Processing block: samplesRendered=" << samplesRendered << ", startTime=" << startTime << ", endTime=" << endTime);
+        juce::AudioBuffer<float> renderBuffer(numChannels, samplesPerBlock);
+        int samplesRendered = 0;
 
-        // Обрабатываем каждый трек
-        for (auto& track : tracks) {
-            pluginBuffer.setSize(numChannels, samplesThisBlock);
-            pluginBuffer.clear();
-            bool hasAudio = false;
+        while (samplesRendered < totalSamples) {
+            int samplesThisBlock = juce::jmin(samplesPerBlock, totalSamples - samplesRendered);
+            renderBuffer.setSize(numChannels, samplesThisBlock, true);
+            renderBuffer.clear();
 
-            // Обрабатываем аудиоклипы
-            for (auto& active : activeClips) {
-                if (active.track != &track) continue;
+            const double blockDuration = samplesThisBlock / renderSampleRate;
+            const double startTime = position;
+            const double endTime = startTime + blockDuration;
 
-                const ClipBase* clipToProcess = active.clip;
-                if (auto* cloneClip = dynamic_cast<const CloneClip*>(active.clip)) {
-                    clipToProcess = cloneClip->masterClip;
-                }
+            for (auto& track : tracks) {
+                pluginBuffer.setSize(numChannels, samplesThisBlock);
+                pluginBuffer.clear();
+                bool hasAudio = false;
 
-                if (auto* audioClip = dynamic_cast<const AudioClip*>(clipToProcess)) {
-                    if (!audioClip->muted && !active.track->muted) {
-                        if (audioClip->useRAM) {
-                            const int startSample = static_cast<int>((startTime - active.clip->startTime) * renderSampleRate);
-                            const int numSamples = juce::jmin(
-                                samplesThisBlock,
-                                audioClip->buffer.getNumSamples() - startSample
-                            );
-                            if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
-                                for (int channel = 0; channel < pluginBuffer.getNumChannels(); ++channel) {
-                                    pluginBuffer.addFrom(
-                                        channel, 0, audioClip->buffer,
-                                        channel % audioClip->buffer.getNumChannels(),
-                                        startSample, numSamples,
-                                        active.track->gain * audioClip->gain
-                                    );
+                for (auto& active : activeClips) {
+                    if (active.track != &track) continue;
+
+                    const ClipBase* clipToProcess = active.clip;
+                    if (auto* cloneClip = dynamic_cast<const CloneClip*>(active.clip)) clipToProcess = cloneClip->masterClip;
+                    if (auto* audioClip = dynamic_cast<const AudioClip*>(clipToProcess)) {
+                        if (!audioClip->muted && !active.track->muted) {
+                            if (audioClip->useRAM) {
+                                const int startSample = static_cast<int>((startTime - active.clip->startTime) * renderSampleRate);
+                                const int numSamples = juce::jmin(samplesThisBlock, audioClip->buffer.getNumSamples() - startSample);
+                                if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
+                                    for (int channel = 0; channel < pluginBuffer.getNumChannels(); ++channel) {
+                                        pluginBuffer.addFrom(channel, 0, audioClip->buffer, channel % audioClip->buffer.getNumChannels(), startSample, numSamples, active.track->gain * audioClip->gain);
+                                    }
+                                    hasAudio = true;
                                 }
-                                hasAudio = true;
                             }
                         }
-                        else if (active.source != nullptr) {
-                            juce::AudioSourceChannelInfo tempInfo(&pluginBuffer, 0, samplesThisBlock);
-                            active.source->getNextAudioBlock(tempInfo);
-                            for (int channel = 0; channel < pluginBuffer.getNumChannels(); ++channel) {
-                                pluginBuffer.applyGain(channel, 0, samplesThisBlock, active.track->gain * audioClip->gain);
+                    }
+                }
+
+                juce::MidiBuffer midiBuffer;
+                for (auto& active : activeClips) {
+                    if (active.track != &track) continue;
+
+                    const ClipBase* clipToProcess = active.clip;
+                    if (auto* cloneClip = dynamic_cast<const CloneClip*>(active.clip)) clipToProcess = cloneClip->masterClip;
+                    if (auto* midiClip = dynamic_cast<const MidiClip*>(clipToProcess)) {
+                        for (const auto& event : midiClip->midiSequence) {
+                            double eventTime = active.clip->startTime + event->message.getTimeStamp();
+                            const double epsilon = 0.015; // Синхронизировано с getNextAudioBlock
+                            if (eventTime >= startTime - epsilon && eventTime < endTime) {
+                                int sampleOffset = static_cast<int>((eventTime - startTime) * renderSampleRate);
+                                if (sampleOffset < 0) sampleOffset = 0;
+                                midiBuffer.addEvent(event->message, sampleOffset);
                             }
-                            hasAudio = true;
                         }
+                    }
+                }
+
+                if (!track.muted && (hasAudio || !midiBuffer.isEmpty() || !track.plugins.empty())) {
+                    juce::AudioBuffer<float> processedBuffer = pluginBuffer;
+                    for (auto& pluginInstance : track.plugins) {
+                        if (!pluginInstance->bypass && pluginInstance->plugin) {
+                            pluginInstance->plugin->processBlock(processedBuffer, midiBuffer);
+                        }
+                    }
+                    for (int channel = 0; channel < numChannels; ++channel) {
+                        renderBuffer.addFrom(channel, 0, processedBuffer, channel % processedBuffer.getNumChannels(), 0, samplesThisBlock, track.gain);
                     }
                 }
             }
 
-            // Обрабатываем MIDI-клипы
-            juce::MidiBuffer midiBuffer;
-            for (auto& active : activeClips) {
-                if (active.track != &track) continue;
+            for (int channel = 0; channel < numChannels; ++channel) {
+                renderBuffer.applyGain(channel, 0, samplesThisBlock, masterGain);
+            }
 
-                const ClipBase* clipToProcess = active.clip;
-                if (auto* cloneClip = dynamic_cast<const CloneClip*>(active.clip)) {
-                    clipToProcess = cloneClip->masterClip;
-                }
-
-                if (auto* midiClip = dynamic_cast<const MidiClip*>(clipToProcess)) {
-                    for (const auto& event : midiClip->midiSequence) {
-                        double eventTime = active.clip->startTime + event->message.getTimeStamp();
-                        const double epsilon = 0.015;
-                        if (eventTime >= startTime - epsilon && eventTime < endTime) {
-                            int sampleOffset = static_cast<int>((eventTime - startTime) * renderSampleRate);
-                            if (sampleOffset < 0) {
-                                sampleOffset = 0;
-                            }
-                            midiBuffer.addEvent(event->message, sampleOffset);
-                        }
-                    }
+            std::vector<short> pcmBuffer(samplesThisBlock * numChannels);
+            for (int i = 0; i < samplesThisBlock; ++i) {
+                for (int ch = 0; ch < numChannels; ++ch) {
+                    pcmBuffer[i * numChannels + ch] = static_cast<short>(renderBuffer.getSample(ch, i) * 32767.0f);
                 }
             }
 
-            // Применяем плагины и добавляем в выходной буфер
-            if (!track.muted && (hasAudio || !midiBuffer.isEmpty() || !track.plugins.empty())) {
-                juce::AudioBuffer<float> processedBuffer = pluginBuffer;
-                for (auto& pluginInstance : track.plugins) {
-                    if (!pluginInstance->bypass && pluginInstance->plugin) {
-                        pluginInstance->plugin->processBlock(processedBuffer, midiBuffer);
-                    }
+            std::vector<unsigned char> mp3Buffer(7200);
+            int bytesWritten = lame_encode_buffer_interleaved(lame, pcmBuffer.data(), samplesThisBlock, mp3Buffer.data(), mp3Buffer.size());
+            if (bytesWritten > 0) {
+                if (fwrite(mp3Buffer.data(), 1, bytesWritten, mp3File) != bytesWritten) {
+                    char errorBuf[256];
+                    strerror_s(errorBuf, sizeof(errorBuf), errno);
+                    LOG_ERROR("Failed to write MP3 data to file: " << filePath << ", errno: " << errno << ", error: " << errorBuf);
+                    lame_close(lame);
+                    fclose(mp3File);
+                    return;
                 }
-                for (int channel = 0; channel < numChannels; ++channel) {
-                    renderBuffer.addFrom(
-                        channel, 0, processedBuffer,
-                        channel % processedBuffer.getNumChannels(),
-                        0, samplesThisBlock, track.gain
-                    );
-                }
+            }
+            else if (bytesWritten < 0) {
+                LOG_ERROR("LAME encoding error: " << bytesWritten);
+                lame_close(lame);
+                fclose(mp3File);
+                return;
+            }
+
+            samplesRendered += samplesThisBlock;
+            if (progressCallback) progressCallback(static_cast<float>(samplesRendered) / totalSamples);
+
+            position += blockDuration;
+            updateActiveClips();
+        }
+
+        int mp3BufferSize = 7200;
+        std::vector<unsigned char> mp3Buffer(mp3BufferSize);
+        int bytesWritten = lame_encode_flush(lame, mp3Buffer.data(), mp3BufferSize);
+        if (bytesWritten > 0) {
+            if (fwrite(mp3Buffer.data(), 1, bytesWritten, mp3File) != bytesWritten) {
+                char errorBuf[256];
+                strerror_s(errorBuf, sizeof(errorBuf), errno);
+                LOG_ERROR("Failed to write MP3 flush data to file: " << filePath << ", errno: " << errno << ", error: " << errorBuf);
             }
         }
 
-        // Применяем только masterGain к финальному буферу
-        for (int channel = 0; channel < numChannels; ++channel) {
-            renderBuffer.applyGain(channel, 0, samplesThisBlock, masterGain);
-        }
-
-        float maxSample = renderBuffer.getMagnitude(0, samplesThisBlock);
-        LOG("Render output buffer magnitude after gain: " << maxSample);
-        LOG("Master gain: " << masterGain);
-
-        // Проверяем успешность записи
-        if (!writer->writeFromAudioSampleBuffer(renderBuffer, 0, samplesThisBlock)) {
-            LOG_ERROR("Failed to write audio block at samplesRendered=" << samplesRendered);
-            writer->flush();
-            writer.reset();
+        lame_close(lame);
+        fclose(mp3File);
+        LOG_SUCCESS("MP3 rendering completed: " << filePath);
+    }
+    else {
+        // Рендер в WAV или AIFF
+        fileStream.reset(new juce::FileOutputStream(outputFile));
+        if (!fileStream->openedOk()) {
+            char errorBuf[256];
+            strerror_s(errorBuf, sizeof(errorBuf), errno);
+            LOG_ERROR("Failed to open file stream for writing: " << outputPath << ", errno: " << errno << ", error: " << errorBuf);
             return;
         }
 
-        // Обновляем прогресс
-        samplesRendered += samplesThisBlock;
-        float progress = static_cast<float>(samplesRendered) / totalSamples;
-        if (progressCallback) {
-            progressCallback(progress);
+        if (fileExtension == ".aiff") {
+            juce::AiffAudioFormat aiffFormat;
+            writer.reset(aiffFormat.createWriterFor(fileStream.release(), renderSampleRate, numChannels, 16, {}, 0));
+            if (!writer) {
+                LOG_ERROR("Failed to create AIFF writer for file: " << outputPath);
+                return;
+            }
+        }
+        else {
+            juce::WavAudioFormat wavFormat;
+            writer.reset(wavFormat.createWriterFor(fileStream.release(), renderSampleRate, numChannels, 16, {}, 0));
+            if (!writer) {
+                LOG_ERROR("Failed to create WAV writer for file: " << outputPath);
+                return;
+            }
         }
 
-        position += blockDuration;
-        positionInBeats = secondsToBeats(position);
-        updateActiveClips();
-    }
+        juce::AudioBuffer<float> renderBuffer(numChannels, samplesPerBlock);
+        juce::AudioSourceChannelInfo bufferInfo(&renderBuffer, 0, samplesPerBlock);
+        int samplesRendered = 0;
 
-    // 8. Завершаем запись
-    if (!writer->flush()) {
-        LOG_ERROR("Failed to flush writer for file: " << outputPath);
+        while (samplesRendered < totalSamples) {
+            int samplesThisBlock = juce::jmin(samplesPerBlock, totalSamples - samplesRendered);
+            bufferInfo.numSamples = samplesThisBlock;
+            renderBuffer.clear();
+
+            const double blockDuration = samplesThisBlock / renderSampleRate;
+            const double startTime = position;
+            const double endTime = startTime + blockDuration;
+
+            for (auto& track : tracks) {
+                pluginBuffer.setSize(numChannels, samplesThisBlock);
+                pluginBuffer.clear();
+                bool hasAudio = false;
+
+                for (auto& active : activeClips) {
+                    if (active.track != &track) continue;
+
+                    const ClipBase* clipToProcess = active.clip;
+                    if (auto* cloneClip = dynamic_cast<const CloneClip*>(active.clip)) clipToProcess = cloneClip->masterClip;
+                    if (auto* audioClip = dynamic_cast<const AudioClip*>(clipToProcess)) {
+                        if (!audioClip->muted && !active.track->muted) {
+                            if (audioClip->useRAM) {
+                                const int startSample = static_cast<int>((startTime - active.clip->startTime) * renderSampleRate);
+                                const int numSamples = juce::jmin(samplesThisBlock, audioClip->buffer.getNumSamples() - startSample);
+                                if (startSample >= 0 && numSamples > 0 && startSample < audioClip->buffer.getNumSamples()) {
+                                    for (int channel = 0; channel < pluginBuffer.getNumChannels(); ++channel) {
+                                        pluginBuffer.addFrom(channel, 0, audioClip->buffer, channel % audioClip->buffer.getNumChannels(), startSample, numSamples, active.track->gain * audioClip->gain);
+                                    }
+                                    hasAudio = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                juce::MidiBuffer midiBuffer;
+                for (auto& active : activeClips) {
+                    if (active.track != &track) continue;
+
+                    const ClipBase* clipToProcess = active.clip;
+                    if (auto* cloneClip = dynamic_cast<const CloneClip*>(active.clip)) clipToProcess = cloneClip->masterClip;
+                    if (auto* midiClip = dynamic_cast<const MidiClip*>(clipToProcess)) {
+                        for (const auto& event : midiClip->midiSequence) {
+                            double eventTime = active.clip->startTime + event->message.getTimeStamp();
+                            const double epsilon = 0.01; // Синхронизировано с getNextAudioBlock
+                            if (eventTime >= startTime - epsilon && eventTime < endTime) {
+                                int sampleOffset = static_cast<int>((eventTime - startTime) * renderSampleRate);
+                                if (sampleOffset < 0) sampleOffset = 0;
+                                midiBuffer.addEvent(event->message, sampleOffset);
+                            }
+                        }
+                    }
+                }
+
+                if (!track.muted && (hasAudio || !midiBuffer.isEmpty() || !track.plugins.empty())) {
+                    juce::AudioBuffer<float> processedBuffer = pluginBuffer;
+                    for (auto& pluginInstance : track.plugins) {
+                        if (!pluginInstance->bypass && pluginInstance->plugin) {
+                            pluginInstance->plugin->processBlock(processedBuffer, midiBuffer);
+                        }
+                    }
+                    for (int channel = 0; channel < numChannels; ++channel) {
+                        renderBuffer.addFrom(channel, 0, processedBuffer, channel % processedBuffer.getNumChannels(), 0, samplesThisBlock, track.gain);
+                    }
+                }
+            }
+
+            for (int channel = 0; channel < numChannels; ++channel) {
+                renderBuffer.applyGain(channel, 0, samplesThisBlock, masterGain);
+            }
+
+            if (!writer->writeFromAudioSampleBuffer(renderBuffer, 0, samplesThisBlock)) {
+                LOG_ERROR("Failed to write audio block at samplesRendered=" << samplesRendered);
+                writer->flush();
+                writer.reset();
+                return;
+            }
+
+            samplesRendered += samplesThisBlock;
+            float progress = static_cast<float>(samplesRendered) / totalSamples;
+            if (progressCallback) progressCallback(progress);
+
+            position += blockDuration;
+            positionInBeats = secondsToBeats(position);
+            updateActiveClips();
+        }
+
+        if (!writer->flush()) {
+            LOG_ERROR("Failed to flush writer for file: " << outputPath);
+            writer.reset();
+            return;
+        }
         writer.reset();
-        return;
     }
 
-    writer.reset();
     LOG("File written and closed: " << outputPath);
 
-    // 9. Восстанавливаем позицию
+    // Восстанавливаем позицию
     position = originalPosition;
     positionInBeats = originalPositionInBeats;
     updateActiveClips();
 
-    // 10. Проверяем существование файла
+    // Проверяем существование файла
     if (!outputFile.existsAsFile()) {
         LOG_ERROR("Rendered file does not exist: " << outputPath);
         return;
     }
 
-    // Уведомляем о завершении (прогресс = 1.0)
-    if (progressCallback) {
-        progressCallback(1.0f);
-    }
+    // Уведомляем о завершении
+    if (progressCallback) progressCallback(1.0f);
 
     LOG_SUCCESS("Render completed successfully to: " << outputPath);
 }
-
 void Engine::Core::playNote(int trackIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel)
 {
     const juce::ScopedLock sl(lock); // Защищаем доступ
