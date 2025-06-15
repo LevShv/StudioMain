@@ -207,15 +207,12 @@ Rectangle {
                             id: aboutMenu
                             y: 0
                             x: parent.width
-                            width: 150
-                            height: 40
+                            width: 300
+                            height: 80
                             closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        
-                            
-        
                             Label {
                                 anchors.centerIn: parent
-                                text: "LeTo corporation"
+                                text: "LeTo corporation:\nЛев Швецов - директор, backend-программист\nТо Хоанг Ньат Фонг - frontend-программист"
                                 font.pixelSize: 11
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter

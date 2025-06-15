@@ -83,8 +83,8 @@ Rectangle {
 
                         RoundButton {
                             id: pinButton
-                            width: 20
-                            height: 20
+                            width: 15
+                            height: 15
                             radius: width / 2
                             anchors.top: parent.top
                             anchors.right: parent.right
@@ -105,8 +105,8 @@ Rectangle {
 
                             Image {
                                 anchors.centerIn: parent
-                                width: 20
-                                height: 20
+                                width: 15
+                                height: 15
                                 source: fxContainer.isPinned ? imagesPath + "закреплено.png" : imagesPath + "откреплено.png"
                                 sourceSize.width: 12
                                 sourceSize.height: 12
@@ -198,7 +198,7 @@ Rectangle {
                                 spacing: 4
 
                                 // Круглая кнопка Hide (слева)
-                                RoundButton {
+                               /* RoundButton {
                                     id: hideButton
                                     width: 30
                                     height: 30
@@ -237,18 +237,19 @@ Rectangle {
                                     Behavior on scale {
                                         NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
                                     }
-                                }
+                                }*/
 
                                 // Прямоугольная AUDIO кнопка с надписью Open
                                 Button {
                                     id: audioButton
-                                    text: "Open"
-                                    width: 40
+                                    property bool isOpen: false // Состояние кнопки
+                                    text: isOpen ? "Close" : "Open"
+                                    width: fxContainer.width - 30
                                     height: 38
                                     anchors.verticalCenter: parent.verticalCenter
                                     ToolTip.visible: hovered
                                     ToolTip.delay: 500
-                                    ToolTip.text: "Открыть " + (index + 1)
+                                    ToolTip.text: isOpen ? "Свернуть " + (index + 1) : "Открыть " + (index + 1)
                                     font {
                                         family: "Tahoma"
                                         pixelSize: 11
@@ -274,14 +275,21 @@ Rectangle {
 
                                     onClicked: {
                                         if (model.trackIndex >= 0 && model.pluginIndex >= 0) {
-                                            viewModel.pluginModel.openPluginEditor(model.trackIndex, model.pluginIndex);
-                                            console.log("Opening plugin editor: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex);
+                                            if (isOpen) {
+                                                viewModel.pluginModel.hidePlugin(model.trackIndex, model.pluginIndex);
+                                                isOpen = false;
+                                                console.log("Plugin hidden: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex);
+                                            } else {
+                                                viewModel.pluginModel.openPluginEditor(model.trackIndex, model.pluginIndex);
+                                                isOpen = true;
+                                                console.log("Plugin opened: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex);
+                                            }
                                         }
                                     }
                                 }
 
                                 // Круглая кнопка Hide2 (справа)
-                                RoundButton {
+                                /*RoundButton {
                                     id: minusButton
                                     width: 30
                                     height: 30
@@ -322,7 +330,7 @@ Rectangle {
                                     Behavior on scale {
                                         NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
                                     }
-                                }
+                                }*/
                             }
                         }
                     }

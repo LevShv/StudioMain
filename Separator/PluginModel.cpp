@@ -52,7 +52,7 @@ void PluginModel::deletePlugin(int trackIndex, int pluginIndex) {
     emit pluginAdded(trackIndex);  // Ёто может быть ошибкой, возможно, стоит убрать или заменить на pluginRemoved
 }
 
-void PluginModel::HidePlugin(int trackIndex, int pluginIndex)
+void PluginModel::hidePlugin(int trackIndex, int pluginIndex)
 {
     if (trackIndex >= 0 && trackIndex < engine.GetdataBase().size()) {
         // ѕровер€ем, открыт ли редактор плагина

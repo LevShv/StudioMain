@@ -19,9 +19,10 @@ public:
     Q_INVOKABLE void addPlugin(int trackIndex, const QString& pluginPath);
     Q_INVOKABLE void togglePluginBypass(int trackIndex, int pluginIndex);
     Q_INVOKABLE void deletePlugin(int trackIndex, int pluginIndex);
-    Q_INVOKABLE void HidePlugin(int trackIndex, int pluginIndex);
+    Q_INVOKABLE void hidePlugin(int trackIndex, int pluginIndex);
     Q_INVOKABLE void openPluginEditor(int trackIndex, int pluginIndex);
     Q_INVOKABLE void togglePin(int trackIndex, int pluginIndex);
+
    
 
     enum PluginRoles {
