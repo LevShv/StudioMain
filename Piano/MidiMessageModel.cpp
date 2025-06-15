@@ -10,7 +10,6 @@ void MidiMessageModel::setClipDuration(double duration) {
     if (m_clipDuration != duration) {
         m_clipDuration = duration;
         qDebug() << "MidiMessageModel: Set clipDuration to" << m_clipDuration;
-        // Синхронизируем с Engine
         if (m_trackIndex >= 0 && m_clipIndex >= 0) {
             m_engine.ChangeDuration(m_trackIndex, m_clipIndex, duration);
             qDebug() << "MidiMessageModel: Updated Engine clip duration for trackIndex=" << m_trackIndex << " clipIndex=" << m_clipIndex;
@@ -38,7 +37,7 @@ void MidiMessageModel::setClipIndex(int index) {
             const auto& clips = database[m_trackIndex].clips;
             if (m_clipIndex >= 0 && m_clipIndex < clips.size()) {
                 if (auto* midiClip = dynamic_cast<Engine::MidiClip*>(clips[m_clipIndex].get())) {
-                    m_engine.cleanMidiSequence(midiClip); // Очистка при смене клипа
+                    m_engine.cleanMidiSequence(midiClip);
                 }
             }
         }
@@ -102,7 +101,6 @@ QHash<int, QByteArray> MidiMessageModel::roleNames() const {
 void MidiMessageModel::addNote(int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
     if (startBeats + durationBeats <= m_clipDuration) {
         m_engine.AddMidiNote(m_trackIndex, m_clipIndex, noteNumber, startBeats, durationBeats, velocity, channel);
-       // m_engine.PlayNote(m_trackIndex, noteNumber, startBeats, durationBeats, velocity, channel);
         refresh();
     }
     else {
@@ -130,7 +128,7 @@ void MidiMessageModel::rebuildNoteList() {
         if (m_clipIndex >= 0 && m_clipIndex < clips.size()) {
             if (auto* midiClip = dynamic_cast<Engine::MidiClip*>(clips[m_clipIndex].get())) {
                 m_clipDuration = midiClip->durationBeats;
-                m_clipStartTime = midiClip->startBeats; // Обновляем startBeats
+                m_clipStartTime = midiClip->startBeats; 
                 std::map<std::pair<int, int>, std::pair<double, float>> noteOnTimes;
                 qDebug() << "Total events in midiSequence: " << midiClip->midiSequence.getNumEvents();
                 for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
@@ -222,12 +220,12 @@ void MidiMessageModel::onClipMoved(int trackIndex, int clipIndex, double newStar
     qDebug() << "MidiMessageModel: Received clipMoved signal: trackIndex=" << trackIndex
         << ", clipIndex=" << clipIndex << ", newStartBeats=" << newStartBeats;
     if (trackIndex == m_trackIndex && clipIndex == m_clipIndex) {
-        setRedlineStartime(); // Обновляем только для текущего клипа
+        setRedlineStartime();
     }
 }
 
 void MidiMessageModel::addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel) {
-    // Проверяем валидность параметров
+    
     if (trackIndex < 0 || clipIndex < 0 || noteNumber < 0 || noteNumber > 127 ||
         startBeats < 0 || durationBeats <= 0 || velocity < 0 || velocity > 1.0 || channel < 1 || channel > 16) {
         qWarning() << "ViewModel: Invalid note parameters: noteNumber=" << noteNumber
@@ -236,27 +234,22 @@ void MidiMessageModel::addMidiNote(int trackIndex, int clipIndex, int noteNumber
         return;
     }
 
-    // Обновляем индексы в midiModel
     setTrackIndex(trackIndex);
     setClipIndex(clipIndex);
 
-    // Проверяем валидность индексов
     const auto& database = m_engine.GetdataBase();
     if (trackIndex >= database.size() || clipIndex >= database[trackIndex].clips.size()) {
         qWarning() << "ViewModel: Invalid trackIndex=" << trackIndex << "or clipIndex=" << clipIndex;
         return;
     }
 
-    // Проверяем, является ли клип MidiClip
     if (!dynamic_cast<Engine::MidiClip*>(database[trackIndex].clips[clipIndex].get())) {
         qWarning() << "ViewModel: Clip at trackIndex=" << trackIndex << "clipIndex=" << clipIndex << "is not a MidiClip";
         return;
     }
 
-    // Добавляем ноту в Engine
     m_engine.AddMidiNote(trackIndex, clipIndex, noteNumber, startBeats, durationBeats, velocity, channel);
 
-    // Синхронизируем модель с Engine
     refresh();
     qDebug() << "ViewModel: Added MIDI note: trackIndex=" << trackIndex << "clipIndex=" << clipIndex
         << "noteNumber=" << noteNumber << "startBeats=" << startBeats << "velocity=" << velocity;

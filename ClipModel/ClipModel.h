@@ -23,8 +23,8 @@ public:
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void addClip(const Engine::ClipPtr& clip); // Метод для добавления клипа
-    void updateClip(int clipIndex); // Метод для обновления клипа
+    void addClip(const Engine::ClipPtr& clip);
+    void updateClip(int clipIndex); 
     void setTrackIndex(int trackIndex);
 	void deleteClip(int clipIndex); 
 

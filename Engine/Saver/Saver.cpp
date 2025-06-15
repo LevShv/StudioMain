@@ -11,7 +11,7 @@ void Engine::Saver::SaveProject(const std::string filePath)
     // Глобальные настройки
     projectJson.getDynamicObject()->setProperty("bpm", m_core.bpm);
     projectJson.getDynamicObject()->setProperty("position", m_core.position);
-    projectJson.getDynamicObject()->setProperty("version", "1.0"); // Для совместимости
+    projectJson.getDynamicObject()->setProperty("version", "1.0");
     projectJson.getDynamicObject()->setProperty("masterGain", m_core.masterGain);
 
 
@@ -30,7 +30,7 @@ void Engine::Saver::SaveProject(const std::string filePath)
 
         for (const auto& clip : track.clips) {
             juce::DynamicObject::Ptr clipJson = new juce::DynamicObject();
-            clipJson->setProperty("clipID", juce::String(clip->clipID)); // Преобразуем std::string в juce::String
+            clipJson->setProperty("clipID", juce::String(clip->clipID));
             clipJson->setProperty("startBeats", clip->startBeats);
             clipJson->setProperty("durationBeats", clip->durationBeats);
             clipJson->setProperty("gain", clip->gain);
@@ -39,7 +39,7 @@ void Engine::Saver::SaveProject(const std::string filePath)
 
             if (auto* cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
                 clipJson->setProperty("type", "clone");
-                clipJson->setProperty("masterClipID", juce::String(cloneClip->masterClipID)); // Исправлено
+                clipJson->setProperty("masterClipID", juce::String(cloneClip->masterClipID));
                 LOG("Saved clone clip with clipID=" << clip->clipID << ", masterClipID=" << cloneClip->masterClipID);
             }
             else if (auto* audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
@@ -52,7 +52,7 @@ void Engine::Saver::SaveProject(const std::string filePath)
                 clipJson->setProperty("type", "midi");
 
                 juce::Array<juce::var> notesArray;
-                std::map<std::pair<int, int>, double> noteOnTimes; // {channel, noteNumber} -> startTime
+                std::map<std::pair<int, int>, double> noteOnTimes; 
 
                 for (int i = 0; i < midiClip->midiSequence.getNumEvents(); ++i) {
                     auto* event = midiClip->midiSequence.getEventPointer(i);
@@ -74,8 +74,6 @@ void Engine::Saver::SaveProject(const std::string filePath)
                             if (durationSeconds > 0) {
                                 juce::DynamicObject::Ptr noteObj = new juce::DynamicObject();
                                 noteObj->setProperty("noteNumber", noteNumber);
-                                // Вычитаем clip->startBeats для относительного времени
-                              //  double clipStartBeats = midiClip->startBeats;
                                 double noteStartBeats = m_core.secondsToBeats(startSeconds);
                                 noteObj->setProperty("startBeats", noteStartBeats);
                                 noteObj->setProperty("durationBeats", m_core.secondsToBeats(durationSeconds));
@@ -170,7 +168,6 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
     m_core.tracks.clear();
     LOG("Tracks cleared before loading, size=" << m_core.tracks.size());
 
-    // Загрузка глобальных настроек
     if (json.hasProperty("bpm")) {
         m_core.setBPM(json["bpm"]);
         LOG("Set BPM: " << m_core.bpm);
@@ -180,7 +177,7 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
         LOG("Set position: " << m_core.position);
     }
     if (json.hasProperty("masterGain")) {
-        m_core.setMasterGain(static_cast<float>(json["masterGain"])); // Загрузка masterGain
+        m_core.setMasterGain(static_cast<float>(json["masterGain"]));
         LOG("Set masterGain: " << m_core.masterGain);
     }
     m_core.userVolume = 1;
@@ -250,14 +247,12 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
                         midiClip->midiSequence = juce::MidiMessageSequence();
                         midiClip->color = clipVar["color"].toString().toStdString();
 
-                        // Добавляем клип в трек
                         track.clips.push_back(std::move(midiClip));
                         int clipIndex = track.clips.size() - 1;
                         ClipBase* clipBase = track.clips.back().get();
                         auto* midiClipPtr = dynamic_cast<MidiClip*>(clipBase);
                         LOG("Added MIDI clip to track, clipID=" << clipBase->clipID);
 
-                        // Загружаем ноты напрямую в midiSequence
                         juce::var notesVar = clipVar["notes"];
                         if (notesVar.isArray()) {
                             for (const auto& noteData : *notesVar.getArray()) {
@@ -267,7 +262,6 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
                                 float velocity = noteData["velocity"];
                                 int channel = noteData["channel"];
 
-                                // Проверяем параметры ноты
                                 if (noteNumber < 0 || noteNumber > 127 || noteStartBeats < 0 ||
                                     noteDurationBeats <= 0 || velocity < 0 || velocity > 1.0f ||
                                     channel < 1 || channel > 16) {
@@ -280,8 +274,8 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
                                     continue;
                                 }
 
-                                double startTimeSeconds = m_core.beatsToSeconds(noteStartBeats /*+ startBeats*/);
-                                double endTimeSeconds = m_core.beatsToSeconds(noteStartBeats/* + startBeats */+ noteDurationBeats);
+                                double startTimeSeconds = m_core.beatsToSeconds(noteStartBeats);
+                                double endTimeSeconds = m_core.beatsToSeconds(noteStartBeats+ noteDurationBeats);
 
                                 midiClipPtr->midiSequence.addEvent(
                                     juce::MidiMessage::noteOn(channel, noteNumber, velocity),
@@ -296,9 +290,6 @@ bool Engine::Saver::LoadProject(const std::string filePath) {
                                     << ", velocity=" << velocity
                                     << ", channel=" << channel);
                             }
-
-                            // Санитизируем последовательность после добавления всех нот
-                            //sanitizeMidiSequenceForLoad(midiClipPtr);
                             LOG("Loaded MIDI clip with clipID=" << clipID
                                 << ", notes=" << notesVar.getArray()->size()
                                 << ", startBeats=" << startBeats

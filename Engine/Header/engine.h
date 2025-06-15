@@ -197,8 +197,8 @@ private:
         double bpm = 120.0;
         int timeSignatureNumerator = 4; 
         int timeSignatureDenominator = 4; 
-        float masterGain = 1.0f; // Основная громкость, сохраняется
-        float userVolume = 1.0f; // Пользовательская громкость, не сохраняется
+        float masterGain = 1.0f;
+        float userVolume = 1.0f;
 
         void startAudio(juce::AudioDeviceManager& deviceManager);
         void stopAudio(juce::AudioDeviceManager& deviceManager);
@@ -259,7 +259,7 @@ private:
 
         // Midi
 
-        std::map<std::pair<int, int>, double> activeNotes; // ����: (�����, ����� ����), ��������: ����� noteOn
+        std::map<std::pair<int, int>, double> activeNotes; 
         std::unique_ptr<juce::MidiOutput> midiOutput;
 
         void addMidiNote(int trackIndex, int clipIndex, int noteNumber, double startBeats, double durationBeats, float velocity, int channel);
@@ -271,7 +271,7 @@ private:
 
         //Plugins
 
-        juce::AudioPluginFormatManager pluginFormatManager; // ��� �������� VST/VST3
+        juce::AudioPluginFormatManager pluginFormatManager;
 
         void addPluginToTrack(int trackIndex, const juce::String& pluginPath);
         void removePluginFromTrack(int trackIndex, int pluginIndex);
@@ -281,11 +281,11 @@ private:
 
         //Clip loop mode
         
-        bool loopModeEnabled = false;// Флаг режима циклического воспроизведения
-        int loopTrackIndex = -1;     // Индекс трека для циклического воспроизведения
-        int loopClipIndex = -1;      // Индекс клипа для циклического воспроизведения
-        double loopStartTime = 0.0;  // Начальная позиция воспроизведения в секундах относительно клипа
-        double loopDuration = 0.0;   // Длительность циклического воспроизведения (длительность клипа)
+        bool loopModeEnabled = false;
+        int loopTrackIndex = -1;    
+        int loopClipIndex = -1;      
+        double loopStartTime = 0.0;  
+        double loopDuration = 0.0;   
         
         void enableLoopMode(int trackIndex, int clipIndex);
         void disableLoopMode();
@@ -312,9 +312,9 @@ private:
             juce::int64 position = 0;
 
         };
-        juce::KnownPluginList pluginList; // ��������� KnownPluginList
+        juce::KnownPluginList pluginList; 
 
-        juce::AudioBuffer<float> pluginBuffer; // ����� ��� ��������� ��������
+        juce::AudioBuffer<float> pluginBuffer; 
         juce::AudioFormatManager formatManager;
         juce::AudioSourcePlayer audioSourcePlayer;
 

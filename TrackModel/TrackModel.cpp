@@ -22,7 +22,7 @@ int TrackModel::rowCount(const QModelIndex& parent) const {
 
 QVariant TrackModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid() || index.row() >= m_rowCount)
-        return QVariant();  // Важно!
+        return QVariant(); 
 
     const auto& tracks = m_engine.GetdataBase();
     int row = index.row();
@@ -33,7 +33,6 @@ QVariant TrackModel::data(const QModelIndex& index, int role) const {
     }
 
     const auto& track = tracks[row];
-    //qDebug() << "Processing track" << row << "with" << track.clips.size() << "clips";
 
     switch (role) {
     case TrackIndexRole:
@@ -75,7 +74,7 @@ QHash<int, QByteArray> TrackModel::roleNames() const {
     roles[DurationBeatsRole] = "durationBeats";
     roles[ClipTypeRole] = "type";
     roles[FilePathRole] = "file";
-    roles[TrackTypeRole] = "trackType"; // Добавляем новую роль
+    roles[TrackTypeRole] = "trackType";
     roles[GainRole] = "gain";
     roles[Mute] = "muted";
     roles[Name] = "name";
@@ -84,7 +83,7 @@ QHash<int, QByteArray> TrackModel::roleNames() const {
 }
 
 ClipModel* TrackModel::getClipModel(int trackIndex) const {
-    return m_clipModels.value(trackIndex, nullptr); // Возвращаем существующий или nullptr
+    return m_clipModels.value(trackIndex, nullptr);
 }
 
 void TrackModel::ensureClipModel(int trackIndex) {
@@ -131,13 +130,11 @@ void TrackModel::deleteTrack(int trackIndex)
 {
     beginRemoveRows(QModelIndex(), trackIndex, trackIndex);
 
-    // Удаляем ClipModel для удаляемой дорожки
     if (m_clipModels.contains(trackIndex)) {
         delete m_clipModels.take(trackIndex);
         qDebug() << "Deleted ClipModel for track" << trackIndex;
     }
 
-    // Обновляем индексы для всех ClipModel с индексами > trackIndex
     QMap<int, ClipModel*> updatedClipModels;
     for (auto it = m_clipModels.constBegin(); it != m_clipModels.constEnd(); ++it) {
         int oldIndex = it.key();
@@ -158,7 +155,6 @@ void TrackModel::deleteTrack(int trackIndex)
     endRemoveRows();
     emit countChanged();
 
-    // Уведомляем QML об изменении всех дорожек
     if (m_rowCount > 0) {
         QModelIndex topLeft = createIndex(0, 0);
         QModelIndex bottomRight = createIndex(m_rowCount - 1, 0);
@@ -174,17 +170,12 @@ void TrackModel::refreshTrack(int trackIndex)
         return;
     }
 
-    // Удаляем существующий ClipModel для данной дорожки
     if (m_clipModels.contains(trackIndex)) {
         delete m_clipModels.take(trackIndex);
         qDebug() << "Deleted existing ClipModel for track" << trackIndex;
     }
-
-    // Создаем новый ClipModel
     ensureClipModel(trackIndex);
     qDebug() << "Refreshed ClipModel for track" << trackIndex;
-
-    // Уведомляем QML об изменении данных для этой дорожки
     QModelIndex topLeft = index(trackIndex, 0);
     QModelIndex bottomRight = index(trackIndex, 0);
     emit dataChanged(topLeft, bottomRight, { TrackIndexRole, ClipsModelRole, TrackTypeRole });

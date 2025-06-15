@@ -7,20 +7,17 @@ import QtQuick.Dialogs
 
 Rectangle {
     id: topToolbar
-    width: parent ? parent.width : 1500 // Fallback width if no parent
+    width: parent ? parent.width : 1500 
     height: 48
     color: "#4C566A"
     radius: 8
     border.color: "white"
     border.width: 1
 
-    // Signals to communicate actions to the main window
     signal toggleSeparator()
     signal togglePianoRoll()
-    // Свойство для хранения имени файла для рендеринга
     property string renderFileName: ""
-
-    // Добавляем диалоговые окна для загрузки и сохранения
+    
     FileDialog {
         id: loadDialog
         title: "Загрузить проект"
@@ -29,13 +26,12 @@ Rectangle {
         currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"       
         onAccepted: {
             var filePath = loadDialog.selectedFile.toString()
-            // Удаляем префикс "file:///" если он есть
             if (filePath.startsWith("file:///")) {
                 filePath = filePath.substring(8)
             }
             console.log("Загрузка проекта из:", filePath)
             viewModel.OpenProject(filePath)     
-            viewModel.setCurrentProjectPath(filePath); // Обновляем путь
+            viewModel.setCurrentProjectPath(filePath);
         }
         onRejected: {
             console.log("Диалог загрузки отменен")
@@ -48,16 +44,15 @@ Rectangle {
         nameFilters: ["ltproj файлы (*.ltproj)"]
         fileMode: FileDialog.SaveFile
         currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Saves"
-        defaultSuffix: "ltproj" // Автоматически добавляет расширение .ltproj
+        defaultSuffix: "ltproj"
         onAccepted: {
             var filePath = saveDialog.selectedFile.toString()
-            // Удаляем префикс "file:///" если он есть
             if (filePath.startsWith("file:///")) {
                 filePath = filePath.substring(8)
             }
             console.log("Сохранение проекта в:", filePath)
             viewModel.SaveProject(filePath)
-            viewModel.setCurrentProjectPath(filePath); // Обновляем путь
+            viewModel.setCurrentProjectPath(filePath);
         }
         onRejected: {
             console.log("Диалог сохранения отменен")
@@ -70,19 +65,17 @@ Rectangle {
         nameFilters: ["WAV файлы (*.wav)", "MP3 файлы (*.mp3)", "Все файлы (*)", "AIFF файлы (*.aiff)"]
         fileMode: FileDialog.SaveFile
         currentFolder: "file:///" + viewModel.applicationHomeFolder() + "/Result"
-        defaultSuffix: "wav" // По умолчанию сохраняем как .wav
+        defaultSuffix: "wav"
         onAccepted: {
             var filePath = renderDialog.selectedFile.toString()
             if (filePath.startsWith("file:///")) {
                 filePath = filePath.substring(8)
             }
-            // Извлекаем имя файла из пути
             var fileName = filePath.split('/').pop()
             topToolbar.renderFileName = fileName
             console.log("Рендеринг проекта в:", filePath)
             renderProgressPopup.open()
             viewModel.RenderToWave(filePath)
-             // Открываем прогресс-бар
         }
         onRejected: {
             console.log("Диалог рендеринга отменен")
@@ -93,7 +86,8 @@ Rectangle {
         spacing: 10
         Row {
             spacing: 0
-            leftPadding: 10  // Небольшой отступ слева для всего Row
+            leftPadding: 10
+
             //Кнопка "файл"
             ToolButton {
                 id: fileButton
@@ -126,7 +120,7 @@ Rectangle {
                     MenuItem {
                         text: "Открыть проект..."                                
                         onTriggered: {
-                            loadDialog.open() // Открываем диалог загрузки
+                            loadDialog.open()
                         }
                     }
 
@@ -146,7 +140,7 @@ Rectangle {
                     MenuItem {
                         text: "Сохранить как..."                                
                         onTriggered: {
-                            saveDialog.open() // Открываем диалог сохранения
+                            saveDialog.open() 
                         }
                     }
 
@@ -154,7 +148,7 @@ Rectangle {
                     MenuItem {
                         text: "Рендер..."                                
                         onTriggered: {
-                            renderDialog.open() // Открываем диалог рендеринга
+                            renderDialog.open() 
                         }
                     }
 
@@ -191,9 +185,8 @@ Rectangle {
                         text: "Открыть справку"
                         hoverEnabled: true
                         onClicked: {
-                            // Формируем путь: "file:///[app_folder]/help.html"
                             var helpFilePath = "file:///" + viewModel.applicationHomeFolder() + "/help.html"
-                            console.log("Opening help file:", helpFilePath) // Для отладки
+                            console.log("Opening help file:", helpFilePath)
                             Qt.openUrlExternally(helpFilePath)
                         }
                     }
@@ -231,7 +224,7 @@ Rectangle {
                 }
             }
             Rectangle {
-                width: 1 // Явное расстояние между кнопками
+                width: 1
                 height: 50
                 color: "transparent"
             }
@@ -243,17 +236,16 @@ Rectangle {
                 id: centerRow
                 anchors.centerIn: parent
                 spacing: 10
-                // Переключатель Pattern/Song (добавлен слева от центрального ряда)
 
+                // Переключатель Pattern/Song (добавлен слева от центрального ряда)
                 TabBar {
                     id: modeTabBar
                     Material.accent: "transparent"
                     Material.background: "transparent"
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 10
-                    currentIndex: 1 // По умолчанию SONG
+                    currentIndex: 1
 
-                    // Вычисляемое свойство для проверки валидности индексов
                     readonly property bool isValidIndices: selectedTrackIndex >= 0 && selectedClipIndex >= 0
 
                     background: Rectangle {
@@ -265,7 +257,7 @@ Rectangle {
                         width: 35
                         height: 25
                         text: "CLIP"
-                        enabled: modeTabBar.isValidIndices // Отключаем, если индексы некорректны
+                        enabled: modeTabBar.isValidIndices
                         ToolTip.visible: hovered
                         ToolTip.delay: 500
                         ToolTip.text: modeTabBar.isValidIndices ? "Проигрывать только pattern" : "Выберите MIDI-клип для активации режима PAT"
@@ -280,13 +272,13 @@ Rectangle {
                             color: parent.checked ? "#8690FA" : (parent.hovered && parent.enabled ? "#D8DDFC" : "#CCD2FC")
                             border.color: "#8293FC"
                             border.width: 2
-                            opacity: parent.enabled ? 1.0 : 0.5 // Визуально показываем, что кнопка отключена
+                            opacity: parent.enabled ? 1.0 : 0.5
                         }
 
                         contentItem: Text {
                             text: parent.text
                             font: parent.font
-                            color: parent.checked ? "#FFFFFF" : (parent.enabled ? "#5153FF" : "#888888") // Серый текст для отключенной кнопки
+                            color: parent.checked ? "#FFFFFF" : (parent.enabled ? "#5153FF" : "#888888")
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             anchors.fill: parent
@@ -298,7 +290,7 @@ Rectangle {
                         width: 35
                         height: 25
                         text: "SONG"
-                        enabled: true // Кнопка SONG всегда активна
+                        enabled: true 
                         ToolTip.visible: hovered
                         ToolTip.delay: 500
                         ToolTip.text: "Проигрывать вместе с треками"
@@ -324,32 +316,30 @@ Rectangle {
                             anchors.fill: parent
                         }
                     }
-
-                    // Обработка смены вкладки
+                    
                     onCurrentIndexChanged: {
-                        if (currentIndex === 0) { // PAT
+                        if (currentIndex === 0) {
                             if (isValidIndices) {
                                 console.log("Switching to PAT mode: trackIndex=" + selectedTrackIndex + ", clipIndex=" + selectedClipIndex)
                                 viewModel.enableLoopMode(selectedTrackIndex, selectedClipIndex)
                             } else {
                                 console.log("Cannot switch to PAT mode: trackIndex or clipIndex is invalid")
-                                currentIndex = 1 // Возвращаемся к SONG
+                                currentIndex = 1
                                 ToolTip.show("Выберите MIDI-клип для активации режима PAT", 3000)
                             }
-                        } else { // SONG
+                        } else {
                             console.log("Switching to SONG mode")
                             viewModel.disableLoopMode()
                             
                         }
                     }
 
-                    // Реакция на изменение trackIndex или clipIndex
                     Connections {
                         target: modeTabBar
                         function onIsValidIndicesChanged() {
                             if (!isValidIndices && modeTabBar.currentIndex === 0) {
                                 console.log("Invalid indices detected, switching back to SONG mode")
-                                modeTabBar.currentIndex = 1 // Переключаемся на SONG, если индексы стали некорректными
+                                modeTabBar.currentIndex = 1 
                                 engine.DisableLoopMode()
                                 engine.PlayMix()
                                 ToolTip.show("MIDI-клип не выбран, режим PAT отключен", 3000)
@@ -359,8 +349,9 @@ Rectangle {
                 }
 
                 Row {
-                    anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку
+                    anchors.verticalCenter: parent.verticalCenter
                     spacing: 5
+
                     RoundButton {
                         id: playButton
                         width: 40
@@ -467,7 +458,7 @@ Rectangle {
                         width: 40
                         height: 40
                         radius: width / 2
-                        ToolTip.visible: addButton.hovered && !addMenu.visible // Скрываем ToolTip, если меню открыто
+                        ToolTip.visible: addButton.hovered && !addMenu.visible
                         ToolTip.delay: 500
                         ToolTip.text: "Добавить"
 
@@ -584,7 +575,7 @@ Rectangle {
         }
         Row {
             Layout.alignment: Qt.AlignRight
-            anchors.verticalCenter: parent.verticalCenter // Центрируем всю строку
+            anchors.verticalCenter: parent.verticalCenter 
             rightPadding: 20
             spacing: 0
 
@@ -630,7 +621,6 @@ Rectangle {
                 onClicked: {
                     pluginsButton.scale = 0.95
                     separatorVisible = !separatorVisible
-                    // Действие для кнопки плагинов
                 }
 
                 Behavior on scale {
@@ -650,30 +640,26 @@ Rectangle {
                 ToolTip.visible: hovered
                 ToolTip.delay: 500
                 ToolTip.text: "Piano Roll"
-                anchors.leftMargin: 2 // Уменьшенный отступ слева (было 10)
-
-                // Здесь нужно прописать условие для enabled
-                // Например: enabled: viewModel.isPianoRollAvailable
-                // enabled: false // Пример временного отключения
+                anchors.leftMargin: 2
 
                 background: Rectangle {
                     radius: parent.radius
                     color: {
                         if (!pianoRollButton.enabled) {
-                            return "#606060" // Темный цвет для недоступной кнопки
+                            return "#606060" 
                         } else if (pianoRollButton.hovered) {
-                            return "#d0d0d0" // Цвет при наведении для доступной кнопки
+                            return "#d0d0d0"
                         } else {
-                            return "transparent" // Обычный цвет
+                            return "transparent"
                         }
                     }
                     border.color: {
                         if (!pianoRollButton.enabled) {
-                            return "transparent" // Без рамки для недоступной
+                            return "transparent" 
                         } else if (pianoRollButton.hovered) {
-                            return "#a0a0a0" // Рамка при наведении
+                            return "#a0a0a0" 
                         } else {
-                            return "transparent" // Обычное состояние
+                            return "transparent"
                         }
                     }
                     border.width: 1
@@ -706,7 +692,7 @@ Rectangle {
                         pianoRollButton.scale = 0.95
                         mainWindow.pianoRollAutoOpen = !mainWindow.pianoRollAutoOpen
                         if (!mainWindow.pianoRollAutoOpen) {
-                            mainWindow.pianoRollVisible = false // Закрываем PianoView сразу                            
+                            mainWindow.pianoRollVisible = false                           
                         }
                     }
                 }
@@ -727,28 +713,26 @@ Rectangle {
                 ToolTip.visible: hovered
                 ToolTip.delay: 500
                 ToolTip.text: "Выбрать цвет дорожки"
-
-                // Привязываем enabled к separatorVisible
-                enabled: modeTabBar.isValidIndices // Кнопка активна только если separatorVisible == true
+                enabled: modeTabBar.isValidIndices
 
                 background: Rectangle {
                     radius: parent.radius
                     color: {
                         if (!colorButton.enabled) {
-                            return "#606060" // Серый цвет для отключённого состояния
+                            return "#606060" 
                         } else if (colorButton.hovered) {
-                            return "#d0d0d0" // Цвет при наведении
+                            return "#d0d0d0"
                         } else {
-                            return "transparent" // Обычный цвет
+                            return "transparent" 
                         }
                     }
                     border.color: {
                         if (!colorButton.enabled) {
-                            return "transparent" // Без обводки для отключённого состояния
+                            return "transparent" 
                         } else if (colorButton.hovered) {
-                            return "#ffffff" // Белая обводка при наведении
+                            return "#ffffff" 
                         } else {
-                            return "transparent" // Обычное состояние
+                            return "transparent" 
                         }
                     }
                     border.width: 2
@@ -764,7 +748,7 @@ Rectangle {
                     source: imagesPath + "color.png"
                     sourceSize.width: 24
                     sourceSize.height: 24
-                    opacity: colorButton.down ? 0.7 : (colorButton.enabled ? 1.0 : 0.5) // Прозрачность для отключённого состояния
+                    opacity: colorButton.down ? 0.7 : (colorButton.enabled ? 1.0 : 0.5) 
                     fillMode: Image.PreserveAspectFit
                     Behavior on opacity { NumberAnimation { duration: 100 } }
                 }
@@ -772,7 +756,7 @@ Rectangle {
 
                 onClicked: {
                     colorButton.scale = 0.95
-                    colorDialog.open() // Предполагаем, что colorDialog доступен (если ошибка сохраняется, используйте topToolbar.colorDialog)
+                    colorDialog.open() 
                 }
 
                 Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
@@ -784,22 +768,21 @@ Rectangle {
                 modality: Qt.WindowModal
                 onAccepted: {
                     colorButton.currentColor = selectedColor
-                    viewModel.changeColor(selectedTrackIndex, selectedClipIndex, selectedColor) // Оставляем changeColor, как в предоставленном коде
+                    viewModel.changeColor(selectedTrackIndex, selectedClipIndex, selectedColor) 
                     console.log("Color selected:", selectedColor, "for track:", selectedTrackIndex, "clip:", selectedClipIndex)
                 }
                 onRejected: {
                     console.log("Color selection canceled")
                 }
             }
-
-            // Отступ перед регулятором громкости
-            Rectangle { width: 15; height:15; color: "#4C566A"}  // Невидимый разделитель
+            
+            Rectangle { width: 15; height:15; color: "#4C566A"}
     
             Label { 
                 text: "BPM:" 
                 color: "white" 
                 anchors.verticalCenter: parent.verticalCenter 
-                rightPadding: 5  // Небольшой отступ перед прямоугольником
+                rightPadding: 5
             }
     
             Rectangle {
@@ -811,14 +794,12 @@ Rectangle {
                 border.color: "#555"
                 border.width: 1
                 anchors.verticalCenter: parent.verticalCenter
-
-                // Начальное значение 120
+                
                 property real bpmValue: viewModel.bpm || 120
                 onBpmValueChanged: {
                     if (bpmValue >= 60 && bpmValue <= 200) {
                         viewModel.setBpm(bpmValue)
                     } else {
-                        // Если пришло недопустимое значение, вернуть последнее корректное
                         bpmValue = Math.max(60, Math.min(200, bpmValue))
                     }
                 }
@@ -852,7 +833,6 @@ Rectangle {
                     function handleInput() {
                         var newValue = parseInt(text)
                         if (!isNaN(newValue)) {
-                            // Если введено недопустимое значение, вернуть последнее корректное
                             if (newValue < 60 || newValue > 200) {
                                 bpmInput.text = Math.round(bpmControl.bpmValue).toString()
                             } else {
@@ -891,16 +871,16 @@ Rectangle {
                     }
                 }                        
             }
-            // Отступ перед регулятором громкости
-            Rectangle { width: 15; height:15; color: "#4C566A"}  // Невидимый разделитель
-            Label { 
+
+            Rectangle { width: 15; height:15; color: "#4C566A"} 
+
+            Label {
                 text: "Vol:" 
                 color: "white" 
                 anchors.verticalCenter: parent.verticalCenter 
-                rightPadding: 5  // Небольшой отступ перед прямоугольником
+                rightPadding: 5
             }
-    
-            // Круговой регулятор громкости
+
             Dial {
                 id: volumeDial
                 width: 35
@@ -910,24 +890,18 @@ Rectangle {
                 value: viewModel.volume * 100
                 anchors.verticalCenter: parent.verticalCenter
                 onValueChanged: viewModel.setUserVolume(value / 100)
-                
-
                 handle: null
-
-                // Определяем углы для фиксированного закрашивания
-                readonly property real fixedStartAngle: 130  // начальный угол закрашивания
-                readonly property real fixedEndAngle: 270   // конечный угол закрашивания
-
-                // Обработка колесика мыши
+                
+                readonly property real fixedStartAngle: 130
+                readonly property real fixedEndAngle: 270
+                
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
                     onWheel: {
                         if (wheel.angleDelta.y > 0) {
-                            // Прокрутка вверх - увеличиваем значение
                             volumeDial.value = Math.min(volumeDial.to, volumeDial.value + 5);
                         } else {
-                            // Прокрутка вниз - уменьшаем значение
                             volumeDial.value = Math.max(volumeDial.from, volumeDial.value - 5);
                         }
                         wheel.accepted = true;
@@ -967,9 +941,7 @@ Rectangle {
                             centerY: volumeDial.height / 2
                             radiusX: volumeDial.width / 2 - 1
                             radiusY: volumeDial.height / 2 - 1
-                            // Фиксированный начальный угол (120°)
                             startAngle: volumeDial.fixedStartAngle
-                            // Закрашиваем до фиксированного конечного угла (270°)
                             sweepAngle: volumeDial.fixedEndAngle - volumeDial.fixedStartAngle+volumeDial.angle
                         }
                     }
@@ -979,12 +951,12 @@ Rectangle {
     } 
     Popup {
         id: renderProgressPopup
-        anchors.centerIn: Overlay.overlay // Центрируем по всему экрану
+        anchors.centerIn: Overlay.overlay
         width: 350
         height: 100
         modal: true
         focus: true
-        closePolicy: Popup.NoAutoClose // Не закрывать, пока рендеринг не завершится
+        closePolicy: Popup.NoAutoClose
 
         background: Rectangle {
             color: "#2E3440"
@@ -1027,7 +999,7 @@ Rectangle {
             }
         }
         onClosed: {
-            topToolbar.renderFileName = "" // Сбрасываем имя файла при закрытии
+            topToolbar.renderFileName = ""
         }
     }
     Popup {
@@ -1067,8 +1039,8 @@ Rectangle {
                     text: "ОК"
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
-                    width: 38 // Новая ширина
-                    height: 34 // Новая высота
+                    width: 38
+                    height: 34
                     font {
                         family: "Tahoma"
                         pixelSize: 10
@@ -1095,23 +1067,16 @@ Rectangle {
             }
         }
     }
-
-    // Обработка завершения рендеринга
+    
     Connections {
         target: viewModel
         function onRenderFinished(success, errorMessage) {
             renderProgressPopup.close()
             if (success) {
                 console.log("Рендеринг успешно завершен")
-                // Можно показать уведомление об успехе
-                // Например:
-                // showNotification("Рендеринг завершен!")
                 successDialog.open()
             } else {
                 console.log("Ошибка рендеринга:", errorMessage)
-                // Показать ошибку
-                // Например:
-                // showErrorDialog(errorMessage)
             }
         }
     }

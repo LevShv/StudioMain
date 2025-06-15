@@ -1,12 +1,12 @@
 #pragma once
 #include <QAbstractListModel>
 #include <QString>
-#include "Engine.h" // Предполагается, что ваш движок доступен
+#include "Engine.h" 
 #include "JuceHeader.h"
 struct PluginData {
-    int index;           // Индекс плагина
-    std::string name;    // Имя плагина
-    bool isPinned;       // Флаг закрепления
+    int index;           
+    std::string name;    
+    bool isPinned;       
     PluginData(int idx, const std::string& n, bool pinned = false)
         : index(idx), name(n), isPinned(pinned) {
     }
@@ -33,16 +33,11 @@ public:
         Bypass 
     };
 
-    // Реализация QAbstractListModel
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    // Обновление модели для конкретной дорожки
     Q_INVOKABLE void setTrackIndex(int trackIndex);
-
-    // Обновление данных модели
-
     int getTrackIndex() const { return currentTrackIndex; }
     void refresh();
 
@@ -55,14 +50,13 @@ signals:
     void pluginBypassed(int trackIndex, int pluginIndex);
     void trackIndexChanged();
     void pluginPinned(int trackIndex, int pluginIndex, bool isPinned);
-  //  void pluginEditorOpened(int trackIndex, int pluginIndex, QWindow* window);
 
 private:
     Engine& engine;
     double redlineStartTime = 0;
     int currentTrackIndex;
-    std::vector<PluginData> plugins; // Пара: индекс плагина и имя
+    std::vector<PluginData> plugins; 
     QMap<QPair<int, int>, juce::Component*> m_openPluginEditors;
-    QMap<int, std::vector<PluginData>> trackPluginData; // Хранит данные плагинов для каждой дорожки
+    QMap<int, std::vector<PluginData>> trackPluginData;
 };
 

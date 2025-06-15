@@ -21,15 +21,14 @@ std::string Engine::ClipBase::generateUniqueColor(const std::string& clipID) {
     std::hash<std::string> hasher;
     size_t hash = hasher(clipID);
     std::mt19937 gen(static_cast<unsigned int>(hash));
-    std::uniform_int_distribution<> hueDist(0, 360); // Оттенок в градусах
-    std::uniform_int_distribution<> satDist(50, 90); // Насыщенность (50-90%)
-    std::uniform_int_distribution<> valDist(70, 95); // Яркость (70-95%)
+    std::uniform_int_distribution<> hueDist(0, 360); 
+    std::uniform_int_distribution<> satDist(50, 90); 
+    std::uniform_int_distribution<> valDist(70, 95); 
 
     int hue = hueDist(gen);
-    int saturation = satDist(gen); // Достаточная насыщенность
-    int value = valDist(gen);     // Достаточная яркость
+    int saturation = satDist(gen); 
+    int value = valDist(gen);
 
-    // Преобразование HSV в RGB (используем простой алгоритм)
     float h = hue / 60.0f;
     int i = static_cast<int>(h);
     float f = h - i;
@@ -46,8 +45,6 @@ std::string Engine::ClipBase::generateUniqueColor(const std::string& clipID) {
     case 4: r = t; g = p; b = value / 100.0f; break;
     case 5: r = value / 100.0f; g = p; b = q; break;
     }
-
-    // Преобразование в шестнадцатеричный формат
     std::stringstream ss;
     ss << "#" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(r * 255)
         << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(g * 255)
@@ -71,7 +68,7 @@ bool Engine::ClipBase::isActiveInRange(double startTime, double endTime) const {
 
 Engine::CloneClip::CloneClip(ClipBase* master, double startBeats) {
     masterClip = master;
-    this->startBeats = startBeats; // Явно устанавливаем поле объекта
+    this->startBeats = startBeats;
     startTime = master->startTime;
     duration = master->duration;
     durationBeats = master->durationBeats;

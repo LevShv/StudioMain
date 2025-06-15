@@ -28,18 +28,13 @@ public:
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QVariant clipData(int trackIndex, int clipIndex, int role) const;
-
     QHash<int, QByteArray> roleNames() const override;
-
-    // Новый метод для создания ClipModel
     void ensureClipModel(int trackIndex);
     Q_INVOKABLE void update();
     void addTrack(QString type, int trackIndex);
 	void deleteTrack(int trackIndex);
 
     void refreshTrack(int trackIndex);
-   
-    // Const метод для получения ClipModel
     ClipModel* getClipModel(int trackIndex) const;
 
 
@@ -49,5 +44,5 @@ signals:
 private:
     Engine& m_engine;
     int m_rowCount = 0;
-    QMap<int, ClipModel*> m_clipModels; // Храним ClipModel для каждой дорожки
+    QMap<int, ClipModel*> m_clipModels; 
 };

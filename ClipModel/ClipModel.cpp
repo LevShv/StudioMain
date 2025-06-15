@@ -43,9 +43,9 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
         if (auto cloneClip = dynamic_cast<Engine::CloneClip*>(clip.get())) {
             if (dynamic_cast<Engine::AudioClip*>(cloneClip->masterClip))
                 return "audio";
-            return track.isSamplerTrack ? "sampler" : "midi"; // Проверяем isSamplerTrack
+            return track.isSamplerTrack ? "sampler" : "midi";
         }
-        return track.isSamplerTrack ? "sampler" : "midi"; // Проверяем isSamplerTrack для обычных клипов
+        return track.isSamplerTrack ? "sampler" : "midi";
     case FilePathRole:
         if (auto audioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
             return QString::fromUtf8(
@@ -87,14 +87,14 @@ QVariant ClipModel::data(const QModelIndex& index, int role) const {
                     return static_cast<int>(i);
                 }
             }
-            return -1; // Мастер-клип не найден
+            return -1;
         }
-        return -1; // Не клон
+        return -1;
     case Color: 
         if (auto* clipBase = dynamic_cast<Engine::ClipBase*>(clip.get())) {
             return QString::fromStdString(clipBase->color);
         }
-        return -1; // Не клон
+        return -1;
     
     default:
         return QVariant();
@@ -121,7 +121,6 @@ void ClipModel::addClip(const Engine::ClipPtr& clip) {
 
 void ClipModel::updateClip(int clipIndex)
 {
-    // Очищаем кэш для обновлённого клипа
     m_waveformDataCache.remove(clipIndex);
 
     const auto& tracks = m_engine.GetdataBase();
@@ -131,20 +130,17 @@ void ClipModel::updateClip(int clipIndex)
     }
 
     const auto& clip = tracks[m_trackIndex].clips[clipIndex];
-    std::string masterClipID = clip->clipID; // ID мастер-клипа
-
-    // Обновляем данные для мастер-клипа
+    std::string masterClipID = clip->clipID;
     {
         QModelIndex idx = createIndex(clipIndex, 0);
         emit dataChanged(idx, idx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole, WaveformDataRole, Color });
         qDebug() << "ClipModel::updateClip called for master clip at trackIndex:" << m_trackIndex << ", clipIndex:" << clipIndex;
     }
 
-    // Поиск и обновление данных для всех клонов в текущей дорожке
     for (int i = 0; i < tracks[m_trackIndex].clips.size(); ++i) {
-        if (i != clipIndex) { // Пропускаем сам мастер-клип
+        if (i != clipIndex) {
             const auto& otherClip = tracks[m_trackIndex].clips[i];
-            if (auto* cloneClip = dynamic_cast<Engine::CloneClip*>(otherClip.get())) { // Исправлен опечатка CloneClip
+            if (auto* cloneClip = dynamic_cast<Engine::CloneClip*>(otherClip.get())) {
                 if (cloneClip->masterClipID == masterClipID) {
                     QModelIndex cloneIdx = createIndex(i, 0);
                     emit dataChanged(cloneIdx, cloneIdx, { StartBeatsRole, DurationBeatsRole, ClipTypeRole, FilePathRole, WaveformDataRole, Color });
@@ -159,10 +155,8 @@ void ClipModel::setTrackIndex(int trackIndex)
 {
     if (m_trackIndex != trackIndex) {
         m_trackIndex = trackIndex;
-        m_waveformDataCache.clear(); // Очищаем кэш вейвформ
+        m_waveformDataCache.clear();
         qDebug() << "ClipModel trackIndex changed to:" << m_trackIndex;
-
-        // Уведомляем QML об изменении данных для всех клипов в этой дорожке
         if (rowCount() > 0) {
             QModelIndex topLeft = createIndex(0, 0);
             QModelIndex bottomRight = createIndex(rowCount() - 1, 0);
@@ -172,7 +166,7 @@ void ClipModel::setTrackIndex(int trackIndex)
 }
 
 void ClipModel::deleteClip(int clipIndex) {
-    m_waveformDataCache.remove(clipIndex); // Удаляем из кэша
+    m_waveformDataCache.remove(clipIndex);
     beginRemoveRows(QModelIndex(), clipIndex, clipIndex);
     endRemoveRows();
     qDebug() << "ClipModel deleted clip at index:" << clipIndex;
@@ -188,7 +182,6 @@ QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
     const auto& clip = tracks[m_trackIndex].clips[clipIndex];
     Engine::AudioClip* audioClip = nullptr;
 
-    // Проверяем, является ли клип AudioClip или CloneClip, ссылающимся на AudioClip
     if (auto directAudioClip = dynamic_cast<Engine::AudioClip*>(clip.get())) {
         audioClip = directAudioClip;
     }
@@ -197,7 +190,6 @@ QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
     }
 
     if (audioClip && !audioClip->waveformData.empty()) {
-        // Предопределённые ширины
         const std::vector<int> targetWidths = { 100, 200, 400, 800, 1600 };
         int targetWidth = targetWidths[0];
         int minDiff = std::abs(width - targetWidth);
@@ -227,7 +219,6 @@ QString ClipModel::getWaveformImage(int clipIndex, int width, int height) {
             return QUrl::fromLocalFile(filePath).toString();
         }
 
-        // Ограничиваем до 5 файлов
         QStringList existingFiles = projectDir.entryList(
             QStringList() << QString("waveform_%1_*.png").arg(QString::fromStdString(audioClip->clipID)),
             QDir::Files, QDir::Name

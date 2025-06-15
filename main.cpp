@@ -8,7 +8,7 @@
 
 #include <iostream>
 #include <windows.h>
-#include <QIcon> // Добавьте для QIcon
+#include <QIcon> 
 
 
 int main(int argc, char *argv[])
@@ -41,7 +41,6 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-   // ViewModel viewModel;
 	auto viewModel = new ViewModel(&app);
     engine.rootContext()->setContextProperty("viewModel", viewModel);
 

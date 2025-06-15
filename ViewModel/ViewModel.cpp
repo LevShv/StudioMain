@@ -6,7 +6,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 ViewModel::ViewModel(QObject* parent) : QObject(parent) {
-    m_currentProjectPath = ""; // Изначально путь пустой
+    m_currentProjectPath = "";
     m_trackModel = new TrackModel(engine, this);
     m_midiModel  = new MidiMessageModel(engine, this);
     m_pluginModel = new PluginModel(engine, this);
@@ -22,8 +22,6 @@ void ViewModel::buildModel() {
     m_playheadPosition = engine.Position();
     m_isPlaying = false;
     m_volume = 50;
-
-    // Уведомляем QML об изменениях
     emit bpmChanged();
     emit playheadPositionChanged(m_playheadPosition);
     emit isPlayingChanged();
@@ -37,7 +35,7 @@ void ViewModel::togglePlayback() {
     }
     else {
         engine.PlayMix();
-        m_playheadTimer->start(16); // ~60 FPS
+        m_playheadTimer->start(16);
     }
     m_isPlaying = engine.IsPlaying();
     emit isPlayingChanged();
@@ -66,9 +64,8 @@ void ViewModel::moveClip(size_t trackIdx, size_t clipIdx, double newStartTime) {
     engine.MoveClip(static_cast<int>(trackIdx), static_cast<int>(clipIdx), newStartTime);
     ClipModel* clipModel = m_trackModel->getClipModel(static_cast<int>(trackIdx));
     if (clipModel) {
-        clipModel->updateClip(static_cast<int>(clipIdx)); // Уведомляем ClipModel об изменении
+        clipModel->updateClip(static_cast<int>(clipIdx));
     }
-    // Синхронизируем позицию курсора в UI
     double newPlayheadPosition = engine.GetPlayheadPosition();
     if (std::abs(newPlayheadPosition - m_playheadPosition) > 0.001) {
         m_playheadPosition = newPlayheadPosition;
@@ -93,7 +90,7 @@ void ViewModel::addAudioClip(int trackIndex, const QString& filePath, double sta
     engine.AddAudioClip(trackIndex, filePath.toStdString(), startTime, true);
     ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
     if (clipModel) {
-        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
+        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back());
     }
     emit clipAdded(trackIndex);
 }
@@ -127,7 +124,7 @@ void ViewModel::AddCloneClip(int trackIndex, int masterClipIndex, double startBe
     engine.AddCloneClip(trackIndex, masterClipIndex, startBeats);
     ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
     if (clipModel) {
-        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
+        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back());
     }
     emit clipAdded(trackIndex);
 }
@@ -146,8 +143,6 @@ void ViewModel::deleteTrack(int trackIndex) {
         engine.DeleteTrack(trackIndex);
         m_trackModel->deleteTrack(trackIndex);
         qDebug() << "Deleted track at index:" << trackIndex;
-
-        // Возобновляем воспроизведение, если оно было активно
         if (wasPlaying && !engine.GetdataBase().empty()) {
             engine.PlayMix();
             m_playheadTimer->start(16);
@@ -198,8 +193,6 @@ void ViewModel::deleteClip(int trackIndex, int clipindex)
 
 void ViewModel::deleteClips(const QVariantList& clips) {
     qDebug() << "deleteClips called with" << clips.size() << "clips";
-
-    // Проверяем, проигрывается ли проект
     bool wasPlaying = isPlaying();
     if (wasPlaying) {
         engine.StopMix();
@@ -208,8 +201,6 @@ void ViewModel::deleteClips(const QVariantList& clips) {
         emit isPlayingChanged();
         qDebug() << "Stopped playback before deleting clips";
     }
-
-    // Группируем клипы по trackIndex для оптимизации
     QMap<int, QList<int>> clipsByTrack;
     for (const QVariant& clipVar : clips) {
         QVariantMap clipMap = clipVar.toMap();
@@ -217,8 +208,6 @@ void ViewModel::deleteClips(const QVariantList& clips) {
         int clipIndex = clipMap["clipIndex"].toInt();
         clipsByTrack[trackIndex].append(clipIndex);
     }
-
-    // Обрабатываем каждый трек
     for (auto it = clipsByTrack.constBegin(); it != clipsByTrack.constEnd(); ++it) {
         int trackIndex = it.key();
         QList<int> clipIndices = it.value();
@@ -227,8 +216,6 @@ void ViewModel::deleteClips(const QVariantList& clips) {
             qWarning() << "Invalid track index for clip deletion:" << trackIndex;
             continue;
         }
-
-        // Сортируем индексы клипов в обратном порядке, чтобы избежать проблем со сдвигом
         std::sort(clipIndices.begin(), clipIndices.end(), std::greater<int>());
 
         ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
@@ -236,8 +223,6 @@ void ViewModel::deleteClips(const QVariantList& clips) {
             qWarning() << "No ClipModel found for track:" << trackIndex;
             continue;
         }
-
-        // Удаляем клипы
         for (int clipIndex : clipIndices) {
             if (clipIndex < 0 || clipIndex >= engine.GetdataBase()[trackIndex].clips.size()) {
                 qWarning() << "Invalid clip index for deletion: trackIndex=" << trackIndex << "clipIndex=" << clipIndex;
@@ -249,8 +234,6 @@ void ViewModel::deleteClips(const QVariantList& clips) {
             qDebug() << "Deleted clip: trackIndex=" << trackIndex << "clipIndex=" << clipIndex;
         }
     }
-
-    // Возобновляем воспроизведение, если оно было активно
     if (wasPlaying && !engine.GetdataBase().empty()) {
         engine.PlayMix();
         m_playheadTimer->start(16);
@@ -286,7 +269,6 @@ void ViewModel::setTrackGain(int trackIndex, float gain)
     }
 
     engine.SetTrackGain(trackIndex, gain);
-   // m_trackModel->update(); // Обновляем модель для синхронизации UI
     emit trackGainChanged(trackIndex, gain);
     qDebug() << "Track" << trackIndex << "gain set to" << gain;
 }
@@ -320,7 +302,7 @@ void ViewModel::SaveProject(QString path)
 {
     const std::string pathStr = path.toStdString();
     engine.SaveProject(pathStr);
-    setCurrentProjectPath(path); // Обновляем путь
+    setCurrentProjectPath(path);
     qDebug() << "Save Proj to file:" << path;
 }
 
@@ -332,7 +314,7 @@ void ViewModel::OpenProject(QString path)
     if (engine.LoadProject(pathStr)) {
         buildModel();
         m_trackModel->update();
-        setCurrentProjectPath(path); // Обновляем путь
+        setCurrentProjectPath(path);
         qDebug() << "File finnaly opened" << path;
     }
     
@@ -348,27 +330,21 @@ void ViewModel::createNewProject()
         emit isPlayingChanged();
         qDebug() << "Stopped playback for new project creation";
     }
-
-    // Создаём новый проект
     engine.CreateNewProject();
 
-    // Обновляем модели
     buildModel();
-    m_trackModel->update(); // Обновляем модель треков
-    m_midiModel->refresh(); // Используем refresh вместо update
-    m_pluginModel->refresh(); // Используем refresh вместо update
+    m_trackModel->update(); 
+    m_midiModel->refresh(); 
+    m_pluginModel->refresh();
 
-    // Сбрасываем позицию курсора и BPM в UI
     m_playheadPosition = 0.0;
     m_bpm = engine.GetBPM();
     emit playheadPositionChanged(m_playheadPosition);
     emit bpmChanged();
-    setCurrentProjectPath(""); // Сбрасываем путь
-    // Сбрасываем текущие индексы в MidiMessageModel для предотвращения ошибок
+    setCurrentProjectPath("");
     m_midiModel->setTrackIndex(-1);
     m_midiModel->setClipIndex(-1);
 
-    // Убедимся, что UI переключен в SONG mode
     qDebug() << "New project created, UI updated: bpm=" << m_bpm << ", playheadPosition=" << m_playheadPosition;
 }
 
@@ -389,7 +365,7 @@ void ViewModel::changeClipDuration(int trackIndex, int clipIndex, double newDura
 
     ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
     if (clipModel) {
-        clipModel->updateClip(clipIndex); // Уведомляем ClipModel об изменении
+        clipModel->updateClip(clipIndex);
     }
 
     emit clipDurationChanged(trackIndex, clipIndex, newDuration);
@@ -400,11 +376,10 @@ void ViewModel::changeColor(int trackIndex, int clipIndex, const QColor& color)
 {
     std::string colorStr = color.name(QColor::HexRgb).toStdString();
 
-    // Вызываем метод engine.changeColor
     engine.ChangeColor(trackIndex, clipIndex, colorStr);
     ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
     if (clipModel) {
-        clipModel->updateClip(clipIndex); // Уведомляем ClipModel об изменении
+        clipModel->updateClip(clipIndex);
     }
     
 }
@@ -421,24 +396,20 @@ void ViewModel::copyMidiClip(int trackIndex, int clipIndex, double startTime)
 
     ClipModel* clipModel = m_trackModel->getClipModel(trackIndex);
     if (clipModel) {
-        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back()); // Уведомляем о новом клипе
+        clipModel->addClip(engine.GetdataBase()[trackIndex].clips.back());
     }
     emit clipAdded(trackIndex);
 }
 
 QString ViewModel::applicationHomeFolder() const
 {
-    // Получаем директорию, где находится исполняемый файл
     QString appDir = QCoreApplication::applicationDirPath();
 
-    // Формируем путь к HomeLeTo
     QString homePath = QDir::cleanPath(appDir + "/HomeLeTo");
 
-    // Проверяем существование папки
     QDir dir(homePath);
     if (!dir.exists()) {
         qWarning() << "HomeLeTo directory does not exist:" << homePath;
-        // Если папки нет, возвращаем рабочую директорию приложения
         return appDir;
     }
 
@@ -543,7 +514,6 @@ void ViewModel::prepareForExit() {
         emit isPlayingChanged();
         qDebug() << "Stopped playback before application exit";
     }
-    // Дополнительная очистка, если требуется
 }
 
 void ViewModel::updateRenderProgress(float progress) {
@@ -557,16 +527,12 @@ void ViewModel::updateRenderProgress(float progress) {
 void ViewModel::RenderToWave(QString path) {
     m_renderProgress = 0.0;
     emit renderProgressChanged();
-    //qDebug() << "Начало рендеринга в:" << path;
-
-    // Запускаем рендеринг в отдельном потоке
     QtConcurrent::run([this, path]() {
         std::string pathStr = path.toStdString();
         bool success = true;
         QString errorMessage;
 
         try {
-            // Callback для прогресса, безопасный для UI
             std::function<void(float)> progressCallback = [this](float progress) {
                 QMetaObject::invokeMethod(this, [this, progress]() {
                     updateRenderProgress(progress);
@@ -585,10 +551,8 @@ void ViewModel::RenderToWave(QString path) {
             errorMessage = "Ошибка рендеринга: Неизвестная ошибка";
             qWarning() << errorMessage;
         }
-
-        // Уведомляем UI о завершении
         QMetaObject::invokeMethod(this, [this, success, errorMessage]() {
             emit renderFinished(success, errorMessage);
             }, Qt::QueuedConnection);
-        }); // Точка с запятой после QtConcurrent::run
+        });
 }

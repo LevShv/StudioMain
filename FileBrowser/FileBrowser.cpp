@@ -47,8 +47,6 @@ QString FileBrowser::parentFolder() const
 Q_INVOKABLE void FileBrowser::openFile(const QString& filepath)
 {
     QString cleanPath = NormalizePath(filepath);
-
-    // Создаем URL - важно указать схему "file://"
     QUrl url;
     if (cleanPath.startsWith("/")) {
         url = QUrl::fromLocalFile(cleanPath);
@@ -65,7 +63,7 @@ Q_INVOKABLE void FileBrowser::openFile(const QString& filepath)
 
     QString localPath = url.toLocalFile();
     if (localPath.isEmpty()) {
-        localPath = cleanPath; // Используем исходный путь как fallback
+        localPath = cleanPath;
     }
 
     QFileInfo fileInfo(localPath);
@@ -89,7 +87,6 @@ bool FileBrowser::isDir(const QString& path) const
 
 QString FileBrowser::getFilePathForDrag(const QString& fileName) const
 {
-    // Используем currentFolder() вместо прямой работы с m_currentFolder
     QString fullPath = QDir::cleanPath(currentFolder() + QDir::separator() + fileName);
     return QUrl::fromLocalFile(fullPath).toString();
 }
@@ -112,7 +109,6 @@ Q_INVOKABLE void FileBrowser::viewClick(QString currentPath, QString obj)
 
 Q_INVOKABLE QString FileBrowser::NormalizePath(QString path)
 {
-    // Проверяем, соответствует ли путь уже ожидаемому формату
     if (IsPathNormalized(path)) {
         return path;
     }
@@ -126,8 +122,6 @@ Q_INVOKABLE QString FileBrowser::NormalizePath(QString path)
     cleanPath[0].toUpper();
 
     if (cleanPath[1] != ':') cleanPath.insert(1, ':');
-
-    // Заменяем слеши на бэкслеши для Windows
     cleanPath = QDir::toNativeSeparators(cleanPath);
 
     QDir dir(cleanPath);
@@ -142,21 +136,13 @@ Q_INVOKABLE QString FileBrowser::NormalizePath(QString path)
 
 bool FileBrowser::IsPathNormalized(const QString& path)
 {
-    // Проверяем, что путь уже в нормализованном формате:
-    // 1. Не содержит qrc:/ или file://
-    // 2. Начинается с буквы диска (например, "C:")
-    // 3. Использует правильные разделители для текущей ОС
 
     if (path.contains("qrc:/") || path.contains("file://")) {
         return false;
     }
-
-    // Проверка формата буква диска + двоеточие
     if (path.length() < 2 || !path[0].isLetter() || path[1] != ':' ) {
         return false;
     }
-
-    // Проверка разделителей
     QString nativeSeparator = QDir::separator();
     QString oppositeSeparator = (nativeSeparator == "/") ? "\\" : "/";
 
@@ -166,20 +152,16 @@ bool FileBrowser::IsPathNormalized(const QString& path)
 
     return true;
 }
-// filebrowser.cpp
+
 QString FileBrowser::applicationHomeFolder() const
 {
-    // Получаем директорию, где находится исполняемый файл
     QString appDir = QCoreApplication::applicationDirPath();
 
-    // Формируем путь к HomeLeTo
     QString homePath = QDir::cleanPath(appDir + "/HomeLeTo");
 
-    // Проверяем существование папки
     QDir dir(homePath);
     if (!dir.exists()) {
         qWarning() << "HomeLeTo directory does not exist:" << homePath;
-        // Если папки нет, возвращаем рабочую директорию приложения
         return appDir;
     }
 

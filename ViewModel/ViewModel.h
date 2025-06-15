@@ -2,11 +2,11 @@
 #pragma once
 #include <log.h>
 #include <QObject>
-#include "engine.h" // Предполагается, что у вас есть этот файл
+#include "engine.h"
 #include "TrackModel.h"
 #include <QTimer>
 #include <QWindow>
-#include "MidiMessageModel.h" // Добавляем для MidiMessageModel
+#include "MidiMessageModel.h"
 #include "PluginModel.h"
 
 class ViewModel : public QObject {
@@ -16,7 +16,7 @@ class ViewModel : public QObject {
         Q_PROPERTY(int masterGain READ getMasterGain WRITE setMasterGain NOTIFY gainChanged)
         Q_PROPERTY(double playheadPosition READ playheadPosition NOTIFY playheadPositionChanged)
         Q_PROPERTY(TrackModel* trackModel READ trackModel CONSTANT)
-        Q_PROPERTY(MidiMessageModel* midiModel READ midiModel CONSTANT) // Свойство для midiModel
+        Q_PROPERTY(MidiMessageModel* midiModel READ midiModel CONSTANT)
         Q_PROPERTY(PluginModel* pluginModel READ pluginModel CONSTANT)
         Q_PROPERTY(QString currentProjectPath READ currentProjectPath WRITE setCurrentProjectPath NOTIFY currentProjectPathChanged)
         Q_PROPERTY(float renderProgress READ renderProgress NOTIFY renderProgressChanged)
@@ -27,8 +27,8 @@ public:
     double playheadPosition() const { return m_playheadPosition; }
 
     TrackModel* trackModel() const { return m_trackModel; }
-    MidiMessageModel* midiModel() const { return m_midiModel; } // Геттер для midiModel
-    Engine* getEngine() { return &engine; } // Оставляем для других случаев
+    MidiMessageModel* midiModel() const { return m_midiModel; }
+    Engine* getEngine() { return &engine; }
     PluginModel* pluginModel() const { return m_pluginModel; }
     float renderProgress() const { return m_renderProgress; }
 
@@ -49,11 +49,11 @@ public:
 
     Q_INVOKABLE void moveClip(size_t trackIdx, size_t clipIdx, double newStartTime);
     Q_INVOKABLE void deleteClip(int trackIndex, int clipindex);
-    Q_INVOKABLE void deleteClips(const QVariantList& clips); // Новый метод
+    Q_INVOKABLE void deleteClips(const QVariantList& clips); 
     Q_INVOKABLE void addAudioClip(int trackIndex, const QString& filePath, double startTime);
     Q_INVOKABLE void addMidiClip(int trackIndex, double startTime);
     Q_INVOKABLE void AddCloneClip(int trackIndex, int masterClipIndex, double startBeats);
-    Q_INVOKABLE void changeClipDuration(int trackIndex, int clipIndex, double newDuration); // Новый метод
+    Q_INVOKABLE void changeClipDuration(int trackIndex, int clipIndex, double newDuration);
     Q_INVOKABLE void changeColor(int trackIndex, int clipIndex, const QColor& color);
     Q_INVOKABLE void copyMidiClip(int trackIndex, int clipIndex, double startTime);
 
@@ -94,7 +94,7 @@ signals:
     void trackGainChanged(int trackIndex, float gain); 
     void trackAdded(int trackIndex); 
     void clipDurationChanged(int trackIndex,int clipIndex, double newDuration);
-    void renderProgressChanged(); // New signal
+    void renderProgressChanged();
     void renderFinished(bool success, QString errorMessage);
 
     
@@ -111,7 +111,7 @@ private:
     PluginModel* m_pluginModel;
 
 
-	double m_bpm = 120.0; // Инициализация BPM
+	double m_bpm = 120.0;
     double m_playheadPosition = engine.Position();
     bool m_isPlaying = false;
     int m_volume = 1;
@@ -119,13 +119,13 @@ private:
     int soloTrackInd = -1;
     float m_renderProgress = 0.0;
 
-	const std::string samplerPath = "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3"; // Укажите реальный путь к сэмплеру
+	const std::string samplerPath = "C:\\Users\\llvvv\\source\\repos\\Studio\\Plugins\\Just a Sample.vst3";
 
 	QTimer* m_playheadTimer;
    
 
     void buildModel();
     void stopDoplay(void (*func)(...));
-    QString m_currentProjectPath; // Путь к текущему файлу проекта
+    QString m_currentProjectPath;
 
 };

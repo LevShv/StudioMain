@@ -18,13 +18,11 @@ Rectangle {
     property int selectedTrackIndex: -1
 
     visible: panelVisible
-
-    // Main container
+    
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
-        // Fixed Label at the top (non-scrolling)
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
@@ -34,17 +32,17 @@ Rectangle {
             Label {
                 anchors.centerIn: parent
                 anchors.margins: 5
-                width: parent.width - 10 // Account for margins
+                width: parent.width - 10 
                 text: "Инструменты: Дорожка " + (selectedTrackIndex + 1)
                 color: "#ECEFF4"
                 font.pixelSize: 12
-                wrapMode: Text.WordWrap // Enable word wrapping
-                maximumLineCount: 2 // Limit to two lines
-                elide: Text.ElideRight // Elide if text still overflows
+                wrapMode: Text.WordWrap 
+                maximumLineCount: 2 
+                elide: Text.ElideRight 
                 horizontalAlignment: Text.AlignHCenter
             }
         }
-        // Прокручиваемая область для кнопок
+
         Flickable {
             id: buttonsFlickable
             Layout.fillWidth: true
@@ -53,33 +51,31 @@ Rectangle {
             contentHeight: buttonsColumn.implicitHeight
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            flickableDirection: Flickable.VerticalFlick // Только вертикальная прокрутка
+            flickableDirection: Flickable.VerticalFlick 
             
-
-            // Column для вертикального размещения контейнеров
+            
             Column {
                 id: buttonsColumn
                 width: separatorPanel.width
                 spacing: 10
-                leftPadding: 15 // Константный отступ слева
-                rightPadding: 15 // Константный отступ справа
+                leftPadding: 15 
+                rightPadding: 15 
                 topPadding: 0
 
                 Repeater {
                     model: viewModel.pluginModel
                     onCountChanged: console.log("Repeater count changed to:", count)
-
-                    // Контейнер для группы кнопок (FX контейнер)
+                    
                     Rectangle {
                         id: fxContainer
-                        width: parent.width - buttonsColumn.leftPadding - buttonsColumn.rightPadding // Заполняет ширину с учетом отступов
+                        width: parent.width - buttonsColumn.leftPadding - buttonsColumn.rightPadding 
                         height: 60
                         radius: 3
                         color: "#4C566A"
                         border.color: "#ECEFF4"
                         border.width: 1
 
-                        property bool isPinned: model.isPinned // Привязываем к значению из модели
+                        property bool isPinned: model.isPinned 
 
                         RoundButton {
                             id: pinButton
@@ -122,8 +118,7 @@ Rectangle {
                                 
                             }
                         }
-
-                        // Контекстное меню для удаления
+                        
                         MouseArea {
                             anchors.fill: parent
                             acceptedButtons: Qt.RightButton
@@ -170,13 +165,11 @@ Rectangle {
                                 }
                             }
                         }
-
-                        // Column для вертикального размещения Label и кнопок
+                        
                         Column {
                             anchors.fill: parent
                             spacing: 10
-
-                            // Label сверху
+                            
                             Text {
                                 id: fxLabel
                                 text: model.name || "FX " + (index + 1)
@@ -189,32 +182,29 @@ Rectangle {
                                 anchors.top: parent.top
                                 anchors.topMargin: 4
                             }
-
-                            // Row для кнопок внизу
                             Row {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.bottom: parent.bottom // Привязка к нижней части
-                                anchors.bottomMargin: 4 // Отступ от нижней границы
+                                anchors.bottom: parent.bottom 
+                                anchors.bottomMargin: 4 
                                 spacing: 4
                                 leftPadding: -4
-
-                                // Круглая кнопка Hide (слева)
+                                
                                 RoundButton {
                                     id: hideButton
                                     width: 30
                                     height: 30
                                     radius: width / 2
                                     anchors.verticalCenter: parent.verticalCenter
-                                    anchors.horizontalCenterOffset: -20 // Смещение влево для центрирования двух кнопок
+                                    anchors.horizontalCenterOffset: -20
                                     ToolTip.visible: hovered
                                     ToolTip.delay: 500
                                     ToolTip.text: "Обход плагина"
 
-                                    property bool isActive: true // Состояние кнопки (зеленый по умолчанию)
+                                    property bool isActive: true
 
                                     background: Rectangle {
                                         radius: parent.radius
-                                        color: hideButton.isActive ? "#2C4A2C" : "#4A2C2C" // Зеленый или красный
+                                        color: hideButton.isActive ? "#2C4A2C" : "#4A2C2C"
                                         border.color: hideButton.hovered ? "#a0a0a0" : "transparent"
                                         border.width: 1
                                         Behavior on color { ColorAnimation { duration: 100 } }
@@ -223,7 +213,7 @@ Rectangle {
 
                                     onClicked: {
                                         hideButton.scale = 0.95
-                                        isActive = !isActive // Переключение состояния
+                                        isActive = !isActive
                                         viewModel.pluginModel.togglePluginBypass(model.trackIndex, model.pluginIndex)
                                         console.log("Hide button clicked for plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex)
                                     }
@@ -233,7 +223,6 @@ Rectangle {
                                     }
                                 }
 
-                                // Прямоугольная AUDIO кнопка с надписью Open
                                 Button {
                                     id: audioButton
                                     property bool isOpen: false // Состояние кнопки
@@ -282,58 +271,12 @@ Rectangle {
                                         }
                                     }
                                 }
-
-                                // Круглая кнопка Hide2 (справа)
-                                /*RoundButton {
-                                    id: minusButton
-                                    width: 30
-                                    height: 30
-                                    radius: width / 2
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    ToolTip.visible: hovered
-                                    ToolTip.delay: 500
-                                    ToolTip.text: "Скрыть2"
-
-                                    background: Rectangle {
-                                        radius: parent.radius
-                                        color: minusButton.hovered ? "#d0d0d0" : "transparent"
-                                        border.color: minusButton.hovered ? "#a0a0a0" : "transparent"
-                                        border.width: 1
-                                        Behavior on color { ColorAnimation { duration: 100 } }
-                                        Behavior on border.color { ColorAnimation { duration: 100 } }
-                                    }
-
-                                    Image {
-                                        anchors.centerIn: parent
-                                        width: 18
-                                        height: 18
-                                        source: imagesPath + "minus.png"
-                                        sourceSize.width: 18
-                                        sourceSize.height: 18
-                                        opacity: minusButton.down ? 0.7 : 1.0
-                                        fillMode: Image.PreserveAspectFit
-                                        Behavior on opacity { NumberAnimation { duration: 100 } }
-                                    }
-
-                                    onClicked: {
-                                        minusButton.scale = 0.95
-                                        viewModel.pluginModel.HidePlugin(model.trackIndex, model.pluginIndex);
-                                        viewModel.pluginModel.refresh();
-                                        console.log("Hide2 button clicked for plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex)
-                                    }
-
-                                    Behavior on scale {
-                                        NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
-                                    }
-                                }*/
                             }
                         }
                     }
                 }
             }
         }
-
-        // Индикатор прокрутки (если контент не помещается)
         Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width

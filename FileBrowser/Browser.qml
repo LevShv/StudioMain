@@ -11,12 +11,9 @@ Item {
     property string selectedItem: ""
     property int selectedIndex: -2
     property string dragFilePath
-    property string currentFilter: "*" // Текущий фильтр файлов
+    property string currentFilter: "*"
     property var supportedFormats: ["*.mp3", "*.wav", "*.vst3","*.aiff" ]
-
     property string imagesPath: "file:///" + browser.applicationHomeFolder() + "/images/"
-
-    // Сигнал для передачи пути к файлу и координат отпускания
     signal fileDropped(string filePath, real globalX, real globalY)
 
     width: 200
@@ -58,8 +55,7 @@ Item {
             padding: 5
             spacing: 5
 
-            // 1. Кнопка назад
-            // 1. Кнопка назад с анимациями
+            // Кнопка назад
             RoundButton {
                 id: backButton
                 width: 30
@@ -112,7 +108,7 @@ Item {
                 }
             }
 
-            // 2. Кнопка домой с анимациями
+            // Кнопка домой с анимациями
             RoundButton {
                 id: homeButton
                 width: 30
@@ -165,7 +161,7 @@ Item {
                 }
             }
 
-            // 3. Кнопка фильтра с улучшенной индикацией и анимациями
+            // Кнопка фильтра
             RoundButton {
                 id: filterButton
                 width: 30
@@ -345,12 +341,12 @@ Item {
                 height: 30
                 visible: {
                     if (fileIsDir) {
-                        return true; // Всегда показываем папки
+                        return true;
                     } else {
                         if (root.currentFilter === "*") {
                             return isSupportedFile(fileName);
                         } else if (root.currentFilter === "") {
-                            return false; // В режиме "Только папки" не показываем файлы
+                            return false;
                         } else {
                             return fileName.toLowerCase().endsWith(root.currentFilter.substring(1));
                         }
@@ -373,17 +369,18 @@ Item {
                 Behavior on z { NumberAnimation { duration: 100 } }
 
                 property bool isPressed: false
+
                 transform: Scale {
                     origin.x: delegateItem.width/2
                     origin.y: delegateItem.height/2
                     xScale: isPressed ? 0.95 : 1.0
                     yScale: isPressed ? 0.95 : 1.0
                 }
+
                 Behavior on isPressed {
                     NumberAnimation { duration: 80; easing.type: Easing.OutQuad }
                 }
 
-                // Иконка элемента
                 Image {
                     id: icon
                     anchors.left: parent.left
@@ -401,7 +398,6 @@ Item {
                     sourceSize.height: 16
                 }
 
-                // Название файла
                 Text {
                     id: nameText
                     anchors {
@@ -417,16 +413,14 @@ Item {
                 }
 
                 // Элемент для перетаскивания
-                // Элемент для перетаскивания
                 Rectangle {
                     id: dragItem
-                    width: Math.min(150, dragText.implicitWidth + 20)  // Автоподбор ширины с ограничением
-                    height: dragText.implicitHeight + 10  // Автоподбор высоты
-                    visible: false  // Убираем визуальное отображение
-                    // Настройка перетаскивания
+                    width: Math.min(150, dragText.implicitWidth + 20)
+                    height: dragText.implicitHeight + 10 
+                    visible: false
                     Drag.active: dragArea.pressed && !fileIsDir
-                    Drag.mimeData: { "text/uri-list": "file:///" + root.dragFilePath } // MIME-данные для внешнего drop
-                    Drag.dragType: Drag.Automatic // Разрешить внешнее перетаскивание
+                    Drag.mimeData: { "text/uri-list": "file:///" + root.dragFilePath }
+                    Drag.dragType: Drag.Automatic
                     Drag.hotSpot.x: width / 2
                     Drag.hotSpot.y: height / 2
                 }
@@ -464,7 +458,6 @@ Item {
                         delegateItem.isPressed = false;
                         if (!fileIsDir && dragItem.visible) {
                             var globalPos = mapToItem(root.dragParent, mouse.x, mouse.y)
-                           // root.fileDropped(root.dragFilePath, globalPos.x, globalPos.y)
                             dragItem.visible = false
                             dragItem.parent = delegateItem
                             listView.interactive = true;
@@ -498,11 +491,11 @@ Item {
         showDotAndDotDot: false
         nameFilters: {
             if (root.currentFilter === "") {
-                return []; // Только папки
+                return [];
             } else if (root.currentFilter === "*") {
-                return root.supportedFormats; // Все поддерживаемые форматы
+                return root.supportedFormats;
             } else {
-                return [root.currentFilter]; // Конкретный фильтр
+                return [root.currentFilter];
             }
         }
     }
