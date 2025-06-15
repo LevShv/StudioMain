@@ -1166,7 +1166,7 @@ void Engine::Core::loadMidiClip(int trackIndex, const juce::MidiMessageSequence&
     }
 
     if (endTime == 0.0) {
-        newClip->durationBeats = 4.0; // Пустой клип: 4 бита
+        newClip->durationBeats = 8.0; // Пустой клип: 4 бита
         newClip->duration = beatsToSeconds(4.0);
     }
     else {
