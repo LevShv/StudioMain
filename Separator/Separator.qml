@@ -208,7 +208,7 @@ Rectangle {
                                     anchors.horizontalCenterOffset: -20 // Смещение влево для центрирования двух кнопок
                                     ToolTip.visible: hovered
                                     ToolTip.delay: 500
-                                    ToolTip.text: "Скрыть"
+                                    ToolTip.text: "Обход плагина"
 
                                     background: Rectangle {
                                         radius: parent.radius
@@ -233,6 +233,7 @@ Rectangle {
 
                                     onClicked: {
                                         hideButton.scale = 0.95
+                                        viewModel.pluginModel.togglePluginBypass(model.trackIndex, model.pluginIndex)
                                         console.log("Hide button clicked for plugin: trackIndex=", model.trackIndex, "pluginIndex=", model.pluginIndex)
                                     }
 
