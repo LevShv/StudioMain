@@ -18,19 +18,21 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
 
-	AllocConsole();
+	//Консоль
 
-	FILE* fDummy;
+	//AllocConsole();
 
-	if (freopen_s(&fDummy, "CONIN$", "r", stdin) != 0) {
-		std::cerr << "Ошибка перенаправления stdin!" << std::endl;
-	}
-	if (freopen_s(&fDummy, "CONOUT$", "w", stdout) != 0) {
-		std::cerr << "Ошибка перенаправления stdout!" << std::endl;
-	}
-	if (freopen_s(&fDummy, "CONOUT$", "w", stderr) != 0) {
-		std::cerr << "Ошибка перенаправления stderr!" << std::endl;
-	}
+	//FILE* fDummy;
+
+	//if (freopen_s(&fDummy, "CONIN$", "r", stdin) != 0) {
+	//	std::cerr << "Ошибка перенаправления stdin!" << std::endl;
+	//}
+	//if (freopen_s(&fDummy, "CONOUT$", "w", stdout) != 0) {
+	//	std::cerr << "Ошибка перенаправления stdout!" << std::endl;
+	//}
+	//if (freopen_s(&fDummy, "CONOUT$", "w", stderr) != 0) {
+	//	std::cerr << "Ошибка перенаправления stderr!" << std::endl;
+	//}
 	qDebug() << "Compile-time version:" << QT_VERSION_STR;
     QGuiApplication app(argc, argv);
 	
